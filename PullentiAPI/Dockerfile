@@ -13,11 +13,11 @@ RUN apt-get -y install nodejs
 
 FROM with-node AS build
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src/Pullenti.Core
+WORKDIR /src
 COPY .  PullentiAPI/
 RUN dotnet restore "./PullentiAPI/PullentiAPI.csproj"
 COPY . .
-WORKDIR "/src/PullentiAPI"
+WORKDIR "/src/Pullenti.Core/PullentiAPI"
 RUN dotnet build "./PullentiAPI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
