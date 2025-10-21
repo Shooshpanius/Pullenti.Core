@@ -13,7 +13,7 @@ RUN apt-get -y install nodejs
 
 FROM with-node AS build
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
+WORKDIR /src/Pullenti.Core
 COPY .  PullentiAPI/
 RUN dotnet restore "./PullentiAPI/PullentiAPI.csproj"
 COPY . .
