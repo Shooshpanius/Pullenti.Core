@@ -2,7 +2,7 @@
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
-
+EXPOSE 8081
 
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS with-node
@@ -17,7 +17,7 @@ WORKDIR /src
 COPY .  PullentiAPI/
 RUN dotnet restore "./PullentiAPI/PullentiAPI.csproj"
 COPY . .
-WORKDIR "/src/Pullenti.Core/PullentiAPI"
+WORKDIR "/src/PullentiAPI"
 RUN dotnet build "./PullentiAPI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
@@ -29,6 +29,7 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 ENTRYPOINT ["dotnet", "PullentiAPI.dll"]
+
 
 
 
