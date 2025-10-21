@@ -5,10 +5,15 @@ using Pullenti.Morph;
 using Pullenti.Ner;
 using Pullenti.Semantic;
 using System.Text.Json;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PullentiAPI.Controllers
 {
 
+    public class RequestData
+    {
+        public required string text { get; set; }
+    }
 
 
     [Route("api/[controller]")]
@@ -17,12 +22,13 @@ namespace PullentiAPI.Controllers
     {
 
 
+
         [HttpPost("getNer")]
         [Authorize(AuthenticationSchemes = "BasicAuthentication")]
 
-        public string getNerPOST([FromBody] string text)
+        public string getNerPOST([FromBody] RequestData requestData)
         {
-            Task<string> nerAsync = getNerAsync(text);
+            Task<string> nerAsync = getNerAsync(requestData.text);
             return nerAsync.Result;
         }
 
@@ -34,42 +40,15 @@ namespace PullentiAPI.Controllers
         {
             Pullenti.Sdk.InitializeAll();
 
-
-            // создаём экземпляр процессора со стандартными анализаторами
             Processor processor = ProcessorService.CreateProcessor();
 
-
-            //MorpholodyService
-            // запускаем на тексте text
-            //AnalysisResult result = processor.Process(new SourceOfAnalysis("Здесь Вы можете добавлять ссылки быстрого доступа"));
-
-            List<MorphToken> nerResult = MorphologyService.Process("Здесь Вы можете добавлять ссылки быстрого доступа");
+            List<MorphToken> nerResult = MorphologyService.Process(text);
 
             string nerJsonResult = JsonConvert.SerializeObject(nerResult);
             return nerJsonResult;
 
-            //// получили выделенные сущности
-            //foreach (Referent entity in result.Entities)
-            //{
-            //    Console.WriteLine(entity.ToString());
-            //}
-
-            //List<Referent> nerResult = result.Entities;
-            //string nerJsonResult = JsonSerializer.Serialize(nerResult);
-            //return nerJsonResult;
-
         }
 
-
-
-
-
     }
-
-
-
-
-
-
 
 }
