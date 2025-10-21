@@ -17,7 +17,7 @@ WORKDIR /src
 COPY .  PullentiAPI/
 RUN dotnet restore "./PullentiAPI/PullentiAPI.csproj"
 COPY . .
-WORKDIR "/src/PullentiAPI.Server"
+WORKDIR "/src/PullentiAPI"
 RUN dotnet build "./PullentiAPI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
