@@ -1,0 +1,10 @@
+{
+  "version": "3.0",
+  "defaultProvider": "filesystem",
+  "libraries": [
+    {
+      "library": "C:\\Users\\zaiaa\\source\\repos\\PullentiCSharp\\Pullenti\\bin\\Debug\\netcoreapp3.0",
+      "destination": "Properties/netcoreapp3/"
+    }
+  ]
+}
