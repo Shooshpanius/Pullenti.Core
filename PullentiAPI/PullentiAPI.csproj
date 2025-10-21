@@ -14,7 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Pullenti\Pullenti.Core.csproj" />
+    <Reference Include="Pullenti.Core">
+      <HintPath>..\Pullenti\bin\Release\netcoreapp3.0\Pullenti.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
