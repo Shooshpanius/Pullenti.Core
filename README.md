@@ -1,5 +1,19 @@
 # PullentiAPI
 
+<div align="center">
+
+[![GitHub Stars](https://img.shields.io/github/stars/Shooshpanius/Pullenti.Core?style=flat-square&logo=github&label=Stars&cacheSeconds=3600)](https://github.com/Shooshpanius/Pullenti.Core/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/Shooshpanius/Pullenti.Core?style=flat-square&logo=github&label=Forks&cacheSeconds=3600)](https://github.com/Shooshpanius/Pullenti.Core/forks)
+[![GitHub Issues](https://img.shields.io/github/issues/Shooshpanius/Pullenti.Core?style=flat-square&logo=github&label=Issues)](https://github.com/Shooshpanius/Pullenti.Core/issues)
+
+![.NET](https://img.shields.io/badge/.NET_8-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?style=flat-square&logo=csharp&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=flat-square&logo=swagger&logoColor=black)
+
+</div>
+
 REST API-сервис для морфологического анализа и распознавания именованных сущностей (NER) в русскоязычных текстах на основе библиотеки [Pullenti](https://pullenti.ru/).
 
 ---
