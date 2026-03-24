@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -546,7 +546,7 @@ namespace Pullenti.Ner.Person
                                 {
                                     sur0 = Pullenti.Morph.MorphologyService.GetWordform(sur, bi);
                                 }
-                                catch(Exception ex5093) 
+                                catch(Exception ex5204) 
                                 {
                                 }
                                 if (sur0 != null) 
@@ -1008,6 +1008,8 @@ namespace Pullenti.Ner.Person
                         pattr |= Pullenti.Ner.Person.Internal.PersonItemToken.ParseAttr.CanBeLatin;
                     if (attrs != null) 
                         pattr |= Pullenti.Ner.Person.Internal.PersonItemToken.ParseAttr.AfterAttribute;
+                    if (Pullenti.Ner.Core.MiscHelper.IsUserParamQuiry(t)) 
+                        pattr |= Pullenti.Ner.Person.Internal.PersonItemToken.ParseAttr.CanBeLower;
                     pits = Pullenti.Ner.Person.Internal.PersonItemToken.TryAttachList(t, pattr, 15);
                     if (pits != null && step == 0) 
                         t.InnerBool = true;
@@ -1064,7 +1066,7 @@ namespace Pullenti.Ner.Person
                                     {
                                         str0 = Pullenti.Morph.MorphologyService.GetWordform(str, bi);
                                     }
-                                    catch(Exception ex5104) 
+                                    catch(Exception ex5215) 
                                     {
                                     }
                                     pers.AddSlot(s.TypeName, str0, false, 0);
@@ -1100,7 +1102,7 @@ namespace Pullenti.Ner.Person
                                     {
                                         sur0 = Pullenti.Morph.MorphologyService.GetWordform(sur, bi);
                                     }
-                                    catch(Exception ex5108) 
+                                    catch(Exception ex5219) 
                                     {
                                     }
                                     if (sur0 != null) 
@@ -1270,7 +1272,7 @@ namespace Pullenti.Ner.Person
                     if ((pits.Count == 4 && pits[0].Firstname != null && pits[1].Firstname == null) && pits[2].Firstname != null && ((pits[3].Firstname == null || pits[3].Lastname != null))) 
                     {
                     }
-                    else if (pli0 != null && pli0.Count > 0 && pli0[0].Typ == Pullenti.Ner.Person.Internal.FioTemplateType.ArabicLong) 
+                    else if (pli0 != null && pli0.Count > 0 && ((pli0[0].Typ == Pullenti.Ner.Person.Internal.FioTemplateType.ArabicLong || pli0[0].IsNewlineAfter))) 
                     {
                     }
                     else 
@@ -1600,6 +1602,7 @@ namespace Pullenti.Ner.Person
                 Pullenti.Ner.Person.Internal.PersonIdToken.Initialize();
                 Pullenti.Ner.Core.Termin.AssignAllTextsAsNormal = false;
                 Pullenti.Ner.Mail.Internal.MailLine.Initialize();
+                Pullenti.Ner.Person.Internal.PersonNormalHelper.Initialize();
             }
             catch(Exception ex) 
             {

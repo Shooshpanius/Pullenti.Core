@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -23,6 +23,7 @@ namespace Pullenti.Ner.Instrument.Internal
             CitKind = rootKind;
             List<InstrToken1> lines = new List<InstrToken1>();
             List<InstrToken1> footnotes = new List<InstrToken1>();
+            InstrToken1 curFootnote = null;
             int directives = 0;
             int parts = 0;
             if (topDoc != null && topDoc.m_Doc != null) 
@@ -45,7 +46,7 @@ namespace Pullenti.Ner.Instrument.Internal
                 Pullenti.Ner.Decree.DecreePartReferent dpr = t.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
                 if (dpr != null && dpr.LocalTyp != null && (((dpr.Chapter != null || dpr.Clause != null || dpr.Section != null) || dpr.SubSection != null))) 
                     t = t.Kit.DebedToken(t);
-                if (lines.Count == 40) 
+                if (lines.Count == 38) 
                 {
                 }
                 InstrToken1 lt = InstrToken1.Parse(t, false, topDoc, 0, (lines.Count > 0 ? lines[lines.Count - 1] : null), isCitat && t == root.BeginToken, root.EndToken.EndChar, false, false);
@@ -65,13 +66,14 @@ namespace Pullenti.Ner.Instrument.Internal
                 }
                 if ((t.IsTableControlChar && DocTyp != Pullenti.Ner.Decree.DecreeKind.Contract && DocTyp != Pullenti.Ner.Decree.DecreeKind.Tz) && ((lt == null || lt.Typ != InstrToken1.Types.Subsection))) 
                 {
+                    curFootnote = null;
                     List<Pullenti.Ner.Core.TableRowToken> rows = Pullenti.Ner.Core.TableHelper.TryParseRows(t, 0, true, false);
                     if (rows != null) 
                         lt = new InstrToken1(t, rows[rows.Count - 1].EndToken) { Typ = InstrToken1.Types.Line };
                 }
                 if (lt == null) 
                     continue;
-                if (lt.Typ == InstrToken1.Types.Clause && lt.Numbers.Count == 1 && lt.Numbers[0] == "13") 
+                if (lt.Typ == InstrToken1.Types.Appendix) 
                 {
                 }
                 if (lt.NumTyp == NumberTypes.Digit && lt.Numbers.Count == 1 && lt.Numbers[0] == "30") 
@@ -99,6 +101,21 @@ namespace Pullenti.Ner.Instrument.Internal
                         lt.Typ = InstrToken1.Types.Subsection;
                     else if (rootKind == Pullenti.Ner.Instrument.InstrumentKind.DocPart) 
                         lt.Typ = InstrToken1.Types.DocPart;
+                }
+                if (curFootnote != null && lt.Typ != InstrToken1.Types.Editions) 
+                {
+                    if (lt.Typ != InstrToken1.Types.Line) 
+                        curFootnote = null;
+                    else if (lt.Numbers.Count > 0) 
+                        curFootnote = null;
+                    else if (lt.NewlinesBeforeCount > 1) 
+                    {
+                        if (curFootnote.EndToken.IsChar(':')) 
+                        {
+                        }
+                        else 
+                            curFootnote = null;
+                    }
                 }
                 if (lt.Typ == InstrToken1.Types.Clause && lt.FirstNumber == 103) 
                 {
@@ -128,9 +145,21 @@ namespace Pullenti.Ner.Instrument.Internal
                 if (lt.TypContainerRank > 0 && !lt.IsNumDoubt) 
                     parts++;
                 if (lt.Typ != InstrToken1.Types.Footnote) 
-                    lines.Add(lt);
+                {
+                    if (curFootnote == null) 
+                        lines.Add(lt);
+                    else 
+                    {
+                        if (curFootnote.SubItems == null) 
+                            curFootnote.SubItems = new List<InstrToken1>();
+                        curFootnote.SubItems.Add(lt);
+                    }
+                }
                 else 
+                {
                     footnotes.Add(lt);
+                    curFootnote = lt;
+                }
                 t = lt.EndToken;
             }
             ListHelper.CorrectIndex(lines);
@@ -180,7 +209,17 @@ namespace Pullenti.Ner.Instrument.Internal
                 {
                     FragToken fnn = new FragToken(fn.BeginToken, fn.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
                     NumberingHelper.CreateNumber(fnn, fn);
+                    fnn.CheckExpired();
                     root.Children.Add(fnn);
+                }
+            }
+            for (int i = 1; i < root.Children.Count; i++) 
+            {
+                FragToken ch = root.Children[i];
+                if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.Content && ch.Children.Count == 0 && root.Children[i - 1].EndChar >= ch.EndChar) 
+                {
+                    root.Children.RemoveAt(i);
+                    i--;
                 }
             }
         }
@@ -218,6 +257,20 @@ namespace Pullenti.Ner.Instrument.Internal
                 }
             }
         }
+        FragToken _createFootnote(InstrToken1 fn)
+        {
+            FragToken fnn = new FragToken(fn.BeginToken, fn.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
+            NumberingHelper.CreateNumber(fnn, fn);
+            fnn.CheckExpired();
+            if (fn.SubItems != null && fn.SubItems.Count > 0) 
+            {
+                if ((fn.EndChar - fn.NumEndToken.EndChar) > 4) 
+                    fnn.Children.Add(new FragToken(fn.NumEndToken.Next, fn.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Indention });
+                this._analizeContentWithoutContainers(fnn, fn.SubItems, true, false, false);
+                fnn.EndToken = fn.SubItems[fn.SubItems.Count - 1].EndToken;
+            }
+            return fnn;
+        }
         bool _addFootnote(FragToken root, InstrToken1 fn, bool notLast = false)
         {
             if (fn.BeginChar < root.BeginChar) 
@@ -233,8 +286,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     {
                         if (ch0.Kind == Pullenti.Ner.Instrument.InstrumentKind.Table || ch0.Kind == Pullenti.Ner.Instrument.InstrumentKind.Footnote || ch0.Kind == Pullenti.Ner.Instrument.InstrumentKind.Notice) 
                         {
-                            FragToken fnn = new FragToken(fn.BeginToken, fn.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
-                            NumberingHelper.CreateNumber(fnn, fn);
+                            FragToken fnn = this._createFootnote(fn);
                             root.Children.Insert(i + 1, fnn);
                             return true;
                         }
@@ -245,8 +297,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     FragToken ch1 = root.Children[i + 1];
                     if (fn.EndChar <= ch1.EndChar) 
                     {
-                        FragToken fnn = new FragToken(fn.BeginToken, fn.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
-                        NumberingHelper.CreateNumber(fnn, fn);
+                        FragToken fnn = this._createFootnote(fn);
                         if (fn.BeginChar > ch1.BeginChar) 
                         {
                             if (this._addFootnote(ch1, fn, true)) 
@@ -271,8 +322,7 @@ namespace Pullenti.Ner.Instrument.Internal
                 FragToken ch1 = root.Children[root.Children.Count - 1];
                 if (ch1.Kind == Pullenti.Ner.Instrument.InstrumentKind.Table || ch1.Kind == Pullenti.Ner.Instrument.InstrumentKind.Footnote || ch1.Kind == Pullenti.Ner.Instrument.InstrumentKind.Notice) 
                 {
-                    FragToken fnn = new FragToken(fn.BeginToken, fn.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
-                    NumberingHelper.CreateNumber(fnn, fn);
+                    FragToken fnn = this._createFootnote(fn);
                     root.Children.Add(fnn);
                     return true;
                 }
@@ -283,8 +333,7 @@ namespace Pullenti.Ner.Instrument.Internal
             {
                 if (fn.BeginChar > root.EndChar && notLast) 
                 {
-                    FragToken fnn = new FragToken(fn.BeginToken, fn.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
-                    NumberingHelper.CreateNumber(fnn, fn);
+                    FragToken fnn = this._createFootnote(fn);
                     root.Children.Add(fnn);
                     return true;
                 }
@@ -581,7 +630,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     if (li.BeginToken != li.NumBeginToken && li.NumBeginToken != null) 
                         fr.Children.Add(new FragToken(li.BeginToken, li.NumBeginToken.Previous) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, DefVal2 = true, Itok = li });
                     NumberingHelper.CreateNumber(fr, li);
-                    if (fr.Kind == Pullenti.Ner.Instrument.InstrumentKind.Chapter && fr.Number == 7) 
+                    if (fr.Kind == Pullenti.Ner.Instrument.InstrumentKind.Clause && fr.Number == 33) 
                     {
                     }
                     if (li.NumEndToken != li.EndToken && li.NumEndToken != null && !li.IsExpired) 
@@ -659,6 +708,8 @@ namespace Pullenti.Ner.Instrument.Internal
                     if (li.EndToken.IsCharOf(";")) 
                         break;
                     if (li.BeginToken.IsTableControlChar) 
+                        break;
+                    if (lii.HasVerb) 
                         break;
                     if (li.EndToken.IsChar('.')) 
                     {
@@ -1164,21 +1215,46 @@ namespace Pullenti.Ner.Instrument.Internal
                             }
                             lines.RemoveRange(ii, lines2.Count);
                         }
-                        else if (ii == (lines.Count - 1)) 
+                        else 
                         {
-                            for (int j = ii; j < lines.Count; j++) 
+                            li = lines[ii];
+                            FragToken not = new FragToken(li.BeginToken, li.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Notice, Itok = li };
+                            notices.Add(not);
+                            if (li.NumBeginToken != null && li.BeginToken != li.NumBeginToken) 
+                                not.Children.Add(new FragToken(li.BeginToken, li.NumBeginToken.Previous) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, DefVal2 = true });
+                            if (li.Numbers.Count > 0) 
+                                NumberingHelper.CreateNumber(not, li);
+                            List<InstrToken1> li0 = new List<InstrToken1>();
+                            InstrToken1 num = null;
+                            for (int jj = ii + 1; jj < lines.Count; jj++) 
                             {
-                                li = lines[j];
-                                FragToken not = new FragToken(li.BeginToken, li.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Notice, Itok = li };
-                                notices.Add(not);
-                                if (li.NumBeginToken != null && li.BeginToken != li.NumBeginToken) 
-                                    not.Children.Add(new FragToken(li.BeginToken, li.NumBeginToken.Previous) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, DefVal2 = true });
-                                if (li.Numbers.Count > 0) 
-                                    NumberingHelper.CreateNumber(not, li);
-                                if (not.Children.Count > 0) 
-                                    not.Children.Add(new FragToken(li.NumEndToken ?? li.BeginToken, li.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Content, Itok = li });
+                                InstrToken1 li1 = lines[jj];
+                                if (li1.Typ == InstrToken1.Types.Notice) 
+                                    break;
+                                else if (li1.Cnum == null) 
+                                    li0.Add(li1);
+                                else 
+                                {
+                                    if (num == null) 
+                                    {
+                                        if (!li1.Cnum.IsOne) 
+                                            break;
+                                    }
+                                    else if (!num.CheckNext(li1, false)) 
+                                        break;
+                                    num = li1;
+                                    li0.Add(li1);
+                                }
                             }
-                            lines.RemoveRange(ii, lines.Count - ii);
+                            if (not.Children.Count > 0) 
+                                not.Children.Add(new FragToken(li.NumEndToken ?? li.BeginToken, li.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Content, Itok = li });
+                            if (li0.Count > 0) 
+                            {
+                                this._analizeContentWithoutContainers(not, li0, false, false, false);
+                                not.EndToken = li0[li0.Count - 1].EndToken;
+                            }
+                            lines.RemoveRange(ii, li0.Count + 1);
+                            ii--;
                         }
                     }
                 }
@@ -1278,7 +1354,7 @@ namespace Pullenti.Ner.Instrument.Internal
                                 NumberingHelper.CreateNumber(indItem, it1);
                                 indItem.Children.Add((nam = new FragToken(it1.NumEndToken.Next, it1.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, DefVal2 = true }));
                                 InstrToken1 it2 = InstrToken1.Parse(it1.EndToken.Next, true, null, 0, null, false, 0, false, true);
-                                if ((it2 != null && (it1.EndToken.Next is Pullenti.Ner.TextToken) && it2.Numbers.Count == 0) && it2.TitleTyp == InstrToken1.StdTitleType.Undefined && !it1.EndToken.Next.IsTableControlChar) 
+                                if (((it2 != null && it2.Typ != InstrToken1.Types.Appendix && (it1.EndToken.Next is Pullenti.Ner.TextToken)) && it2.Numbers.Count == 0 && it2.TitleTyp == InstrToken1.StdTitleType.Undefined) && !it1.EndToken.Next.IsTableControlChar) 
                                 {
                                     InstrToken1 it3 = InstrToken1.Parse(it2.EndToken.Next, true, null, 0, null, false, 0, false, true);
                                     if (it3 != null && it3.Numbers.Count > 0) 
@@ -1312,7 +1388,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     if (last != null && last.Kind == Pullenti.Ner.Instrument.InstrumentKind.Content) 
                         last.EndToken = li.EndToken;
                     else 
-                        root.Children.Add((last = new FragToken(li.BeginToken, li.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Content, Itok = li }));
+                        root.Children.Add((last = new FragToken(li.BeginToken, li.EndToken) { Kind = (root.Kind == Pullenti.Ner.Instrument.InstrumentKind.Footnote ? Pullenti.Ner.Instrument.InstrumentKind.Indention : Pullenti.Ner.Instrument.InstrumentKind.Content), Itok = li }));
                 }
                 if (!isPreamble) 
                 {
@@ -1381,9 +1457,39 @@ namespace Pullenti.Ner.Instrument.Internal
                 i = j - 1;
             }
             NumberingHelper.CorrectChildNumbers(root, root.Children);
-            root.Children.AddRange(notices);
             if (notices.Count > 0 && notices[notices.Count - 1].EndChar > root.EndChar) 
                 root.EndToken = notices[notices.Count - 1].EndToken;
+            _insertNotices(root, notices);
+            if (notices.Count > 0) 
+                root.Children.AddRange(notices);
+        }
+        static void _insertNotices(FragToken root, List<FragToken> notices)
+        {
+            if (root.Children.Count == 0 || notices.Count == 0) 
+                return;
+            if (root.Children.Count > 6) 
+            {
+            }
+            for (int ii = notices.Count - 1; ii >= 0; ii--) 
+            {
+                FragToken not = notices[ii];
+                for (int jj = 0; jj < (root.Children.Count - 1); jj++) 
+                {
+                    if ((root.Children[jj].EndChar < not.BeginChar) && (not.EndChar < root.Children[jj + 1].BeginChar)) 
+                    {
+                        root.Children.Insert(jj + 1, not);
+                        notices.RemoveAt(ii);
+                        break;
+                    }
+                }
+            }
+            if (notices.Count > 0) 
+            {
+                foreach (FragToken ch in root.Children) 
+                {
+                    _insertNotices(ch, notices);
+                }
+            }
         }
         static List<InstrToken1> _extractDirectiveSequence(List<InstrToken1> lines)
         {
@@ -1808,33 +1914,11 @@ namespace Pullenti.Ner.Instrument.Internal
                     ch.Name = nam.Value as string;
                 }
             }
-            Pullenti.Ner.Token tt = root.BeginToken;
-            if (root.Itok != null && root.Itok.NumEndToken != null) 
-                tt = root.Itok.NumEndToken.Next;
-            if (tt != null) 
+            if (parent != null && parent.IsExpired) 
             {
-                if (parent != null && parent.IsExpired) 
-                {
-                }
-                else 
-                {
-                    if (!tt.IsValue("УТРАТИТЬ", "ВТРАТИТИ")) 
-                    {
-                        Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                        if (npt != null) 
-                            tt = npt.EndToken.Next;
-                    }
-                    if ((tt != null && tt.IsValue("УТРАТИТЬ", "ВТРАТИТИ") && tt.Next != null) && tt.Next.IsValue("СИЛА", "ЧИННІСТЬ")) 
-                        root.IsExpired = true;
-                    else if (tt != null && tt.IsValue("ИСКЛЮЧИТЬ", null)) 
-                    {
-                        if (tt.IsNewlineAfter) 
-                            root.IsExpired = true;
-                        else if (tt.Next != null && ((tt.Next.IsHiphen || tt.Next.IsCharOf(".;")))) 
-                            root.IsExpired = true;
-                    }
-                }
             }
+            else 
+                root.CheckExpired();
             foreach (FragToken ch in root.Children) 
             {
                 this._correctNames(ch, root);
@@ -2096,7 +2180,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     continue;
                 else if (tt.IsTableControlChar) 
                     continue;
-                else if (!Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(tt.Next) && !tt.IsCharOf(":")) 
+                else if (!Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(tt.Next) && !tt.IsCharOf(":;.")) 
                 {
                     if ((tt.Next != null && tt.Next.IsChar('[') && tt.Next.Next != null) && tt.Next.Next.IsValue("КАРТИНКА", null)) 
                     {

@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -860,8 +860,13 @@ namespace Pullenti.Ner.Phone
                 ph.AddSlot(PhoneReferent.ATTR_ADDNUMBER, additional, true, 0);
             if (!isPhoneBefore && end.Next != null && !end.IsNewlineAfter) 
             {
-                if (end.Next.IsCharOf("+=") || end.Next.IsHiphen) 
+                if (end.Next.IsCharOf("+=")) 
                     return null;
+                if (end.Next.IsHiphen) 
+                {
+                    if (end.Next.Next is Pullenti.Ner.NumberToken) 
+                        return null;
+                }
             }
             if (countryCode != null && countryCode == "7") 
             {
@@ -880,6 +885,8 @@ namespace Pullenti.Ner.Phone
             Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(ph, pli[0].BeginToken, end);
             if (pli[0].ItemType == Pullenti.Ner.Phone.Internal.PhoneItemToken.PhoneItemType.Prefix && pli[0].EndToken.Next.IsTableControlChar) 
                 res.BeginToken = pli[1].BeginToken;
+            if (res.EndToken.Next != null && res.EndToken.Next.IsChar(')') && res.BeginToken.IsChar('(')) 
+                res.EndToken = res.EndToken.Next;
             return res;
         }
         PhoneReferent GetNextPhone(Pullenti.Ner.Token t, int lev)

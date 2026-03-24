@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -105,6 +105,11 @@ namespace Pullenti.Ner.Core
                 }
                 else if (((i + 1) < fir.Nums.Count) && ((i + 1) < sec.Nums.Count)) 
                 {
+                    if (m_Comp.Typ == ComplexNumCompareType.Equals) 
+                    {
+                        Rank *= m_Comp.Rank;
+                        continue;
+                    }
                     Typ = ComplexNumCompareType.Uncomparable;
                     Rank = 0;
                     break;

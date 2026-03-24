@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -89,6 +89,9 @@ namespace Pullenti.Ner.Geo.Internal
                         if (Pullenti.Ner.Address.Internal.AddressItemToken.CheckStreetAfter(li[0].BeginToken.Previous, false)) 
                         {
                         }
+                        else if (gee.ContainsType("административный округ") || gee.ContainsType("муниципальный округ")) 
+                        {
+                        }
                         else 
                         {
                             Pullenti.Ner.Geo.GeoReferent city = new Pullenti.Ner.Geo.GeoReferent();
@@ -157,7 +160,7 @@ namespace Pullenti.Ner.Geo.Internal
                             }
                         }
                     }
-                    catch(Exception ex1841) 
+                    catch(Exception ex1905) 
                     {
                     }
                 }
@@ -500,7 +503,7 @@ namespace Pullenti.Ner.Geo.Internal
                 oi = li[i1].OntoItem;
                 if (oi != null && !MiscLocationHelper.IsUserParamAddress(li[i1])) 
                     name = oi.CanonicText;
-                if (name.Length > 2 || oi.MiscAttr != null) 
+                if (name.Length > 2 || ((oi != null && oi.MiscAttr != null))) 
                 {
                     if (!li[1].Doubtful || ((oi != null && oi.MiscAttr != null))) 
                         ok = true;
@@ -513,12 +516,7 @@ namespace Pullenti.Ner.Geo.Internal
                         else if (li[1].EndToken.Next != null && (li[1].EndToken.Next.GetReferent() is Pullenti.Ner.Date.DateReferent)) 
                             ok = true;
                         else if ((li[1].WhitespacesBeforeCount < 2) && li[1].OntoItem != null) 
-                        {
-                            if (li[1].IsNewlineAfter) 
-                                ok = true;
-                            else 
-                                ok = true;
-                        }
+                            ok = true;
                     }
                     if (li[1].Doubtful && li[1].EndToken.Next != null && li[1].EndToken.Chars.Equals(li[1].EndToken.Next.Chars)) 
                         ok = false;
@@ -806,7 +804,7 @@ namespace Pullenti.Ner.Geo.Internal
                 if (Pullenti.Ner.Address.Internal.AddressItemToken.CheckHouseAfter(res.EndToken.Next, true, false)) 
                     return null;
             }
-            if (li[0].Typ == CityItemToken.ItemType.Noun && li[0].LengthChar == 1 && !(li[1].BeginToken is Pullenti.Ner.TextToken)) 
+            if ((li[0].Typ == CityItemToken.ItemType.Noun && li[0].LengthChar == 1 && !(li[1].BeginToken is Pullenti.Ner.TextToken)) && !li[0].BeginToken.IsValue("Д", null)) 
                 return null;
             if (city.FindSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_NAME, "МОСКВА", true) != null) 
             {
@@ -852,8 +850,6 @@ namespace Pullenti.Ner.Geo.Internal
                     if (geo.FindSlot("NAME", li[0].Value, true) == null) 
                         return null;
                     if (geo.FindSlot("TYPE", "город", true) != null) 
-                        return null;
-                    if (li.Count != 1) 
                         return null;
                     if (Pullenti.Ner.Address.Internal.AddressItemToken.CheckStreetAfter(li[0].BeginToken, false)) 
                         return null;
@@ -916,6 +912,8 @@ namespace Pullenti.Ner.Geo.Internal
                 ok = true;
             else if (li[0].Chars.IsLatinLetter && li[0].BeginToken.Previous != null && ((li[0].BeginToken.Previous.IsValue("IN", null) || li[0].BeginToken.Previous.IsValue("FROM", null)))) 
                 ok = true;
+            else if (li[0].IsNewlineAfter && MiscLocationHelper.IsUserParamAddress(li[0]) && ((li[0].IsWhitespaceBefore || li[0].BeginToken.Previous.IsComma))) 
+                ok = true;
             else 
             {
                 for (Pullenti.Ner.Token tt2 = li[0].EndToken.Next; tt2 != null; tt2 = tt2.Next) 
@@ -944,7 +942,7 @@ namespace Pullenti.Ner.Geo.Internal
                             List<Pullenti.Ner.Address.Internal.StreetItemToken> sits = Pullenti.Ner.Address.Internal.StreetItemToken.TryParseList(li[0].BeginToken, 10, null);
                             if (sits != null && sits.Count > 1) 
                             {
-                                Pullenti.Ner.Address.Internal.AddressItemToken ss = Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(sits, false, false, false, null);
+                                Pullenti.Ner.Address.Internal.AddressItemToken ss = Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(sits, false, false, false, null, false);
                                 if (ss != null) 
                                 {
                                     if ((sits.Count == 3 && sits[0].Typ == Pullenti.Ner.Address.Internal.StreetItemType.Name && sits[1].Typ == Pullenti.Ner.Address.Internal.StreetItemType.Number) && sits[2].Typ == Pullenti.Ner.Address.Internal.StreetItemType.Noun) 
@@ -952,7 +950,7 @@ namespace Pullenti.Ner.Geo.Internal
                                     else 
                                     {
                                         sits.RemoveAt(0);
-                                        if (Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(sits, false, false, false, null) == null) 
+                                        if (Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(sits, false, false, false, null, false) == null) 
                                             ok = false;
                                     }
                                 }
@@ -1009,7 +1007,7 @@ namespace Pullenti.Ner.Geo.Internal
             }
             if (!ok && !always) 
             {
-                if (oi != null && MiscLocationHelper.IsUserParamAddress(li[0])) 
+                if (oi != null && ((MiscLocationHelper.IsUserParamAddress(li[0]) || MiscLocationHelper.IsUserParamQuiry(li[0])))) 
                 {
                     if (!li[0].IsNewlineBefore) 
                     {

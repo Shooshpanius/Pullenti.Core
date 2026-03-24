@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -31,6 +31,21 @@ namespace Pullenti.Ner.Measure.Internal
         public List<UnitToken> Units = new List<UnitToken>();
         public NumbersWithUnitToken DivNum;
         public bool IsAge;
+        public bool IsAllInteger
+        {
+            get
+            {
+                if (DivNum != null) 
+                    return false;
+                if (FromVal != null && ((int)FromVal.Value) != FromVal.Value) 
+                    return false;
+                if (ToVal != null && ((int)ToVal.Value) != ToVal.Value) 
+                    return false;
+                if (SingleVal != null && ((int)SingleVal.Value) != SingleVal.Value) 
+                    return false;
+                return true;
+            }
+        }
         public override string ToString()
         {
             return this.ToStringEx(false);
@@ -647,7 +662,7 @@ namespace Pullenti.Ner.Measure.Internal
                             if (mi.Class.IsAdjective) 
                                 return null;
                         }
-                        catch(Exception ex3118) 
+                        catch(Exception ex3202) 
                         {
                         }
                 }

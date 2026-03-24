@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -833,7 +833,7 @@ namespace Pullenti.Ner.Person.Internal
                         {
                             string v = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(tt as Pullenti.Ner.ReferentToken, Pullenti.Ner.Core.GetTextAttr.No);
                             adjs.Add(Pullenti.Ner.Core.MiscHelper.ConvertFirstCharUpperAndOtherLower(v));
-                            tt = (t2 = tt);
+                            t2 = tt;
                         }
                         else 
                         {
@@ -1648,7 +1648,7 @@ namespace Pullenti.Ner.Person.Internal
                     li1 = Pullenti.Morph.MorphologyService.GetAllWordforms(w1, null);
                     m_StdForms.Add(w1, li1);
                 }
-                catch(Exception ex4874) 
+                catch(Exception ex4971) 
                 {
                 }
             }
@@ -1666,7 +1666,7 @@ namespace Pullenti.Ner.Person.Internal
                         li2 = Pullenti.Morph.MorphologyService.GetAllWordforms(w2, null);
                         m_StdForms.Add(w2, li2);
                     }
-                    catch(Exception ex4875) 
+                    catch(Exception ex4972) 
                     {
                     }
                 }
@@ -1920,6 +1920,8 @@ namespace Pullenti.Ner.Person.Internal
             bool isDepart = false;
             for (Pullenti.Ner.Token t = t1.Next; t != null; t = t.Next) 
             {
+                if (t.IsTableControlChar) 
+                    break;
                 if (((attrs & PersonAttrAttachAttrs.OnlyKeyword)) != PersonAttrAttachAttrs.No) 
                     break;
                 if (((attrs & PersonAttrAttachAttrs.AfterZamestitel)) != PersonAttrAttachAttrs.No) 
@@ -1963,7 +1965,17 @@ namespace Pullenti.Ner.Person.Internal
                         if (m_Termins.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No) != null) 
                             break;
                         else 
+                        {
+                            if (t is Pullenti.Ner.TextToken) 
+                            {
+                                Pullenti.Ner.Core.NounPhraseToken npt00 = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                                if (npt00 != null && npt00.Morph.Case.IsNominative && !npt00.Morph.Case.IsGenitive) 
+                                    break;
+                                if (t.Morph.Case.IsNominative && !t.Morph.Case.IsGenitive) 
+                                    break;
+                            }
                             ok = true;
+                        }
                     }
                     if (t0.Previous != null && t0.Previous.IsChar('(')) 
                     {
@@ -2153,8 +2165,19 @@ namespace Pullenti.Ner.Person.Internal
                             {
                                 if (!te.Chars.IsLatinLetter) 
                                     break;
+                                Pullenti.Ner.Referent rr = te.GetReferent();
+                                if (rr != null) 
+                                {
+                                    if (rr.TypeName == ObjNameOrg || rr.TypeName == "GEO") 
+                                    {
+                                    }
+                                    else 
+                                        break;
+                                }
                                 t1 = (tname1 = (t = te));
                             }
+                            else if (te.IsTableControlChar || te.IsNewlineBefore) 
+                                break;
                         }
                         continue;
                     }

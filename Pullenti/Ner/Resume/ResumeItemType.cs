@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -15,6 +15,22 @@ namespace Pullenti.Ner.Resume
     public enum ResumeItemType : int
     {
         Undefined,
+        /// <summary>
+        /// Ссылка на персону
+        /// </summary>
+        Person,
+        /// <summary>
+        /// Ссылка на контактную информацию
+        /// </summary>
+        Contact,
+        /// <summary>
+        /// Ссылка на организацию и время работы
+        /// </summary>
+        Organization,
+        /// <summary>
+        /// Ссылка на место обучения и время
+        /// </summary>
+        Study,
         /// <summary>
         /// Искомая рабочая позиция
         /// </summary>
@@ -67,5 +83,9 @@ namespace Pullenti.Ner.Resume
         /// Хобби
         /// </summary>
         Hobby,
+        /// <summary>
+        /// Ссылка на документ (паспорт, например)
+        /// </summary>
+        Document,
     }
 }

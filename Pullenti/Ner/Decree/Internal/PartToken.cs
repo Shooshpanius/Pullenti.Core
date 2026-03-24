@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -25,6 +25,7 @@ namespace Pullenti.Ner.Decree.Internal
             DocPart,
             Subprogram,
             Appendix,
+            Appendix2,
             Section,
             SubSection,
             Chapter,
@@ -45,11 +46,13 @@ namespace Pullenti.Ner.Decree.Internal
             TableColumn,
             TableRow,
             TableItem,
+            TableSubItem,
             List,
             Sentence,
             Page,
             AddAgree,
             Name,
+            Freetext,
         }
 
         public ItemType Typ;
@@ -183,6 +186,12 @@ namespace Pullenti.Ner.Decree.Internal
                             continue;
                         }
                     }
+                    if (t.IsCharOf("ˡ¹²³")) 
+                    {
+                        Value = string.Format("{0}.{1}", Value, (t.IsCharOf("ˡ¹") ? "1" : (t.IsChar('²') ? "2" : "3")));
+                        EndToken = t;
+                        continue;
+                    }
                     if ((t.IsHiphen && !t.IsWhitespaceAfter && (t.Next is Pullenti.Ner.NumberToken)) && (t.Next as Pullenti.Ner.NumberToken).IntValue != null) 
                     {
                         PartValue pp = new PartValue(t.Next, t.Next) { Value = (t.Next as Pullenti.Ner.NumberToken).Value };
@@ -268,11 +277,12 @@ namespace Pullenti.Ner.Decree.Internal
         }
 
         public List<PartValue> Values = new List<PartValue>();
-        public string Name;
+        public Pullenti.Ner.MetaToken Name;
         public List<Pullenti.Ner.MetaToken> AddNames = null;
         public int Ind;
         public Pullenti.Ner.Decree.DecreeReferent Decree;
         public bool IsDoubt;
+        public bool IsConfidential;
         public bool DelimAfter;
         public bool HasTerminator;
         public Pullenti.Ner.TextToken AnaforRef;
@@ -286,15 +296,19 @@ namespace Pullenti.Ner.Decree.Internal
                 res.AppendFormat(" {0}", v);
             }
             if (Name != null) 
-                res.AppendFormat(" \"{0}\"", Name);
+                res.AppendFormat(" \"{0}\"", Name.GetSourceText());
             if (DelimAfter) 
                 res.Append(", DelimAfter");
             if (IsDoubt) 
                 res.Append(", Doubt");
             if (HasTerminator) 
                 res.Append(", Terminator");
+            if (IsConfidential) 
+                res.Append(", Confidential");
             if (AnaforRef != null) 
                 res.AppendFormat(", Ref='{0}'", AnaforRef.Term);
+            if (Decree != null) 
+                res.AppendFormat(", Decree={0}", Decree.ToString());
             return res.ToString();
         }
         public bool AddValue(int add)
@@ -312,6 +326,9 @@ namespace Pullenti.Ner.Decree.Internal
         {
             if (t == null) 
                 return null;
+            if (t.IsValue("ПРОТОКОЛ", null)) 
+            {
+            }
             PartToken res = null;
             if (t.Morph.Class.IsPersonalPronoun && (t.WhitespacesAfterCount < 2)) 
             {
@@ -321,6 +338,19 @@ namespace Pullenti.Ner.Decree.Internal
                     res.AnaforRef = t as Pullenti.Ner.TextToken;
                     res.BeginToken = t;
                     return res;
+                }
+            }
+            if (t.Kit.MiscData.ContainsKey("partAliases")) 
+            {
+                Pullenti.Ner.Core.TerminCollection partAliases = t.Kit.MiscData["partAliases"] as Pullenti.Ner.Core.TerminCollection;
+                Pullenti.Ner.Core.TerminToken atok = partAliases.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
+                if (atok != null) 
+                {
+                    Pullenti.Ner.Decree.DecreePartReferent dapp = atok.Termin.Tag as Pullenti.Ner.Decree.DecreePartReferent;
+                    PartToken app = new PartToken(t, atok.EndToken) { Typ = ItemType.Appendix, Morph = t.Morph.Clone() };
+                    if (dapp.Appendix != "0" && dapp.Appendix != null) 
+                        app.Values.Add(new PartValue(t, t) { Value = dapp.Appendix });
+                    return app;
                 }
             }
             Pullenti.Ner.TextToken tt = t as Pullenti.Ner.TextToken;
@@ -357,7 +387,7 @@ namespace Pullenti.Ner.Decree.Internal
                         ok1 = true;
                     else if (t11 != null) 
                     {
-                        DecreeChangeToken dcc = DecreeChangeToken.TryAttach(t11, null, false, null, false, false, null);
+                        DecreeChangeToken dcc = DecreeChangeToken.TryAttach(t11, null, false, null, false, false, null, false);
                         if (dcc != null) 
                         {
                             if (dcc.ChangeVal != null || dcc.ActKind != Pullenti.Ner.Decree.DecreeChangeKind.Undefined) 
@@ -373,9 +403,20 @@ namespace Pullenti.Ner.Decree.Internal
                     if (ok1 || inBracket) 
                     {
                         re.BeginToken = t;
+                        string pref = "";
+                        if (re.Typ == ItemType.TableRow && re.EndToken.Next != null) 
+                        {
+                            if (re.EndToken.Next.IsValue("СВЕРХУ", null)) 
+                                re.EndToken = re.EndToken.Next;
+                            else if (re.EndToken.Next.IsValue("СНИЗУ", null)) 
+                            {
+                                pref = "-";
+                                re.EndToken = re.EndToken.Next;
+                            }
+                        }
                         foreach (Pullenti.Ner.NumberToken n in nums) 
                         {
-                            re.Values.Add(new PartValue(n, n) { Value = n.Value });
+                            re.Values.Add(new PartValue(n, n) { Value = pref + n.Value });
                         }
                         return re;
                     }
@@ -476,7 +517,7 @@ namespace Pullenti.Ner.Decree.Internal
             res = _createPartTyp0(t1, prev);
             if (res != null) 
                 t1 = res.EndToken;
-            else if ((t1.IsValue("СИЛУ", null) || t1.IsValue("СОГЛАСНО", null) || t1.IsValue("СООТВЕТСТВИЕ", null)) || t1.IsValue("ПОЛОЖЕНИЕ", null)) 
+            else if ((t1.IsValue("СИЛУ", null) || t1.IsValue("СОГЛАСНО", null) || t1.IsValue("СООТВЕТСТВИЕ", null)) || ((t1.IsValue("ПОЛОЖЕНИЕ", null) && t1.Chars.IsAllLower))) 
             {
                 if (t1.IsValue("СИЛУ", null) && t1.Previous != null && t1.Previous.Morph.Class.IsVerb) 
                     return null;
@@ -502,6 +543,25 @@ namespace Pullenti.Ner.Decree.Internal
             }
             if (res == null) 
             {
+                bool oo = !t.Kit.MiscData.ContainsKey("APP_PART") && ((DecreeToken.IsKeyword(tt, true) != null || tt.IsValue("ПРОТОКОЛ", null) || tt.IsValue("ВЕДОМОСТЬ", null)));
+                if (oo) 
+                {
+                    t.Kit.MiscData.Add("APP_PART", true);
+                    Pullenti.Ner.ReferentToken rt1 = Pullenti.Ner.Decree.DecreeAnalyzer.TryAttachApproved(t1, null, null, null, true);
+                    t.Kit.MiscData.Remove("APP_PART");
+                    if (rt1 != null && rt1.Referent.FindSlot("TYPE", "ПРИЛОЖЕНИЕ", true) != null) 
+                    {
+                        Pullenti.Ner.Decree.DecreeReferent dr = rt1.Referent as Pullenti.Ner.Decree.DecreeReferent;
+                        PartToken p0 = new PartToken(tt, rt1.EndToken) { Typ = ItemType.Appendix };
+                        if (dr.Number != null) 
+                            p0.Values.Add(new PartValue(tt, tt) { Value = dr.Number });
+                        Pullenti.Ner.Slot sl = dr.FindSlot(Pullenti.Ner.Decree.DecreeReferent.ATTR_NAME, null, true);
+                        if (sl != null && sl.Occurrence.Count > 0) 
+                            p0.Name = sl.Occurrence[0].Tag as Pullenti.Ner.MetaToken;
+                        p0.Decree = dr.Owner;
+                        return p0;
+                    }
+                }
                 if ((t is Pullenti.Ner.TextToken) && !t.Chars.IsAllLower) 
                 {
                     bool ok = false;
@@ -528,7 +588,7 @@ namespace Pullenti.Ner.Decree.Internal
                                 PartToken res1 = TryAttach(ttt.Next, null, false, false);
                                 if (res1 != null && res1.EndToken.Next != null && res1.EndToken.Next.IsChar(')')) 
                                 {
-                                    res1.Name = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, ttt.Previous, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
+                                    res1.Name = new Pullenti.Ner.MetaToken(t, ttt.Previous);
                                     res1.BeginToken = t;
                                     res1.EndToken = res1.EndToken.Next;
                                     res1.Morph = t.Morph;
@@ -546,7 +606,7 @@ namespace Pullenti.Ner.Decree.Internal
                                 PartToken res1 = TryAttach(ttt.Next.Next, null, false, false);
                                 if (res1 != null && res1.Typ == ItemType.Appendix) 
                                 {
-                                    res1.Name = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, ttt.Previous, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
+                                    res1.Name = new Pullenti.Ner.MetaToken(t, ttt.Previous);
                                     res1.BeginToken = t;
                                     res1.Morph = t.Morph;
                                     return res1;
@@ -557,7 +617,7 @@ namespace Pullenti.Ner.Decree.Internal
                                 PartToken res1 = TryAttach(ttt, null, false, false);
                                 if (res1 != null && res1.Typ == ItemType.Appendix) 
                                 {
-                                    res1.Name = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, ttt.Previous, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
+                                    res1.Name = new Pullenti.Ner.MetaToken(t, ttt.Previous);
                                     res1.BeginToken = t;
                                     res1.Morph = t.Morph;
                                     return res1;
@@ -644,13 +704,12 @@ namespace Pullenti.Ner.Decree.Internal
             }
             if (t1 == null) 
                 return null;
-            res.EndToken = t1;
             bool and = false;
             Pullenti.Ner.NumberSpellingType ntyp = Pullenti.Ner.NumberSpellingType.Digit;
             Pullenti.Ner.Token tt1 = t1;
             while (t1 != null) 
             {
-                if (t1.WhitespacesBeforeCount > 15) 
+                if (t1.WhitespacesBeforeCount > 20) 
                     break;
                 if (t1 != tt1 && t1.IsNewlineBefore) 
                 {
@@ -688,9 +747,42 @@ namespace Pullenti.Ner.Decree.Internal
                 }
                 if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t1, false, false)) 
                 {
+                    if (res.Typ == ItemType.Sentence) 
+                        break;
                     Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1, Pullenti.Ner.Core.BracketParseAttr.No, 100);
                     if (br == null) 
                         break;
+                    bool ook = false;
+                    if (((res.Typ == ItemType.TableItem || res.Typ == ItemType.TableSubItem || ((res.Typ == ItemType.TableRow && !res.BeginToken.IsValue("СТРОКА", null))))) && !(t1.Next is Pullenti.Ner.NumberToken)) 
+                        ook = true;
+                    else if (res.Typ == ItemType.TableRow && res.BeginToken.IsValue("СТРОКА", null)) 
+                    {
+                        if (br.EndToken.Next != null && br.EndToken.Next.IsValue("ТАБЛИЦА", null)) 
+                            ook = true;
+                    }
+                    if (ook) 
+                    {
+                        PartValue pv0 = new PartValue(t1.Next, (br.EndToken is Pullenti.Ner.TextToken ? br.EndToken.Previous : br.EndToken));
+                        pv0.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(pv0, Pullenti.Ner.Core.GetTextAttr.KeepRegister);
+                        res.Values.Add(pv0);
+                        res.EndToken = br.EndToken;
+                        for (t = res.EndToken.Next; t != null; t = t.Next) 
+                        {
+                            if (!t.IsCommaAnd) 
+                                break;
+                            br = Pullenti.Ner.Core.BracketHelper.TryParse(t.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                            if (br == null) 
+                                break;
+                            pv0 = new PartValue(br.BeginToken.Next, br.EndToken.Previous);
+                            pv0.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(pv0, Pullenti.Ner.Core.GetTextAttr.KeepRegister);
+                            res.Values.Add(pv0);
+                            res.EndToken = br.EndToken;
+                            if (t.IsAnd) 
+                                break;
+                            t = br.EndToken;
+                        }
+                        return res;
+                    }
                     bool ok = true;
                     List<PartValue> newP = null;
                     for (Pullenti.Ner.Token ttt = t1.Next; ttt != null; ttt = ttt.Next) 
@@ -699,6 +791,8 @@ namespace Pullenti.Ner.Decree.Internal
                             break;
                         if (ttt.IsChar(',')) 
                             continue;
+                        if (ttt.IsChar('<') && (ttt.Next is Pullenti.Ner.NumberToken)) 
+                            ttt = ttt.Next;
                         if (ttt is Pullenti.Ner.NumberToken) 
                         {
                             if ((ttt as Pullenti.Ner.NumberToken).Value == "0") 
@@ -712,6 +806,13 @@ namespace Pullenti.Ner.Decree.Internal
                             pv0.CorrectValue();
                             ttt = pv0.EndToken;
                             newP.Add(pv0);
+                            if (ttt.Next != null && ttt.Next.IsCharOf(".>")) 
+                                ttt = ttt.Next;
+                            if (ttt.Next != null && !ttt.Next.IsCommaAnd && (br.EndChar - ttt.Next.BeginChar) > 20) 
+                            {
+                                res.Name = new Pullenti.Ner.MetaToken(ttt.Next, br.EndToken.Previous);
+                                break;
+                            }
                             continue;
                         }
                         Pullenti.Ner.TextToken to = ttt as Pullenti.Ner.TextToken;
@@ -737,6 +838,12 @@ namespace Pullenti.Ner.Decree.Internal
                             pv.BeginToken = ttt.Previous;
                         pv.CorrectValue();
                         ttt = pv.EndToken;
+                        if ((ttt.Next != null && ttt.Next.IsHiphen && (ttt.Next.Next is Pullenti.Ner.TextToken)) && ttt.Next.Next.LengthChar == 1 && ttt.Next.Next.Next == br.EndToken) 
+                        {
+                            newP.Add(pv);
+                            ttt = ttt.Next.Next;
+                            pv = new PartValue(ttt, ttt) { Value = (ttt as Pullenti.Ner.TextToken).Term };
+                        }
                         if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(ttt.Next, false, null, false)) 
                             pv.EndToken = (ttt = ttt.Next);
                         if (pv.EndToken.Next == br.EndToken) 
@@ -780,7 +887,7 @@ namespace Pullenti.Ner.Decree.Internal
                         Pullenti.Ner.Token t2 = t1;
                         for (Pullenti.Ner.Token tt2 = t1.Next; tt2 != null; tt2 = tt2.Next) 
                         {
-                            if (tt2.IsCharOf(",;")) 
+                            if (tt2.IsCharOf(",;") || Pullenti.Ner.Core.BracketHelper.IsBracket(tt2, false)) 
                                 break;
                             if (tt2.WhitespacesBeforeCount < 3) 
                             {
@@ -810,6 +917,47 @@ namespace Pullenti.Ner.Decree.Internal
                     res.Values.Add(new PartValue(t1, t1) { Value = "1" });
                     res.EndToken = t1;
                     return res;
+                }
+                if ((t1.IsCharOf("ˡ¹²³")) && res.Values.Count == 0 && (t1.WhitespacesBeforeCount < 2)) 
+                {
+                    res.Values.Add(new PartValue(t1, t1) { Value = (t1.IsCharOf("ˡ¹") ? "1" : (t1.IsChar('²') ? "2" : "3")) });
+                    res.EndToken = t1;
+                    return res;
+                }
+                if ((t1.IsCharOf("<(") && (t1.Next is Pullenti.Ner.NumberToken) && t1.Next.Next != null) && t1.Next.Next.IsCharOf(">)")) 
+                {
+                    PartValue pp = new PartValue(t1, t1.Next.Next) { Value = (t1.Next as Pullenti.Ner.NumberToken).Value };
+                    pp.CorrectValue();
+                    res.Values.Add(pp);
+                    t1 = (res.EndToken = pp.EndToken);
+                    continue;
+                }
+                if ((t1.IsChar('<') && res.Typ == ItemType.Footnote && t1.Next != null) && t1.Next.IsChar('*')) 
+                {
+                    int cou = 0;
+                    Pullenti.Ner.Token t2 = t1.Next;
+                    for (; t2 != null; t2 = t2.Next) 
+                    {
+                        if (t2.IsChar('*')) 
+                            cou++;
+                        else 
+                        {
+                            if (!t2.IsChar('>')) 
+                                t2 = t2.Previous;
+                            break;
+                        }
+                    }
+                    PartValue pp = new PartValue(t1, t2) { Value = cou.ToString() };
+                    res.Values.Add(pp);
+                    t1 = (res.EndToken = pp.EndToken);
+                    continue;
+                }
+                if ((((t1.IsValue("С", null) || t1.IsValue("C", null))) && (t1.Next is Pullenti.Ner.NumberToken) && t1.Next.Next != null) && t1.Next.Next.IsValue("ПО", null) && (t1.Next.Next.Next is Pullenti.Ner.NumberToken)) 
+                {
+                    res.Values.Add(new PartValue(t1.Next, t1.Next) { Value = (t1.Next as Pullenti.Ner.NumberToken).Value });
+                    res.Values.Add(new PartValue(t1.Next.Next.Next, t1.Next.Next.Next) { Value = (t1.Next.Next.Next as Pullenti.Ner.NumberToken).Value });
+                    res.EndToken = t1.Next.Next.Next;
+                    break;
                 }
                 if (((t1 is Pullenti.Ner.TextToken) && t1.LengthChar == 1 && t1.Chars.IsLetter) && res.Values.Count == 0) 
                 {
@@ -1048,15 +1196,34 @@ namespace Pullenti.Ner.Decree.Internal
                 }
                 break;
             }
-            if (res.Values.Count == 0 && !res.IsNewlineAfter && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(res.EndToken, true, false)) 
+            if (res.Decree == null && (res.EndToken.WhitespacesAfterCount < 3) && (res.EndToken.Next.GetReferent() is Pullenti.Ner.Decree.DecreeReferent)) 
+            {
+                res.EndToken = res.EndToken.Next;
+                res.Decree = res.EndToken.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
+                if (res.Typ == ItemType.Part && res.Decree.Kind == Pullenti.Ner.Decree.DecreeKind.Kodex) 
+                {
+                    string nam = res.Decree.GetStringValue("NAME") ?? "";
+                    if (nam.Contains("ГРАЖДАНСКИЙ") || nam.Contains("НАЛОГОВЫЙ")) 
+                        res.Typ = ItemType.DocPart;
+                }
+            }
+            Pullenti.Ner.Token tte2 = res.EndToken.Next;
+            if (tte2 != null && tte2.IsChar('.') && !tte2.IsNewlineAfter) 
+                tte2 = tte2.Next;
+            if ((res.WhitespacesAfterCount < 3) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(tte2, true, false)) 
             {
                 int lev = _getRank(res.Typ);
-                if (lev > 0 && (lev < _getRank(ItemType.Clause))) 
+                if (((lev > 0 && lev <= _getRank(ItemType.Clause))) || res.Typ == ItemType.Table || res.Typ == ItemType.Form) 
                 {
-                    Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(res.EndToken, Pullenti.Ner.Core.BracketParseAttr.CanContainsVerbs, 100);
+                    Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tte2, Pullenti.Ner.Core.BracketParseAttr.CanContainsVerbs, 100);
+                    if (br != null && br.EndToken.Next != null && res.Values.Count > 0) 
+                    {
+                        if (br.EndToken.Next.IsValue("ЗАМЕНИТЬ", null) || br.EndToken.Next.IsValue("ИСКЛЮЧИТЬ", null)) 
+                            br = null;
+                    }
                     if (br != null) 
                     {
-                        res.Name = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
+                        res.Name = br;
                         res.EndToken = br.EndToken;
                         for (Pullenti.Ner.Token tt2 = res.EndToken.Next; tt2 != null; tt2 = tt2.Next) 
                         {
@@ -1078,11 +1245,25 @@ namespace Pullenti.Ner.Decree.Internal
             }
             if (res.Values.Count == 0 && res.Name == null) 
             {
-                if ((((!ignoreNumber && res.Typ != ItemType.Preamble && res.Typ != ItemType.Name) && res.Typ != ItemType.Table && res.Typ != ItemType.Subprogram) && res.Typ != ItemType.Notice && res.Typ != ItemType.Footnote) && res.Typ != ItemType.Formula) 
+                if ((((!ignoreNumber && res.Typ != ItemType.Preamble && res.Typ != ItemType.Name) && res.Typ != ItemType.Table && res.Typ != ItemType.Subprogram) && res.Typ != ItemType.Notice && res.Typ != ItemType.Footnote) && res.Typ != ItemType.Formula && res.Typ != ItemType.Appendix) 
                     return null;
                 if (res.BeginToken != res.EndToken) 
                     res.EndToken = res.EndToken.Previous;
             }
+            if (res.EndToken.Next != null && res.EndToken.Next.IsChar('(')) 
+            {
+                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(res.EndToken.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                if (br != null && (br.LengthChar < 40)) 
+                {
+                    if ((br.BeginToken.Next.IsValue("СЕКРЕТНО", null) || br.BeginToken.Next.IsValue("СОВЕРШЕННО", null) || br.BeginToken.Next.IsValue("ДСП", null)) || br.BeginToken.Next.IsValue2("ДЛЯ", "СЛУЖЕБНОГО")) 
+                    {
+                        res.IsConfidential = true;
+                        res.EndToken = br.EndToken;
+                    }
+                }
+            }
+            if (res.Typ == ItemType.Table && res.BeginToken == res.EndToken && res.BeginToken.IsValue("НОРМА", null)) 
+                return null;
             return res;
         }
         static PartToken _createPartTyp0(Pullenti.Ner.Token t1, PartToken prev)
@@ -1092,7 +1273,14 @@ namespace Pullenti.Ner.Decree.Internal
             if (pt == null) 
                 return null;
             if (t1.LengthChar > 4) 
+            {
                 pt.Morph = t1.Morph;
+                if ((t1 is Pullenti.Ner.TextToken) && (t1 as Pullenti.Ner.TextToken).Term == "СТАТЬЮ") 
+                {
+                    pt.Morph = t1.Morph.Clone();
+                    pt.Morph.RemoveItems(Pullenti.Morph.MorphCase.Accusative);
+                }
+            }
             if ((isShort && !pt.EndToken.IsWhitespaceAfter && pt.EndToken.Next != null) && pt.EndToken.Next.IsChar('.')) 
             {
                 if (!pt.EndToken.Next.IsNewlineAfter) 
@@ -1128,6 +1316,8 @@ namespace Pullenti.Ner.Decree.Internal
             {
                 if ((t1.IsNewlineBefore && t1.LengthChar > 6 && t1.Next != null) && t1.Next.IsChar(':')) 
                     return null;
+                if (t1.Previous != null && t1.Previous.IsValue("МОБИЛЬНЫЙ", null)) 
+                    return null;
                 isShort = t1.LengthChar < 5;
                 return new PartToken(t1, t1) { Typ = ItemType.Appendix };
             }
@@ -1155,11 +1345,17 @@ namespace Pullenti.Ner.Decree.Internal
                     return new PartToken(t1, t1.Next) { Typ = ItemType.TableRow };
                 return new PartToken(t1, t1) { Typ = ItemType.TableRow };
             }
-            if (t1.IsValue("ГРАФА", null)) 
+            if (t1.IsValue("ГРАФА", null) || t1.IsValue("СУБПОЗИЦИЯ", null)) 
             {
                 if (t1.Next != null && t1.Next.IsValue("ТАБЛИЦА", null)) 
                     return new PartToken(t1, t1.Next) { Typ = ItemType.TableItem };
                 return new PartToken(t1, t1) { Typ = ItemType.TableItem };
+            }
+            if (t1.IsValue("ПРОГРАФКА", null)) 
+            {
+                if (t1.Next != null && t1.Next.IsValue("ТАБЛИЦА", null)) 
+                    return new PartToken(t1, t1.Next) { Typ = ItemType.TableSubItem };
+                return new PartToken(t1, t1) { Typ = ItemType.TableSubItem };
             }
             if (t1.IsValue("СТОЛБЕЦ", null)) 
             {
@@ -1280,9 +1476,9 @@ namespace Pullenti.Ner.Decree.Internal
                 if (maxCount > 0 && res.Count >= maxCount) 
                     break;
                 bool delim = false;
-                if (((tt.IsCharOf(",;.") || tt.IsAnd || tt.IsOr)) && tt.Next != null) 
+                if (((tt.IsCharOf(",;.:") || tt.IsAnd || tt.IsOr)) && tt.Next != null) 
                 {
-                    if (tt.IsCharOf(";.")) 
+                    if (tt.IsCharOf(";.:")) 
                     {
                         if (tt.IsNewlineAfter) 
                             break;
@@ -1338,8 +1534,14 @@ namespace Pullenti.Ner.Decree.Internal
                     }
                 }
                 PartToken p0 = TryAttach(tt, p, inBracket, false);
-                if (p0 == null && ((tt.IsValue("В", null) || tt.IsValue("К", null) || tt.IsValue("ДО", null)))) 
+                if (p0 == null && ((tt.IsValue("В", null) || tt.IsValue("ДО", null)))) 
                     p0 = TryAttach(tt.Next, p, inBracket, false);
+                if (p0 == null && ((tt.IsValue("К", null) || tt.IsValue("УКАЗАННЫЙ", null)))) 
+                {
+                    if (tt.Next != null && tt.Next.GetMorphClassInDictionary().IsAdjective) 
+                        tt = tt.Next;
+                    p0 = TryAttach(tt.Next, p, inBracket, false);
+                }
                 if (p0 == null) 
                 {
                     if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt, false)) 
@@ -1362,7 +1564,7 @@ namespace Pullenti.Ner.Decree.Internal
                                     }
                                 }
                                 res[res.Count - 1].EndToken = br.EndToken;
-                                res[res.Count - 1].Name = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
+                                res[res.Count - 1].Name = br;
                                 if (p0.IsNewlineBefore) 
                                     break;
                                 p = p0;
@@ -1370,10 +1572,10 @@ namespace Pullenti.Ner.Decree.Internal
                                 tt = p.EndToken.Next;
                                 continue;
                             }
-                            if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt, true) && (tt.WhitespacesBeforeCount < 3) && res[res.Count - 1].Typ == ItemType.Appendix) 
+                            if ((Pullenti.Ner.Core.BracketHelper.IsBracket(tt, true) && (tt.WhitespacesBeforeCount < 3) && res[res.Count - 1].Typ == ItemType.Appendix) && res[res.Count - 1].Name == null) 
                             {
                                 res[res.Count - 1].EndToken = br.EndToken;
-                                res[res.Count - 1].Name = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
+                                res[res.Count - 1].Name = br;
                                 tt = br.EndToken.Next;
                                 continue;
                             }
@@ -1464,6 +1666,11 @@ namespace Pullenti.Ner.Decree.Internal
                 }
                 p = p0;
                 res.Add(p);
+                if (p.Typ == ItemType.Appendix && res.Count > 1 && res[res.Count - 2].Typ == ItemType.Appendix) 
+                {
+                    if (p.BeginToken.Previous.IsValue("К", null) || ((p.BeginToken.Previous.Previous != null && p.BeginToken.Previous.Previous.IsValue("К", null)))) 
+                        res[res.Count - 2].Typ = ItemType.Appendix2;
+                }
                 tt = p.EndToken.Next;
             }
             for (int i = 0; i < (res.Count - 1); i++) 
@@ -1489,38 +1696,50 @@ namespace Pullenti.Ner.Decree.Internal
             for (int i = res.Count - 1; i >= 0; i--) 
             {
                 p = res[i];
-                if (p.IsNewlineAfter && p.IsNewlineBefore && p.Typ != ItemType.Subprogram) 
+                if ((p.Decree == null && p.IsNewlineAfter && p.IsNewlineBefore) && p.Typ != ItemType.Subprogram) 
                 {
                     res.RemoveRange(i, res.Count - i);
                     continue;
                 }
-                if (((i == 0 && ((p.IsNewlineBefore || ((p.BeginToken.Previous != null && p.BeginToken.Previous.IsTableControlChar)))) && p.HasTerminator) && p.EndToken.Next != null && p.EndToken.Next.IsChar('.')) && Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(p.EndToken.Next.Next)) 
+                if (((i == 0 && res.Count > 1 && ((p.IsNewlineBefore || ((p.BeginToken.Previous != null && p.BeginToken.Previous.IsTableControlChar))))) && p.HasTerminator && p.EndToken.Next != null) && p.EndToken.Next.IsChar('.') && Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(p.EndToken.Next.Next)) 
                 {
                     res.RemoveAt(i);
                     continue;
                 }
             }
+            if (res.Count > 1 && res[res.Count - 1].Typ == ItemType.Name) 
+                res.RemoveAt(res.Count - 1);
             if (res.Count == 1 && res[0].Typ == ItemType.Prefix) 
                 return null;
+            if (res.Count == 1 && res[0].Typ == ItemType.Sentence) 
+            {
+                DecreeToken dt = DecreeToken.TryAttach(res[0].EndToken.Next, null, false);
+                if (dt != null && dt.Typ == DecreeToken.ItemType.Date) 
+                    return null;
+            }
             return (res.Count == 0 ? null : res);
         }
-        public bool CanBeNextNarrow(PartToken p)
+        public bool CanBeNextNarrow(PartToken p, List<PartToken> parts)
         {
             if (Typ == ItemType.Formula) 
                 return false;
             if (p.Typ == ItemType.Formula) 
                 return true;
+            if (p.Typ == ItemType.Freetext) 
+                return true;
+            if (Typ == ItemType.Freetext) 
+                return false;
             if (Typ == ItemType.Sentence) 
                 return false;
             if (p.Typ == ItemType.Sentence) 
             {
-                if ((Typ == ItemType.Preamble || Typ == ItemType.Indention || Typ == ItemType.Part) || Typ == ItemType.Item || Typ == ItemType.SubItem) 
+                if (((Typ == ItemType.Preamble || Typ == ItemType.Indention || Typ == ItemType.Part) || Typ == ItemType.Item || Typ == ItemType.SubItem) || Typ == ItemType.TableSubItem) 
                     return true;
                 return false;
             }
             if (Typ == ItemType.Table) 
             {
-                if ((p.Typ == ItemType.TableColumn || p.Typ == ItemType.TableRow || p.Typ == ItemType.TableItem) || p.Typ == ItemType.Name || p.Typ == ItemType.Item) 
+                if (((p.Typ == ItemType.TableColumn || p.Typ == ItemType.TableRow || p.Typ == ItemType.TableItem) || p.Typ == ItemType.TableSubItem || p.Typ == ItemType.Name) || p.Typ == ItemType.Item) 
                     return true;
             }
             if (Typ == p.Typ) 
@@ -1543,6 +1762,28 @@ namespace Pullenti.Ner.Decree.Internal
             }
             int i1 = _getRank(Typ);
             int i2 = _getRank(p.Typ);
+            if (Typ == ItemType.TableRow && parts != null) 
+            {
+                foreach (PartToken pp in parts) 
+                {
+                    if (pp.Typ == ItemType.Item) 
+                    {
+                        i1 += 2;
+                        break;
+                    }
+                }
+            }
+            if (p.Typ == ItemType.TableRow && parts != null) 
+            {
+                foreach (PartToken pp in parts) 
+                {
+                    if (pp.Typ == ItemType.Item) 
+                    {
+                        i2 += 2;
+                        break;
+                    }
+                }
+            }
             if (i1 >= 0 && i2 >= 0) 
                 return i1 < i2;
             return false;
@@ -1580,6 +1821,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return 1;
             if (t == ItemType.Appendix) 
                 return 1;
+            if (t == ItemType.Appendix2) 
+                return 2;
             if (t == ItemType.Section) 
                 return 2;
             if (t == ItemType.Subprogram) 
@@ -1611,7 +1854,9 @@ namespace Pullenti.Ner.Decree.Internal
             if (t == ItemType.TableRow) 
                 return 10;
             if (t == ItemType.TableItem) 
-                return 10;
+                return 11;
+            if (t == ItemType.TableSubItem) 
+                return 12;
             if (t == ItemType.Item) 
                 return 10;
             if (t == ItemType.SubItem) 
@@ -1630,6 +1875,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return 16;
             if (t == ItemType.Formula) 
                 return 17;
+            if (t == ItemType.Freetext) 
+                return 20;
             return 0;
         }
         public static string _getAttrNameByTyp(ItemType Typ)
@@ -1638,6 +1885,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_CHAPTER;
             if (Typ == ItemType.Appendix) 
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_APPENDIX;
+            if (Typ == ItemType.Appendix2) 
+                return Pullenti.Ner.Decree.DecreePartReferent.ATTR_APPENDIX2;
             if (Typ == ItemType.Clause) 
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_CLAUSE;
             if (Typ == ItemType.Indention) 
@@ -1678,6 +1927,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_TABLEROW;
             if (Typ == ItemType.TableItem) 
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_TABLEITEM;
+            if (Typ == ItemType.TableSubItem) 
+                return Pullenti.Ner.Decree.DecreePartReferent.ATTR_TABLESUBITEM;
             if (Typ == ItemType.Sentence) 
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_SENTENCE;
             if (Typ == ItemType.Name) 
@@ -1690,6 +1941,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_DOCPART;
             if (Typ == ItemType.Page) 
                 return Pullenti.Ner.Decree.DecreePartReferent.ATTR_PAGE;
+            if (Typ == ItemType.Freetext) 
+                return Pullenti.Ner.Decree.DecreePartReferent.ATTR_FREETEXT;
             return null;
         }
         public static Pullenti.Ner.Instrument.InstrumentKind _getInstrKindByTyp(ItemType Typ)
@@ -1732,6 +1985,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return ItemType.Chapter;
             if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_APPENDIX) 
                 return ItemType.Appendix;
+            if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_APPENDIX2) 
+                return ItemType.Appendix2;
             if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_CLAUSE) 
                 return ItemType.Clause;
             if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_INDENTION) 
@@ -1770,6 +2025,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return ItemType.TableRow;
             if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_TABLEITEM) 
                 return ItemType.TableItem;
+            if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_TABLESUBITEM) 
+                return ItemType.TableSubItem;
             if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_SENTENCE) 
                 return ItemType.Sentence;
             if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_NAMEASITEM) 
@@ -1782,6 +2039,8 @@ namespace Pullenti.Ner.Decree.Internal
                 return ItemType.AddAgree;
             if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_DOCPART) 
                 return ItemType.DocPart;
+            if (name == Pullenti.Ner.Decree.DecreePartReferent.ATTR_FREETEXT) 
+                return ItemType.Freetext;
             return ItemType.Prefix;
         }
         public static List<Pullenti.Ner.Decree.DecreePartReferent> TryCreateBetween(Pullenti.Ner.Decree.DecreePartReferent p1, Pullenti.Ner.Decree.DecreePartReferent p2)

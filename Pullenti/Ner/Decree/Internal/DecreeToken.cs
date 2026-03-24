@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -82,6 +82,28 @@ namespace Pullenti.Ner.Decree.Internal
             ad.Level++;
             DecreeToken res = _TryAttach(t, prev, 0, mustByTyp);
             ad.Level--;
+            if (res != null && res.Typ == ItemType.Typ) 
+            {
+                if (t.Previous != null && t.Previous.IsValue("К", null)) 
+                {
+                    for (Pullenti.Ner.Token tt2 = t.Previous.Previous; tt2 != null; tt2 = tt2.Previous) 
+                    {
+                        if (tt2.IsValue("ПРИЛОЖЕНИЕ", null)) 
+                        {
+                            res.TypRefBack = true;
+                            break;
+                        }
+                        else if (tt2 is Pullenti.Ner.NumberToken) 
+                        {
+                        }
+                        else if (Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tt2) != null) 
+                        {
+                        }
+                        else 
+                            break;
+                    }
+                }
+            }
             if (res == null) 
             {
                 if (t.IsHiphen) 
@@ -299,7 +321,7 @@ namespace Pullenti.Ner.Decree.Internal
                 {
                     if (tt.IsNewlineBefore) 
                         break;
-                    DecreeChangeToken cha = DecreeChangeToken.TryAttach(tt, null, false, null, false, false, null);
+                    DecreeChangeToken cha = DecreeChangeToken.TryAttach(tt, null, false, null, false, false, null, false);
                     if (cha != null) 
                         break;
                     if (tt == t1.Next && res.BeginToken.Previous != null && res.BeginToken.Previous.IsValue("НАСТОЯЩИЙ", "СПРАВЖНІЙ")) 
@@ -598,8 +620,29 @@ namespace Pullenti.Ner.Decree.Internal
                     if (tdat.Next != null && tdat.Morph.Class.IsPreposition) 
                         tdat = tdat.Next;
                     if (tdat.GetReferent() is Pullenti.Ner.Date.DateReferent) 
-                        return new DecreeToken(t, tdat) { Typ = ItemType.Date, Ref = tdat as Pullenti.Ner.ReferentToken };
+                    {
+                        DecreeToken res = new DecreeToken(t, tdat) { Typ = ItemType.Date, Ref = tdat as Pullenti.Ner.ReferentToken };
+                        if (res.EndToken.Next != null && res.EndToken.Next.IsValue("Г", null)) 
+                        {
+                            Pullenti.Ner.Token tt = res.EndToken.Next;
+                            if (tt.Next != null && tt.Next.IsChar('.')) 
+                                tt = tt.Next;
+                            if (!tt.IsNewlineAfter) 
+                            {
+                                DecreeToken next = TryAttach(tt.Next, null, false);
+                                if (next != null) 
+                                    res.EndToken = tt;
+                            }
+                        }
+                        return res;
+                    }
                     Pullenti.Ner.ReferentToken dr = t.Kit.ProcessReferent("DATE", tdat, null);
+                    if (dr != null) 
+                        return new DecreeToken(t, dr.EndToken) { Typ = ItemType.Date, Ref = dr };
+                }
+                if ((((t is Pullenti.Ner.NumberToken) && prev != null && ((prev.Typ == ItemType.Typ || prev.Typ == ItemType.Org || prev.Typ == ItemType.Terr))) && (t as Pullenti.Ner.NumberToken).IntValue != null && (t as Pullenti.Ner.NumberToken).IntValue.Value >= 1900) && (t as Pullenti.Ner.NumberToken).IntValue.Value <= 2100) 
+                {
+                    Pullenti.Ner.ReferentToken dr = t.Kit.ProcessReferent("DATE", t, "YEAR");
                     if (dr != null) 
                         return new DecreeToken(t, dr.EndToken) { Typ = ItemType.Date, Ref = dr };
                 }
@@ -801,9 +844,15 @@ namespace Pullenti.Ner.Decree.Internal
                         Pullenti.Ner.Token t11 = _tryAttachNumber(t, tmp, false);
                         if (t11 != null && !t11.IsNewlineAfter) 
                         {
-                            string valnum = tmp.ToString();
-                            if (Pullenti.Morph.LanguageHelper.EndsWithEx(valnum, "ФЗ", "ФКЗ", "ПП", null)) 
-                                return new DecreeToken(t, t11) { Typ = ItemType.Number, Value = valnum };
+                            if (t11.BeginChar < t.BeginChar) 
+                            {
+                            }
+                            else 
+                            {
+                                string valnum = tmp.ToString();
+                                if (Pullenti.Morph.LanguageHelper.EndsWithEx(valnum, "ФЗ", "ФКЗ", "ПП", null)) 
+                                    return new DecreeToken(t, t11) { Typ = ItemType.Number, Value = valnum };
+                            }
                         }
                     }
                 }
@@ -1296,67 +1345,120 @@ namespace Pullenti.Ner.Decree.Internal
                 if (ok) 
                     return new DecreeToken(t, tt1) { Typ = ItemType.Typ, Value = "ОБЩЕРОССИЙСКИЙ КЛАССИФИКАТОР", TypKind = Pullenti.Ner.Decree.DecreeKind.Classifier };
             }
-            if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
+            if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false) && t.Next != null) 
             {
-                if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false) && ((((t.Next.IsValue("О", null) || t.Next.IsValue("ОБ", null) || t.Next.IsValue("ПРО", null)) || t.Next.IsValue("ПО", null) || t.Chars.IsCapitalUpper) || ((prev != null && (t.Next is Pullenti.Ner.TextToken) && ((prev.Typ == ItemType.Date || prev.Typ == ItemType.Number))))))) 
+                if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false)) 
                 {
-                    Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.CanContainsVerbs | Pullenti.Ner.Core.BracketParseAttr.CanBeManyLines, 200);
-                    if (br != null) 
+                    bool ok0 = false;
+                    if ((t.Next.IsValue("О", null) || t.Next.IsValue("ОБ", null) || t.Next.IsValue("ПРО", null)) || t.Next.IsValue("ПО", null)) 
+                        ok0 = true;
+                    else if (prev != null && (t.Next is Pullenti.Ner.TextToken)) 
                     {
-                        for (Pullenti.Ner.Token ttt = t.Next; ttt != null && (ttt.EndChar < br.EndChar); ttt = ttt.Next) 
+                        if (t.Next.IsValue("ИЗМЕНЕНИЕ", null) && t.Next.Next != null && t.Next.Next.IsChar(':')) 
+                            return null;
+                        if ((prev.Typ == ItemType.Date || prev.Typ == ItemType.Number || prev.Typ == ItemType.Terr) || prev.Typ == ItemType.Org) 
+                            ok0 = true;
+                        else if (prev.Typ == ItemType.Typ && !t.Next.Chars.IsAllLower) 
+                            ok0 = true;
+                    }
+                    if (ok0) 
+                    {
+                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.CanContainsVerbs | Pullenti.Ner.Core.BracketParseAttr.CanBeManyLines, 300);
+                        if (br != null) 
                         {
-                            if (ttt.IsChar('(') && ttt.Next.IsValue("ДАЛЕЕ", null)) 
+                            for (Pullenti.Ner.Token ttt = t.Next; ttt != null && (ttt.EndChar < br.EndChar); ttt = ttt.Next) 
                             {
-                                br.EndToken = ttt.Previous;
-                                break;
-                            }
-                            else if ((ttt is Pullenti.Ner.MetaToken) && DecreeChangeToken._checkEndBracket(ttt)) 
-                            {
-                                if (ttt.Next.IsValue("СЛЕДУЮЩИЙ", null)) 
+                                if (ttt.IsChar('(') && ttt.Next.IsValue("ДАЛЕЕ", null)) 
                                 {
-                                    br.EndToken = ttt;
+                                    br.EndToken = ttt.Previous;
                                     break;
                                 }
-                            }
-                        }
-                        Pullenti.Ner.Token tt = br.EndToken;
-                        if (tt.Previous != null && tt.Previous.IsChar('>')) 
-                            tt = tt.Previous;
-                        if ((tt.IsChar('>') && (tt.Previous is Pullenti.Ner.NumberToken) && tt.Previous.Previous != null) && tt.Previous.Previous.IsChar('<')) 
-                        {
-                            tt = tt.Previous.Previous.Previous;
-                            if (tt == null || tt.BeginChar <= br.BeginChar) 
-                                return null;
-                            br.EndToken = tt;
-                        }
-                        Pullenti.Ner.Token tt1 = _tryAttachStdChangeName(t.Next);
-                        if (tt1 != null && tt1.EndChar > br.EndChar) 
-                            br.EndToken = tt1;
-                        else 
-                            for (tt = br.BeginToken.Next; tt != null && (tt.EndChar < br.EndChar); tt = tt.Next) 
-                            {
-                                if (tt.IsChar('(')) 
+                                else if ((ttt is Pullenti.Ner.MetaToken) && DecreeChangeToken._checkEndBracket(ttt)) 
                                 {
-                                    DecreeToken dt = DecreeToken.TryAttach(tt.Next, null, false);
-                                    if (dt == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(tt.Next, true, false)) 
-                                        dt = DecreeToken.TryAttach(tt.Next.Next, null, false);
-                                    if (dt != null && dt.Typ == ItemType.Typ) 
+                                    if (ttt.Next.IsValue("СЛЕДУЮЩИЙ", null)) 
                                     {
-                                        if (DecreeToken.GetKind(dt.Value, null) == Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                                        br.EndToken = ttt;
+                                        break;
+                                    }
+                                }
+                                else if (ttt.IsValue("УСТАНОВЛЕННЫЙ", null) && DecreeToken.IsKeyword(ttt.Next, false) != null) 
+                                {
+                                    for (Pullenti.Ner.Token ttt2 = ttt.Next; ttt2 != null; ttt2 = ttt2.Next) 
+                                    {
+                                        if (ttt2.IsCommaAnd) 
+                                            continue;
+                                        DecreeToken ddd = TryAttach(ttt2, null, false);
+                                        if (ddd == null) 
+                                            break;
+                                        if (ddd.Typ == ItemType.Typ && ttt2 != ttt.Next) 
+                                            break;
+                                        ttt2 = ddd.EndToken;
+                                        if (ttt2.EndChar > br.EndChar) 
+                                            br.EndToken = ddd.EndToken;
+                                    }
+                                }
+                            }
+                            Pullenti.Ner.Token tt = br.EndToken;
+                            if (tt.Previous != null && tt.Previous.IsChar('>')) 
+                                tt = tt.Previous;
+                            if ((tt.IsChar('>') && (tt.Previous is Pullenti.Ner.NumberToken) && tt.Previous.Previous != null) && tt.Previous.Previous.IsChar('<')) 
+                            {
+                                tt = tt.Previous.Previous.Previous;
+                                if (tt == null || tt.BeginChar <= br.BeginChar) 
+                                    return null;
+                                br.EndToken = tt;
+                            }
+                            Pullenti.Ner.Token tt1 = _tryAttachStdChangeName(t.Next);
+                            if (tt1 != null && tt1.EndChar > br.EndChar) 
+                                br.EndToken = tt1;
+                            else 
+                            {
+                                bool ok = false;
+                                for (tt = br.BeginToken.Next; tt != null && (tt.EndChar < br.EndChar); tt = tt.Next) 
+                                {
+                                    if (tt.IsChar('(')) 
+                                    {
+                                        DecreeToken dt = DecreeToken.TryAttach(tt.Next, null, false);
+                                        if (dt == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(tt.Next, true, false)) 
+                                            dt = DecreeToken.TryAttach(tt.Next.Next, null, false);
+                                        if (dt != null && dt.Typ == ItemType.Typ) 
                                         {
-                                            br.EndToken = tt.Previous;
+                                            if (DecreeToken.GetKind(dt.Value, null) == Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                                            {
+                                                br.EndToken = tt.Previous;
+                                                ok = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                if (!ok) 
+                                {
+                                    for (tt = br.EndToken.Next; tt != null; tt = tt.Next) 
+                                    {
+                                        if (tt != br.EndToken.Next && tt.IsNewlineBefore) 
+                                            break;
+                                        DecreeToken dt = DecreeToken.TryAttach(tt, null, false);
+                                        if (dt != null && dt.Typ == ItemType.Typ) 
+                                        {
+                                            if (tt.Previous.IsChar('(') && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(tt.Previous.Previous, true, null, false)) 
+                                            {
+                                                if (DecreeToken.GetKind(dt.Value, null) == Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                                                    br.EndToken = tt.Previous.Previous;
+                                            }
                                             break;
                                         }
                                     }
                                 }
                             }
-                        return new DecreeToken(br.BeginToken, br.EndToken) { Typ = ItemType.Name, Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No) };
-                    }
-                    else 
-                    {
-                        Pullenti.Ner.Token tt1 = _tryAttachStdChangeName(t.Next);
-                        if (tt1 != null) 
-                            return new DecreeToken(t, tt1) { Typ = ItemType.Name, Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, tt1, Pullenti.Ner.Core.GetTextAttr.No) };
+                            return new DecreeToken(br.BeginToken, br.EndToken) { Typ = ItemType.Name, Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No) };
+                        }
+                        else 
+                        {
+                            Pullenti.Ner.Token tt1 = _tryAttachStdChangeName(t.Next);
+                            if (tt1 != null) 
+                                return new DecreeToken(t, tt1) { Typ = ItemType.Name, Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, tt1, Pullenti.Ner.Core.GetTextAttr.No) };
+                        }
                     }
                 }
                 else if (t.IsChar('(')) 
@@ -1435,6 +1537,16 @@ namespace Pullenti.Ner.Decree.Internal
             }
             if (t.IsValue("ПРИЛОЖЕНИЕ", "ДОДАТОК")) 
                 return null;
+            if ((t.IsChar('[') && prev != null && prev.Typ == ItemType.Number) && (t.WhitespacesBeforeCount < 3) && Pullenti.Ner.Core.MiscHelper.CheckImage(t) != null) 
+            {
+                Pullenti.Ner.Token tt = Pullenti.Ner.Core.MiscHelper.CheckImage(t);
+                if (tt.WhitespacesAfterCount < 2) 
+                {
+                    DecreeToken res = TryAttachName(tt.Next, null, false, true, false);
+                    if (res != null) 
+                        return res;
+                }
+            }
             if ((t is Pullenti.Ner.TextToken) && (t as Pullenti.Ner.TextToken).Term == "ОД" && (t.WhitespacesAfterCount < 3)) 
             {
                 StringBuilder tmp = new StringBuilder();
@@ -1727,6 +1839,8 @@ namespace Pullenti.Ner.Decree.Internal
                 if (t2.IsCharOf("(),;")) 
                     break;
                 if (t2.IsTableControlChar) 
+                    break;
+                if (t2 is Pullenti.Ner.ReferentToken) 
                     break;
                 if (t2.IsCharOf(".:") && ((t2.IsWhitespaceAfter || t2.Next.IsTableControlChar))) 
                     break;
@@ -2234,7 +2348,7 @@ namespace Pullenti.Ner.Decree.Internal
                     if (p0 == null) 
                         break;
                 }
-                if ((!p0.IsNewlineBefore && p.Typ == ItemType.Name && ((p0.Typ == ItemType.Org || p0.Typ == ItemType.Owner || p0.Typ == ItemType.Terr))) && !Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(p.EndToken, true, null, false)) 
+                if ((p != null && !p0.IsNewlineBefore && p.Typ == ItemType.Name) && ((p0.Typ == ItemType.Org || p0.Typ == ItemType.Owner || p0.Typ == ItemType.Terr)) && !Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(p.EndToken, true, null, false)) 
                 {
                     tt = (p.EndToken = p0.EndToken);
                     p.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(p, Pullenti.Ner.Core.GetTextAttr.No);
@@ -2418,6 +2532,8 @@ namespace Pullenti.Ner.Decree.Internal
             }
             if (res.Count == 1 && res[0].Typ == ItemType.Misc) 
                 return null;
+            if ((res.Count >= 2 && res[0].Typ == ItemType.Number && res[1].Typ == ItemType.Typ) && res[1].LengthChar > 3) 
+                return null;
             return res;
         }
         public static DecreeToken TryAttachNameToEndOfLine(Pullenti.Ner.Token t, bool canBeStartOfLine = false)
@@ -2586,7 +2702,13 @@ namespace Pullenti.Ner.Decree.Internal
                 if (typ == "РУКОВОДЯЩИЙ ДОКУМЕНТ" && t.Chars.IsLetter && !t.Chars.IsAllLower) 
                     abou = true;
                 else if ((ty != Pullenti.Ner.Decree.DecreeKind.Konvention && ty != Pullenti.Ner.Decree.DecreeKind.Program && ty != Pullenti.Ner.Decree.DecreeKind.Ustav) && !always) 
-                    return null;
+                {
+                    if (t.Previous != null && t.Previous.IsChar(']')) 
+                    {
+                    }
+                    else 
+                        return null;
+                }
             }
             if (t == null) 
                 return null;
@@ -2643,6 +2765,16 @@ namespace Pullenti.Ner.Decree.Internal
                         t1 = (tt = dts[dts.Count - 1].EndToken);
                         continue;
                     }
+                }
+                if (DecreeChangeToken._canBeChangeToken(tt, 0, false, false)) 
+                    break;
+                if (tt.IsChar(';')) 
+                    break;
+                if (tt.IsChar('(')) 
+                {
+                    DecreeToken typ1 = TryAttach(tt.Next, null, false);
+                    if (typ1 != null) 
+                        break;
                 }
                 if (veryProbable && abou && !tt.IsNewlineBefore) 
                 {
@@ -2865,7 +2997,7 @@ namespace Pullenti.Ner.Decree.Internal
                     continue;
                 if (tt.IsComma) 
                     continue;
-                Pullenti.Ner.ReferentToken rtt = Pullenti.Ner.Decree.DecreeAnalyzer.TryAttachApproved(tt, null, null, null);
+                Pullenti.Ner.ReferentToken rtt = Pullenti.Ner.Decree.DecreeAnalyzer.TryAttachApproved(tt, null, null, null, false);
                 if (rtt != null && t0.Previous != null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t0.Previous, true, false)) 
                 {
                     Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t0.Previous, Pullenti.Ner.Core.BracketParseAttr.No, 100);
@@ -2928,7 +3060,7 @@ namespace Pullenti.Ner.Decree.Internal
                     }
                     if (dts[0].Typ == ItemType.Typ) 
                     {
-                        Pullenti.Ner.ReferentToken rt = Pullenti.Ner.Decree.DecreeAnalyzer.TryAttachApproved(tt, null, null, null);
+                        Pullenti.Ner.ReferentToken rt = Pullenti.Ner.Decree.DecreeAnalyzer.TryAttachApproved(tt, null, null, null, false);
                         if (rt != null) 
                         {
                             t1 = (tt = rt.EndToken);
@@ -3368,13 +3500,17 @@ namespace Pullenti.Ner.Decree.Internal
             }
             if (!t.Morph.Class.IsAdjective && !t.Morph.Class.IsPronoun) 
                 return null;
+            if (!(t is Pullenti.Ner.TextToken)) 
+                return null;
             Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
             if (npt == null || npt.BeginToken == npt.EndToken) 
             {
-                if ((t.IsValue("НАСТОЯЩИЙ", "СПРАВЖНІЙ") || t.IsValue("НАЗВАННЫЙ", "НАЗВАНИЙ") || t.IsValue("ДАННЫЙ", "ДАНИЙ")) || ((t.GetMorphClassInDictionary().IsVerb && t.GetMorphClassInDictionary().IsAdjective))) 
+                if ((t.IsValue("НАСТОЯЩИЙ", "СПРАВЖНІЙ") || t.IsValue("НАЗВАННЫЙ", "НАЗВАНИЙ") || t.IsValue("ДАННЫЙ", "ДАНИЙ")) || ((t.GetMorphClassInDictionary().IsVerb && t.GetMorphClassInDictionary().IsAdjective && !t.Morph.ContainsAttr("к.ф.", null)))) 
                 {
                     if ((((tok = m_Keywords.TryParse(t.Next, Pullenti.Ner.Core.TerminParseAttr.No)))) != null) 
                     {
+                        if (!(t.Next is Pullenti.Ner.TextToken)) 
+                            return null;
                         if ((t.IsValue("ВВОДИТЬ", null) || t.IsValue("ВВЕСТИ", null) || t.IsValue("ПРИНЯТЬ", null)) || t.IsValue("ОДОБРИТЬ", null)) 
                             return null;
                         tok.EndToken.Tag = tok.Termin.CanonicText;
@@ -3391,7 +3527,7 @@ namespace Pullenti.Ner.Decree.Internal
                 return tok.EndToken;
             }
             PartToken pp = PartToken.TryAttach(npt.EndToken, null, false, true);
-            if (pp != null) 
+            if (pp != null && pp.Typ != PartToken.ItemType.Prefix) 
                 return pp.EndToken;
             return null;
         }
@@ -3414,7 +3550,7 @@ namespace Pullenti.Ner.Decree.Internal
         }
         static List<string> m_AllTypesRU = new List<string>(new string[] {"УКАЗ", "УКАЗАНИЕ", "ПОСТАНОВЛЕНИЕ", "РАСПОРЯЖЕНИЕ", "ПРИКАЗ", "ДИРЕКТИВА", "ПИСЬМО", "ЗАПИСКА", "ИНФОРМАЦИОННОЕ ПИСЬМО", "ИНСТРУКЦИЯ", "ЗАКОН", "КОДЕКС", "КОНСТИТУЦИЯ", "РЕШЕНИЕ", "ПОЛОЖЕНИЕ", "РАСПОРЯЖЕНИЕ", "ПОРУЧЕНИЕ", "РЕЗОЛЮЦИЯ", "ДОГОВОР", "СУБДОГОВОР", "АГЕНТСКИЙ ДОГОВОР", "ДОВЕРЕННОСТЬ", "КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", "СОГЛАШЕНИЕ", "КОНТРАКТ", "ГОСУДАРСТВЕННЫЙ КОНТРАКТ", "ОПРЕДЕЛЕНИЕ", "ПРИГОВОР", "СОГЛАШЕНИЕ", "ПРОТОКОЛ", "ЗАЯВЛЕНИЕ", "УВЕДОМЛЕНИЕ", "РАЗЪЯСНЕНИЕ", "УСТАВ", "ХАРТИЯ", "КОНВЕНЦИЯ", "ПАКТ", "БИЛЛЬ", "ДЕКЛАРАЦИЯ", "РЕГЛАМЕНТ", "ТЕЛЕГРАММА", "ТЕЛЕФОНОГРАММА", "ТЕЛЕФАКСОГРАММА", "ТЕЛЕТАЙПОГРАММА", "ФАКСОГРАММА", "ОТВЕТЫ НА ВОПРОСЫ", "ВЫПИСКА ИЗ ПРОТОКОЛА", "ЗАКЛЮЧЕНИЕ", "ДЕКРЕТ", "ОФИЦИАЛЬНЫЙ ОТЗЫВ"});
         static List<string> m_AllTypesUA = new List<string>(new string[] {"УКАЗ", "НАКАЗ", "ПОСТАНОВА", "РОЗПОРЯДЖЕННЯ", "НАКАЗ", "ДИРЕКТИВА", "ЛИСТ", "ЗАПИСКА", "ІНФОРМАЦІЙНИЙ ЛИСТ", "ІНСТРУКЦІЯ", "ЗАКОН", "КОДЕКС", "КОНСТИТУЦІЯ", "РІШЕННЯ", "ПОЛОЖЕННЯ", "РОЗПОРЯДЖЕННЯ", "ДОРУЧЕННЯ", "РЕЗОЛЮЦІЯ", "ДОГОВІР", "СУБКОНТРАКТ", "АГЕНТСЬКИЙ ДОГОВІР", "ДОРУЧЕННЯ", "КОМЕРЦІЙНА ПРОПОЗИЦІЯ", "УГОДА", "КОНТРАКТ", "ДЕРЖАВНИЙ КОНТРАКТ", "ВИЗНАЧЕННЯ", "УХВАЛА", "ВИРОК", "УГОДА", "ПРОТОКОЛ", "ЗАЯВА", "ПОВІДОМЛЕННЯ", "РОЗ'ЯСНЕННЯ", "СТАТУТ", "ХАРТІЯ", "КОНВЕНЦІЯ", "ПАКТ", "БІЛЛЬ", "ДЕКЛАРАЦІЯ", "РЕГЛАМЕНТ", "ТЕЛЕГРАМА", "ТЕЛЕФОНОГРАМА", "ТЕЛЕФАКСОГРАММА", "ТЕЛЕТАЙПОГРАМА", "ФАКСОГРАМА", "ВІДПОВІДІ НА ЗАПИТАННЯ", "ВИТЯГ З ПРОТОКОЛУ", "ВИСНОВОК", "ДЕКРЕТ", "ОФІЦІЙНИЙ ВІДГУК"});
-        static List<string> m_MiscTypesRU = new List<string>(new string[] {"ПРАВИЛА", "ПРОГРАММА", "ПЕРЕЧЕНЬ", "ПОСОБИЕ", "РЕКОМЕНДАЦИЯ", "НАСТАВЛЕНИЕ", "СТАНДАРТ", "МЕТОДИКА", "ТРЕБОВАНИЕ", "ПОЛОЖЕНИЕ", "СПИСОК", "ЛИСТ", "ТАБЛИЦА", "ЗАЯВКА", "АКТ", "ФОРМА", "НОРМАТИВ", "НОРМА", "РЕЕСТР", "ПОРЯДОК", "ИНФОРМАЦИЯ", "НОМЕНКЛАТУРА", "ОСНОВЫ", "ОБЗОР", "КОНЦЕПЦИЯ", "СТРАТЕГИЯ", "СТРУКТУРА", "УСЛОВИЕ", "КЛАССИФИКАТОР", "ОБЩЕРОССИЙСКИЙ КЛАССИФИКАТОР", "СПЕЦИФИКАЦИЯ", "ОБРАЗЕЦ", "ГРАФИК", "ПЛАН", "КАЛЕНДАРНЫЙ ПЛАН", "КРИТЕРИЙ"});
+        static List<string> m_MiscTypesRU = new List<string>(new string[] {"ПРАВИЛА", "ПРОГРАММА", "ПЕРЕЧЕНЬ", "ПОСОБИЕ", "РЕКОМЕНДАЦИЯ", "НАСТАВЛЕНИЕ", "СТАНДАРТ", "МЕТОДИКА", "ТРЕБОВАНИЕ", "ПОЛОЖЕНИЕ", "СПИСОК", "ЛИСТ", "ТАБЛИЦА", "ЗАЯВКА", "АКТ", "ФОРМА", "НОРМАТИВ", "НОРМА", "РЕЕСТР", "ПОРЯДОК", "ИНФОРМАЦИЯ", "НОМЕНКЛАТУРА", "ОСНОВЫ", "ОБЗОР", "КОНЦЕПЦИЯ", "СТРАТЕГИЯ", "СТРУКТУРА", "УСЛОВИЕ", "КЛАССИФИКАТОР", "ОБЩЕРОССИЙСКИЙ КЛАССИФИКАТОР", "СПЕЦИФИКАЦИЯ", "ОБРАЗЕЦ", "ГРАФИК", "ПЛАН", "КАЛЕНДАРНЫЙ ПЛАН", "КРИТЕРИЙ", "ДОЛЯ", "ОПИСАНИЕ", "ТИПОВОЙ ДОГОВОР", "ПРИМЕРНАЯ ПРОГРАММА", "КЛАССИФИКАЦИЯ", "ОСОБЕННОСТИ", "РАЗМЕР", "ПРИЗНАК", "РИСУНОК", "ВЕДОМОСТЬ"});
         static List<string> m_MiscTypesUA = new List<string>(new string[] {"ПРАВИЛА", "ПРОГРАМА", "ПЕРЕЛІК", "ДОПОМОГА", "РЕКОМЕНДАЦІЯ", "ПОВЧАННЯ", "СТАНДАРТ", "МЕТОДИКА", "ВИМОГА", "ПОЛОЖЕННЯ", "СПИСОК", "ТАБЛИЦЯ", "ЗАЯВКА", "АКТ", "ФОРМА", "НОРМАТИВ", "НОРМА", "РЕЄСТР", "ПОРЯДОК", "ІНФОРМАЦІЯ", "НОМЕНКЛАТУРА", "ОСНОВИ", "ОГЛЯД", "КОНЦЕПЦІЯ", "СТРАТЕГІЯ", "СТРУКТУРА", "УМОВА", "КЛАСИФІКАТОР", "ЗАГАЛЬНОРОСІЙСЬКИЙ КЛАСИФІКАТОР", "СПЕЦИФІКАЦІЯ", "ЗРАЗОК"});
         static List<string> m_StdAdjectives = new List<string>(new string[] {"ВСЕОБЩИЙ", "МЕЖДУНАРОДНЫЙ", "ЕВРОПЕЙСКИЙ", "ЗАГАЛЬНИЙ", "МІЖНАРОДНИЙ", "ЄВРОПЕЙСЬКИЙ", "НОРМАТИВНЫЙ", "НОРМАТИВНИЙ", "КАССАЦИОННЫЙ", "АПЕЛЛЯЦИОННЫЙ", "КАСАЦІЙНИЙ", "АПЕЛЯЦІЙНИЙ"});
         static List<string> m_EmptyAdjectives = new List<string>(new string[] {"НЫНЕШНИЙ", "ПРЕДЫДУЩИЙ", "ДЕЙСТВУЮЩИЙ", "НАСТОЯЩИЙ", "НИНІШНІЙ", "ПОПЕРЕДНІЙ", "СПРАВЖНІЙ"});

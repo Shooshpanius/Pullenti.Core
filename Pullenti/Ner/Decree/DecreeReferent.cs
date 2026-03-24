@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -300,8 +300,15 @@ namespace Pullenti.Ner.Decree
             {
                 if (value != null) 
                 {
-                    if (value.Owner != null || value == this) 
+                    if (value == this) 
                         return;
+                    else if (value.Owner != null) 
+                    {
+                        if (value.Owner == this) 
+                            return;
+                        if (value.Owner.Owner != null) 
+                            return;
+                    }
                 }
                 this.AddSlot(ATTR_OWNER, value, true, 0);
             }
@@ -508,17 +515,19 @@ namespace Pullenti.Ner.Decree
         }
         public override bool CanBeEquals(Pullenti.Ner.Referent obj, Pullenti.Ner.Core.ReferentsEqualType typ)
         {
-            bool b = this._CanBeEquals(obj, typ, false);
+            bool b = this._CanBeEquals(obj, typ, false, 0);
             return b;
         }
-        bool _CanBeEquals(Pullenti.Ner.Referent obj, Pullenti.Ner.Core.ReferentsEqualType typ, bool ignoreGeo)
+        bool _CanBeEquals(Pullenti.Ner.Referent obj, Pullenti.Ner.Core.ReferentsEqualType typ, bool ignoreGeo, int lev)
         {
+            if (lev > 5) 
+                return false;
             DecreeReferent dr = obj as DecreeReferent;
             if (dr == null) 
                 return false;
             if (Owner != null && dr.Owner != null) 
             {
-                if (!Owner.CanBeEquals(dr.Owner, typ)) 
+                if (!Owner._CanBeEquals(dr.Owner, typ, false, lev + 1)) 
                     return false;
             }
             if (dr.Typ0 != null && Typ0 != null) 
@@ -710,7 +719,7 @@ namespace Pullenti.Ner.Decree
             if (dateNotEq) 
                 return false;
             string ty = Typ;
-            if (ty == null) 
+            if (ty == null || dr.Typ == null) 
                 return numEq > 0;
             DecreeKind t = Pullenti.Ner.Decree.Internal.DecreeToken.GetKind(ty, null);
             if (t == DecreeKind.Ustav || ty == "КОНСТИТУЦИЯ") 
@@ -723,7 +732,7 @@ namespace Pullenti.Ner.Decree
         }
         public override bool CanBeGeneralFor(Pullenti.Ner.Referent obj)
         {
-            if (!this._CanBeEquals(obj, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText, true)) 
+            if (!this._CanBeEquals(obj, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText, true, 0)) 
                 return false;
             Pullenti.Ner.Geo.GeoReferent g1 = this.GetSlotValue(ATTR_GEO) as Pullenti.Ner.Geo.GeoReferent;
             Pullenti.Ner.Geo.GeoReferent g2 = obj.GetSlotValue(ATTR_GEO) as Pullenti.Ner.Geo.GeoReferent;

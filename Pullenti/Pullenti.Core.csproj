@@ -3,6 +3,7 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>Library</OutputType>
   </PropertyGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Morph\Resources\m_en.dat" />
     <EmbeddedResource Include="Morph\Resources\m_ru.dat" />
@@ -68,6 +69,7 @@
     <EmbeddedResource Include="Ner\Resources\kwobject.png" />
     <EmbeddedResource Include="Ner\Resources\kwpredicate.png" />
     <EmbeddedResource Include="Ner\Resources\kwreferent.png" />
+    <EmbeddedResource Include="Ner\Resources\link.png" />
     <EmbeddedResource Include="Ner\Resources\location.png" />
     <EmbeddedResource Include="Ner\Resources\mail.png" />
     <EmbeddedResource Include="Ner\Resources\man.png" />

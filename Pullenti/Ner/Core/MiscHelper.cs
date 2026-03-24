@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -1378,13 +1378,13 @@ namespace Pullenti.Ner.Core
                                             {
                                                 var = Pullenti.Morph.MorphologyService.GetWordform(var, bi);
                                             }
-                                            catch(Exception ex902) 
+                                            catch(Exception ex906) 
                                             {
                                             }
                                             if (var != null) 
                                             {
                                                 var = corrChars(var, te.Next.Chars, keepChars, te.Next as Pullenti.Ner.TextToken);
-                                                res.AppendFormat(", {1}", res, var);
+                                                res.AppendFormat(", {0}", var);
                                                 te = te.Next.Next;
                                             }
                                             break;
@@ -1718,7 +1718,7 @@ namespace Pullenti.Ner.Core
                         {
                             ww = Pullenti.Morph.MorphologyService.GetWordform(word, bi);
                         }
-                        catch(Exception ex903) 
+                        catch(Exception ex907) 
                         {
                         }
                         if (ww != null) 
@@ -1871,7 +1871,7 @@ namespace Pullenti.Ner.Core
                                 {
                                     wcas = Pullenti.Morph.MorphologyService.GetWordform(word, mbi);
                                 }
-                                catch(Exception ex905) 
+                                catch(Exception ex909) 
                                 {
                                 }
                                 if (wcas != null) 
@@ -2011,7 +2011,7 @@ namespace Pullenti.Ner.Core
                 {
                     val = Pullenti.Morph.MorphologyService.GetWordform(norm, adjBi);
                 }
-                catch(Exception ex911) 
+                catch(Exception ex915) 
                 {
                 }
                 if (val == null) 
@@ -2052,7 +2052,7 @@ namespace Pullenti.Ner.Core
                     else if (npt.Noun.Chars.IsCapitalUpper) 
                         val = MiscHelper.ConvertFirstCharUpperAndOtherLower(val);
                 }
-                catch(Exception ex912) 
+                catch(Exception ex916) 
                 {
                 }
             }
@@ -2138,6 +2138,39 @@ namespace Pullenti.Ner.Core
                 if (tt.Morph.ContainsAttr("инф.", null)) 
                     continue;
                 return true;
+            }
+            return false;
+        }
+        /// <summary>
+        /// Проверка, что на самом деле с токена не новая строка, а фальшивка (отрыжка PDF)
+        /// </summary>
+        /// <param name="t">токен псевдо-новой строки</param>
+        /// <return>true, если действительно псевдо</return>
+        public static bool CheckFalseNewline(Pullenti.Ner.Token t)
+        {
+            if (t == null) 
+                return false;
+            if (((t is Pullenti.Ner.NumberToken) && t.Previous != null && t.Previous.IsChar('.')) && (t.Previous.Previous is Pullenti.Ner.TextToken) && t.Previous.Previous.IsValue("СТ", null)) 
+                return true;
+            if (t.Previous != null && t.Previous.IsCharOf(";,") && MiscHelper.CheckNumberPrefix(t) != null) 
+                return true;
+            Pullenti.Ner.Referent r = t.GetReferent();
+            if ((r != null && r.TypeName == "DECREEPART" && t.Previous != null) && t.Previous.IsCharOf(";,") && t.Previous.Previous != null) 
+            {
+                Pullenti.Ner.Referent rr = t.Previous.Previous.GetReferent();
+                if (rr != null && rr.TypeName == "DECREEPART") 
+                    return true;
+            }
+            return false;
+        }
+        public static bool IsUserParamQuiry(Pullenti.Ner.Token t)
+        {
+            if (t == null) 
+                return false;
+            if (t.Kit.Sofa.UserParams != null) 
+            {
+                if (t.Kit.Sofa.UserParams.Contains("QUIRY")) 
+                    return true;
             }
             return false;
         }

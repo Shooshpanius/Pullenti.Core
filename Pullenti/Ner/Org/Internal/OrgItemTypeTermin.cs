@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -50,6 +50,7 @@ namespace Pullenti.Ner.Org.Internal
         OrgItemTypeTyp m_Typ;
         public bool MustBePartofName = false;
         public bool IsPurePrefix;
+        public bool IsLegalForm;
         public bool CanBeNormalDep;
         public bool CanHasNumber;
         public bool CanHasSingleName;
@@ -75,6 +76,7 @@ namespace Pullenti.Ner.Org.Internal
         {
             Profiles.AddRange(it.Profiles);
             IsPurePrefix = it.IsPurePrefix;
+            IsLegalForm = it.IsLegalForm;
             CanBeNormalDep = it.CanBeNormalDep;
             CanHasNumber = it.CanHasNumber;
             CanHasSingleName = it.CanHasSingleName;

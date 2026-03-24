@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -151,7 +151,7 @@ namespace Pullenti.Ner
                 return "?";
             string res = Kit.Sofa.Text.Substring(BeginChar, (end + 1) - BeginChar);
             if (err) 
-                res = string.Format("{0} (ERROR: EndChar={0} > TextLength={1})", res, EndChar, Kit.Sofa.Text.Length);
+                res = string.Format("{0} (ERROR: EndChar={1} > TextLength={2})", res, EndChar, Kit.Sofa.Text.Length);
             return res;
         }
         short m_Attrs;
@@ -169,10 +169,11 @@ namespace Pullenti.Ner
                 else 
                     for (int j = m_Previous.EndChar + 1; (j < BeginChar) && (j < Kit.Sofa.Text.Length); j++) 
                     {
-                        if (char.IsWhiteSpace(((ch = Kit.Sofa.Text[j])))) 
+                        ch = Kit.Sofa.Text[j];
+                        if (char.IsWhiteSpace(ch) || ch == 0x1F) 
                         {
                             this.SetAttr(1, true);
-                            if ((ch == 0xD || ch == 0xA || ch == '\f') || ch == 0x2028) 
+                            if ((ch == 0xD || ch == 0xA || ch == '\f') || ch == 0x2028 || ch == 0x1F) 
                                 this.SetAttr(3, true);
                         }
                     }
@@ -400,6 +401,8 @@ namespace Pullenti.Ner
                 if (BeginChar >= Kit.Sofa.Text.Length) 
                     return false;
                 char ch = Kit.Sofa.Text[BeginChar];
+                if (ch == '―') 
+                    return true;
                 return Pullenti.Morph.LanguageHelper.IsHiphen(ch);
             }
         }

@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -16,1483 +16,6 @@ namespace Pullenti.Ner.Org.Internal
 {
     public class OrgItemTypeToken : Pullenti.Ner.MetaToken
     {
-        static Pullenti.Ner.Core.IntOntologyCollection m_Global;
-        static OrgItemTypeTermin m_Bank;
-        static OrgItemTypeTermin m_MO;
-        public static OrgItemTypeTermin m_MejmunOtdel;
-        static OrgItemTypeTermin m_IsprKolon;
-        static OrgItemTypeTermin m_SberBank;
-        static OrgItemTypeTermin m_SecServ;
-        static OrgItemTypeTermin m_AkcionComp;
-        static OrgItemTypeTermin m_SovmPred;
-        static OrgItemTypeTermin m_SudUch;
-        static OrgItemTypeTermin m_TerPunkt;
-        internal static Pullenti.Ner.Core.TerminCollection m_PrefWords;
-        internal static Pullenti.Ner.Core.TerminCollection m_KeyWordsForRefs;
-        internal static Pullenti.Ner.Core.TerminCollection m_Markers;
-        static Pullenti.Ner.Core.TerminCollection m_StdAdjs;
-        static Pullenti.Ner.Core.TerminCollection m_StdAdjsUA;
-        public static void Initialize()
-        {
-            if (m_Global != null) 
-                return;
-            m_Global = new Pullenti.Ner.Core.IntOntologyCollection();
-            byte[] tdat = ResourceHelper.GetBytes("OrgTypes.dat");
-            if (tdat == null) 
-                throw new Exception("Can't file resource file OrgTypes.dat in Organization analyzer");
-            tdat = Deflate(tdat);
-            using (MemoryStream tmp = new MemoryStream(tdat)) 
-            {
-                tmp.Position = 0;
-                XmlDocument xml = new XmlDocument();
-                xml.Load(tmp);
-                OrgItemTypeTermin set = null;
-                foreach (XmlNode x in xml.DocumentElement.ChildNodes) 
-                {
-                    List<OrgItemTypeTermin> its = OrgItemTypeTermin.DeserializeSrc(x, set);
-                    if (x.LocalName == "set") 
-                    {
-                        set = null;
-                        if (its != null && its.Count > 0) 
-                            set = its[0];
-                    }
-                    else if (its != null) 
-                    {
-                        foreach (OrgItemTypeTermin ii in its) 
-                        {
-                            if (ii.CanonicText == "СУДЕБНЫЙ УЧАСТОК") 
-                                m_SudUch = ii;
-                            m_Global.Add(ii);
-                        }
-                    }
-                }
-            }
-            OrgItemTypeTermin t;
-            t = new OrgItemTypeTermin("СОВЕТ ДЕПУТАТОВ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            t.AddVariant("ДЕПСОВЕТ", false);
-            m_Global.Add(t);
-            string[] sovs = new string[] {"СОВЕТ БЕЗОПАСНОСТИ", "НАЦИОНАЛЬНЫЙ СОВЕТ", "ГОСУДАРСТВЕННЫЙ СОВЕТ", "ОБЛАСТНОЙ СОВЕТ", "РАЙОННЫЙ СОВЕТ", "ГОРОДСКОЙ СОВЕТ", "СЕЛЬСКИЙ СОВЕТ", "ПОСЕЛКОВЫЙ СОВЕТ", "КРАЕВОЙ СОВЕТ", "СЛЕДСТВЕННЫЙ КОМИТЕТ", "ГОСУДАРСТВЕННОЕ СОБРАНИЕ", "МУНИЦИПАЛЬНОЕ СОБРАНИЕ", "ГОРОДСКОЕ СОБРАНИЕ", "ЗАКОНОДАТЕЛЬНОЕ СОБРАНИЕ", "НАРОДНОЕ СОБРАНИЕ", "ОБЛАСТНАЯ ДУМА", "ГОРОДСКАЯ ДУМА", "КРАЕВАЯ ДУМА", "КАБИНЕТ МИНИСТРОВ"};
-            string[] sov2 = new string[] {"СОВБЕЗ", "НАЦСОВЕТ", "ГОССОВЕТ", "ОБЛСОВЕТ", "РАЙСОВЕТ", "ГОРСОВЕТ", "СЕЛЬСОВЕТ", "ПОССОВЕТ", "КРАЙСОВЕТ", null, "ГОССОБРАНИЕ", "МУНСОБРАНИЕ", "ГОРСОБРАНИЕ", "ЗАКСОБРАНИЕ", "НАРСОБРАНИЕ", "ОБЛДУМА", "ГОРДУМА", "КРАЙДУМА", "КАБМИН"};
-            for (int i = 0; i < sovs.Length; i++) 
-            {
-                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 4, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
-                if (sov2[i] != null) 
-                {
-                    t.AddVariant(sov2[i], false);
-                    if (sov2[i] == "ГОССОВЕТ" || sov2[i] == "НАЦСОВЕТ" || sov2[i] == "ЗАКСОБРАНИЕ") 
-                        t.Coeff = 5;
-                }
-                m_Global.Add(t);
-            }
-            sovs = new string[] {"РАДА БЕЗПЕКИ", "НАЦІОНАЛЬНА РАДА", "ДЕРЖАВНА РАДА", "ОБЛАСНА РАДА", "РАЙОННА РАДА", "МІСЬКА РАДА", "СІЛЬСЬКА РАДА", "КРАЙОВИЙ РАДА", "СЛІДЧИЙ КОМІТЕТ", "ДЕРЖАВНІ ЗБОРИ", "МУНІЦИПАЛЬНЕ ЗБОРИ", "МІСЬКЕ ЗБОРИ", "ЗАКОНОДАВЧІ ЗБОРИ", "НАРОДНІ ЗБОРИ", "ОБЛАСНА ДУМА", "МІСЬКА ДУМА", "КРАЙОВА ДУМА", "КАБІНЕТ МІНІСТРІВ"};
-            sov2 = new string[] {"РАДБЕЗ", null, null, "ОБЛРАДА", "РАЙРАДА", "МІСЬКРАДА", "СІЛЬРАДА", "КРАЙРАДА", null, "ДЕРЖЗБОРИ", "МУНЗБОРИ", "ГОРСОБРАНИЕ", "ЗАКЗБОРИ", "НАРСОБРАНИЕ", "ОБЛДУМА", "МІСЬКДУМА", "КРАЙДУМА", "КАБМІН"};
-            for (int i = 0; i < sovs.Length; i++) 
-            {
-                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.UA, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 4, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
-                if (sov2[i] != null) 
-                    t.AddVariant(sov2[i], false);
-                if (sov2[i] == "ГОССОВЕТ" || sov2[i] == "ЗАКЗБОРИ") 
-                    t.Coeff = 5;
-                m_Global.Add(t);
-            }
-            sovs = new string[] {"SECURITY COUNCIL", "NATIONAL COUNCIL", "STATE COUNCIL", "REGIONAL COUNCIL", "DISTRICT COUNCIL", "CITY COUNCIL", "RURAL COUNCIL", "INVESTIGATIVE COMMITTEE", "INVESTIGATION DEPARTMENT", "NATIONAL ASSEMBLY", "MUNICIPAL ASSEMBLY", "URBAN ASSEMBLY", "LEGISLATURE"};
-            for (int i = 0; i < sovs.Length; i++) 
-            {
-                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.EN, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 4, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ КОМИТЕТ") { Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 2 };
-            t.AddVariant("ГОСКОМИТЕТ", false);
-            t.AddVariant("ГОСКОМ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕРЖАВНИЙ КОМІТЕТ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 2 };
-            t.AddVariant("ДЕРЖКОМІТЕТ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КРАЕВОЙ КОМИТЕТ ГОСУДАРСТВЕННОЙ СТАТИСТИКИ") { Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 3, CanBeSingleGeo = true };
-            t.AddVariant("КРАЙКОМСТАТ", false);
-            t.Profile = Pullenti.Ner.Org.OrgProfile.Unit;
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОБЛАСТНОЙ КОМИТЕТ ГОСУДАРСТВЕННОЙ СТАТИСТИКИ") { Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 3, CanBeSingleGeo = true };
-            t.AddVariant("ОБЛКОМСТАТ", false);
-            t.Profile = Pullenti.Ner.Org.OrgProfile.Unit;
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("РАЙОННЫЙ КОМИТЕТ ГОСУДАРСТВЕННОЙ СТАТИСТИКИ") { Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 3, CanBeSingleGeo = true };
-            t.AddVariant("РАЙКОМСТАТ", false);
-            t.Profile = Pullenti.Ner.Org.OrgProfile.Unit;
-            m_Global.Add(t);
-            sovs = new string[] {"ЦЕНТРАЛЬНЫЙ КОМИТЕТ", "РАЙОННЫЙ КОМИТЕТ", "ГОРОДСКОЙ КОМИТЕТ", "КРАЕВОЙ КОМИТЕТ", "ОБЛАСТНОЙ КОМИТЕТ", "ПОЛИТИЧЕСКОЕ БЮРО", "ИСПОЛНИТЕЛЬНЫЙ КОМИТЕТ"};
-            sov2 = new string[] {"ЦК", "РАЙКОМ", "ГОРКОМ", "КРАЙКОМ", "ОБКОМ", "ПОЛИТБЮРО", "ИСПОЛКОМ"};
-            for (int i = 0; i < sovs.Length; i++) 
-            {
-                t = new OrgItemTypeTermin(sovs[i]) { Coeff = 2, Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
-                if (i == 0) 
-                {
-                    t.Acronym = "ЦК";
-                    t.CanBeNormalDep = true;
-                }
-                else if (sov2[i] != null) 
-                    t.AddVariant(sov2[i], false);
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"Standing Committee", "Political Bureau", "Central Committee"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s.ToUpper()) { Coeff = 3, Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeNormalDep = true });
-            }
-            sovs = new string[] {"ЦЕНТРАЛЬНИЙ КОМІТЕТ", "РАЙОННИЙ КОМІТЕТ", "МІСЬКИЙ КОМІТЕТ", "КРАЙОВИЙ КОМІТЕТ", "ОБЛАСНИЙ КОМІТЕТ"};
-            for (int i = 0; i < sovs.Length; i++) 
-            {
-                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.UA) { Coeff = 2, Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
-                if (i == 0) 
-                {
-                    t.Acronym = "ЦК";
-                    t.CanBeNormalDep = true;
-                }
-                else if (sov2[i] != null) 
-                    t.AddVariant(sov2[i], false);
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("КАЗНАЧЕЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КАЗНАЧЕЙСТВО") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("TREASURY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПОСОЛЬСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("EMNASSY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КОНСУЛЬСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("CONSULATE") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ ДЕПАРТАМЕНТ") { Coeff = 5, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
-            t.AddVariant("ГОСДЕПАРТАМЕНТ", false);
-            t.AddVariant("ГОСДЕП", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("DEPARTMENT OF STATE") { Coeff = 5, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
-            t.AddVariant("STATE DEPARTMENT", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕРЖАВНИЙ ДЕПАРТАМЕНТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 5, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
-            t.AddVariant("ДЕРЖДЕПАРТАМЕНТ", false);
-            t.AddVariant("ДЕРЖДЕП", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ДЕПАРТАМЕНТ") { Coeff = 2, Typ = OrgItemTypeTyp.Org });
-            t = new OrgItemTypeTermin("DEPARTMENT") { Coeff = 2, Typ = OrgItemTypeTyp.Org };
-            t.AddAbridge("DEPT.");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("АГЕНТСТВО") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true };
-            t.AddVariant("АГЕНСТВО", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ADGENCY") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true });
-            t = new OrgItemTypeTermin("АКАДЕМИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("АКАДЕМІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ACADEMY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГЕНЕРАЛЬНЫЙ ШТАБ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-            t.AddVariant("ГЕНЕРАЛЬНИЙ ШТАБ", false);
-            t.AddVariant("ГЕНШТАБ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("GENERAL STAFF") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ФРОНТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ВОЕННЫЙ ОКРУГ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ВІЙСЬКОВИЙ ОКРУГ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ГРУППА АРМИЙ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ГРУПА АРМІЙ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("АРМИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("АРМІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ARMY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ГВАРДИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ГВАРДІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("GUARD") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_MilitaryUnit = (t = new OrgItemTypeTermin("ВОЙСКОВАЯ ЧАСТЬ") { Coeff = 3, Acronym = "ВЧ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            t.AddAbridge("В.Ч.");
-            t.AddVariant("ВОИНСКАЯ ЧАСТЬ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ВІЙСЬКОВА ЧАСТИНА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
-            t.AddAbridge("В.Ч.");
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ДИВИЗИЯ", "ДИВИЗИОН", "ПОЛК", "БАТАЛЬОН", "РОТА", "ВЗВОД", "АВИАДИВИЗИЯ", "АВИАПОЛК", "АРТБРИГАДА", "МОТОМЕХБРИГАДА", "ТАНКОВЫЙ КОРПУС", "ГАРНИЗОН", "ДРУЖИНА", "СПЕЦНАЗ"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-                if (s == "ГАРНИЗОН") 
-                    t.CanBeSingleGeo = true;
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("ПОГРАНИЧНЫЙ ОТРЯД") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-            t.AddVariant("ПОГРАНОТРЯД", false);
-            t.AddAbridge("ПОГРАН. ОТРЯД");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПОГРАНИЧНЫЙ ПОЛК") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-            t.AddVariant("ПОГРАНПОЛК", false);
-            t.AddAbridge("ПОГРАН. ПОЛК");
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ДИВІЗІЯ", "ДИВІЗІОН", "ПОЛК", "БАТАЛЬЙОН", "РОТА", "ВЗВОД", "АВІАДИВІЗІЯ", "АВІАПОЛК", "ПОГРАНПОЛК", "АРТБРИГАДА", "МОТОМЕХБРИГАДА", "ТАНКОВИЙ КОРПУС", "ГАРНІЗОН", "ДРУЖИНА"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-                if (s == "ГАРНІЗОН") 
-                    t.CanBeSingleGeo = true;
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"КОРПУС", "БРИГАДА"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"КОРПУС", "БРИГАДА"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 1, Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("ПРИКОРДОННИЙ ЗАГІН") { Coeff = 3, Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНИЙ УНІВЕРСИТЕТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("STATE UNIVERSITY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("УНИВЕРСИТЕТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("УНІВЕРСИТЕТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("UNIVERSITY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanBeSingleGeo = true });
-            m_Global.Add(new OrgItemTypeTermin("УЧРЕЖДЕНИЕ") { Coeff = 1, Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("УСТАНОВА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 1, Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("INSTITUTION") { Coeff = 1, Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org });
-            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНА УСТАНОВА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org });
-            m_Global.Add(new OrgItemTypeTermin("STATE INSTITUTION") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true });
-            t = new OrgItemTypeTermin("ИНСТИТУТ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ІНСТИТУТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("INSTITUTE") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОТДЕЛ СУДЕБНЫХ ПРИСТАВОВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОСП", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Justice);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МЕЖРАЙОННЫЙ ОТДЕЛ СУДЕБНЫХ ПРИСТАВОВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОСП", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
-            t.AddVariant("МЕЖРАЙОННЫЙ ОСП", false);
-            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Justice);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОТДЕЛ ВНЕВЕДОМСТВЕННОЙ ОХРАНЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОВО", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОТДЕЛ ПО ВОПРОСАМ МИГРАЦИИ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОВМ", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ЛИЦЕЙ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ЛІЦЕЙ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Profile = Pullenti.Ner.Org.OrgProfile.Education, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ИНТЕРНАТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ІНТЕРНАТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Profile = Pullenti.Ner.Org.OrgProfile.Education, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("HIGH SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("SECONDARY SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("MIDDLE SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("PUBLIC SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("JUNIOR SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("GRAMMAR SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
-            t = new OrgItemTypeTermin("СРЕДНЯЯ ШКОЛА") { Coeff = 3, Acronym = "СШ", Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanBeSingleGeo = true, CanHasNumber = true };
-            t.AddVariant("СРЕДНЯЯ ОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
-            t.AddAbridge("СОШ");
-            t.AddVariant("ОБЩЕОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
-            t.AddVariant("СРЕДНЯЯ ОБЩЕОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
-            t.AddVariant("ОСНОВНАЯ ОБЩЕОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
-            t.AddVariant("ОСНОВНАЯ ОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
-            t.AddAbridge("ООШ");
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ШКОЛА ИНТЕРНАТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, CanBeSingleGeo = true, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("БИЗНЕС ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, CanBeSingleGeo = true, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("БІЗНЕС ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, CanBeSingleGeo = true, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("СЕРЕДНЯ ШКОЛА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Profile = Pullenti.Ner.Org.OrgProfile.Education, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ВЫСШАЯ ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ВИЩА ШКОЛА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("НАЧАЛЬНАЯ ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ПОЧАТКОВА ШКОЛА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("СЕМИНАРИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("СЕМІНАРІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ГИМНАЗИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ГІМНАЗІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            t = new OrgItemTypeTermin("СПЕЦИАЛИЗИРОВАННАЯ ДЕТСКО ЮНОШЕСКАЯ СПОРТИВНАЯ ШКОЛА ОЛИМПИЙСКОГО РЕЗЕРВА") { Coeff = 3, Acronym = "СДЮСШОР", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕТСКО ЮНОШЕСКАЯ СПОРТИВНАЯ ШКОЛА ОЛИМПИЙСКОГО РЕЗЕРВА") { Coeff = 3, Acronym = "ДЮСШОР", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕТСКО ЮНОШЕСКАЯ СПОРТИВНАЯ ШКОЛА") { Coeff = 3, Acronym = "ДЮСШ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕТСКИЙ САД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ДЕТСАД", false);
-            t.AddAbridge("Д.С.");
-            t.AddAbridge("Д/С");
-            t.AddVariant("ЯСЛИ САД", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДИТЯЧИЙ САДОК") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ДИТСАДОК", false);
-            t.AddAbridge("Д.С.");
-            t.AddAbridge("Д/З");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕТСКИЙ ДОМ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ДЕТДОМ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДИТЯЧИЙ БУДИНОК") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ДИТБУДИНОК", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДОМ ДЕТСКОГО ТВОРЧЕСТВА") { Coeff = 3, Acronym = "ДДТ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ДОМ ДЕТСКОГО И ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
-            t.AddVariant("ДДЮТ", false);
-            t.AddVariant("ДОМ ДЕТСКО ЮНЕШЕСКОГО ТВОРЧЕСТВА", false);
-            t.AddVariant("ДВОРЕЦ ДЕТСКОГО ТВОРЧЕСТВА", false);
-            t.AddVariant("ДВОРЕЦ ПИОНЕРОВ", false);
-            t.AddVariant("ДВОРЕЦ ДЕТСКОГО И ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
-            t.AddVariant("ДВОРЕЦ ДЕТСКОГО ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
-            t.AddVariant("ДВОРЕЦ ДЕТСКО ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
-            t.AddVariant("ДВОРЕЦ ДЕТСКОГО (ЮНОШЕСКОГО) ТВОРЧЕСТВА", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ШКОЛА") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("КОЛЛЕДЖ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("КОЛЛЕГИУМ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ТЕХНИКУМ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("COLLEGE") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ЦЕНТР") { Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНЫЙ ЦЕНТР") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВИЙ ЦЕНТР") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("УЧЕБНО ВОСПИТАТЕЛЬНЫЙ КОМПЛЕКС") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "УВК", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("НАВЧАЛЬНО ВИХОВНИЙ КОМПЛЕКС") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "УВК", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
-            t = new OrgItemTypeTermin("ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКОЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ПРОФТЕХУЧИЛИЩЕ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКОЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ГПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ГОСПРОФТЕХУЧИЛИЩЕ", false);
-            t.AddVariant("ГОСУДАРСТВЕННОЕ ПРОФТЕХУЧИЛИЩЕ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СРЕДНЕЕ ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКОЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "СПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("СРЕДНЕЕ ПРОФТЕХУЧИЛИЩЕ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКАЯ ШКОЛА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТШ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ПРОФТЕХШКОЛА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПРОФЕСІЙНО ТЕХНІЧНЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ПРОФТЕХУЧИЛИЩЕ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПРОФЕСІЙНО ТЕХНІЧНА ШКОЛА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТШ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ПРОФТЕХШКОЛА", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("БОЛЬНИЦА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ЛІКАРНЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("МОРГ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("МОРГ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ХОСПИС") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ХОСПІС") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            t = new OrgItemTypeTermin("ГОРОДСКАЯ БОЛЬНИЦА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            t.AddAbridge("ГОР.БОЛЬНИЦА");
-            t.AddVariant("ГОРБОЛЬНИЦА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МІСЬКА ЛІКАРНЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГОРОДСКАЯ КЛИНИЧЕСКАЯ БОЛЬНИЦА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Acronym = "ГКБ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МІСЬКА КЛІНІЧНА ЛІКАРНЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Acronym = "МКЛ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КЛАДБИЩЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КЛАДОВИЩЕ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ПОЛИКЛИНИКА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ПОЛІКЛІНІКА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСПИТАЛЬ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСПІТАЛЬ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("КЛИНИКА") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("КЛІНІКА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            t = new OrgItemTypeTermin("МЕДИКО САНИТАРНАЯ ЧАСТЬ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            t.AddVariant("МЕДСАНЧАСТЬ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЦЕНТРАЛЬНАЯ МЕДИКО САНИТАРНАЯ ЧАСТЬ") { Coeff = 2, Acronym = "ЦМСЧ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МЕДИКО САНІТАРНА ЧАСТИНА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            t.AddVariant("МЕДСАНЧАСТИНА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЦЕНТРАЛЬНА МЕДИКО САНІТАРНА ЧАСТИНА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Acronym = "ЦМСЧ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МЕДИЦИНСКИЙ ЦЕНТР") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            t.AddVariant("МЕДЦЕНТР", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МЕДИЧНИЙ ЦЕНТР") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            t.AddVariant("МЕДЦЕНТР", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("РОДИЛЬНЫЙ ДОМ") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            t.AddVariant("РОДДОМ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПОЛОГОВИЙ БУДИНОК") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
-            m_Global.Add(t);
-            m_Global.Add((t = new OrgItemTypeTermin("АЭРОПОРТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Transport }));
-            m_Global.Add((t = new OrgItemTypeTermin("АЕРОПОРТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true }));
-            t = new OrgItemTypeTermin("ТОРГОВЫЙ ПОРТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Transport };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МОРСКОЙ ТОРГОВЫЙ ПОРТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Transport };
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ТЕАТР", "ТЕАТР-СТУДИЯ", "КИНОТЕАТР", "МУЗЕЙ", "ГАЛЕРЕЯ", "КОНЦЕРТНЫЙ ЗАЛ", "ФИЛАРМОНИЯ", "КОНСЕРВАТОРИЯ", "ДОМ КУЛЬТУРЫ", "ДВОРЕЦ КУЛЬТУРЫ", "ДВОРЕЦ ПИОНЕРОВ", "ДВОРЕЦ СПОРТА", "ДВОРЕЦ ТВОРЧЕСТВА", "ДОМ ПИОНЕРОВ", "ДОМ СПОРТА", "ДОМ ТВОРЧЕСТВА"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true });
-            }
-            foreach (string s in new string[] {"ТЕАТР", "ТЕАТР-СТУДІЯ", "КІНОТЕАТР", "МУЗЕЙ", "ГАЛЕРЕЯ", "КОНЦЕРТНИЙ ЗАЛ", "ФІЛАРМОНІЯ", "КОНСЕРВАТОРІЯ", "БУДИНОК КУЛЬТУРИ", "ПАЛАЦ КУЛЬТУРИ", "ПАЛАЦ ПІОНЕРІВ", "ПАЛАЦ СПОРТУ", "ПАЛАЦ ТВОРЧОСТІ", "БУДИНОК ПІОНЕРІВ", "БУДИНОК СПОРТУ", "БУДИНОК ТВОРЧОСТІ"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true });
-            }
-            m_Global.Add(new OrgItemTypeTermin("БИБЛИОТЕКА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("БІБЛІОТЕКА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true });
-            foreach (string s in new string[] {"ЦЕРКОВЬ", "ХРАМ", "СОБОР", "МЕЧЕТЬ", "СИНАГОГА", "МОНАСТЫРЬ", "ЛАВРА", "ПАТРИАРХАТ", "МЕДРЕСЕ", "СЕКТА", "РЕЛИГИОЗНАЯ ГРУППА", "РЕЛИГИОЗНОЕ ОБЪЕДИНЕНИЕ", "РЕЛИГИОЗНАЯ ОРГАНИЗАЦИЯ"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            }
-            foreach (string s in new string[] {"ЦЕРКВА", "ХРАМ", "СОБОР", "МЕЧЕТЬ", "СИНАГОГА", "МОНАСТИР", "ЛАВРА", "ПАТРІАРХАТ", "МЕДРЕСЕ", "СЕКТА", "РЕЛІГІЙНА ГРУПА", "РЕЛІГІЙНЕ ОБЄДНАННЯ", " РЕЛІГІЙНА ОРГАНІЗАЦІЯ"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            }
-            foreach (string s in new string[] {"ФЕДЕРАЛЬНАЯ СЛУЖБА", "ГОСУДАРСТВЕННАЯ СЛУЖБА", "ФЕДЕРАЛЬНОЕ УПРАВЛЕНИЕ", "ГОСУДАРСТВЕННЫЙ КОМИТЕТ", "ГОСУДАРСТВЕННАЯ ИНСПЕКЦИЯ"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, MustBePartofName = true };
-                m_Global.Add(t);
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanonicText = s };
-                t.Terms.Insert(1, new Pullenti.Ner.Core.Termin.Term(null) { IsPatternAny = true });
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ФЕДЕРАЛЬНА СЛУЖБА", "ДЕРЖАВНА СЛУЖБА", "ФЕДЕРАЛЬНЕ УПРАВЛІННЯ", "ДЕРЖАВНИЙ КОМІТЕТ УКРАЇНИ", "ДЕРЖАВНА ІНСПЕКЦІЯ"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, MustBePartofName = true };
-                m_Global.Add(t);
-                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanonicText = s };
-                t.Terms.Insert(1, new Pullenti.Ner.Core.Termin.Term(null) { IsPatternAny = true });
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("СЛЕДСТВЕННЫЙ ИЗОЛЯТОР") { Coeff = 5, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
-            t.AddVariant("СИЗО", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СЛІДЧИЙ ІЗОЛЯТОР") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
-            t.AddVariant("СІЗО", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("КОЛОНИЯ-ПОСЕЛЕНИЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("КОЛОНІЯ-ПОСЕЛЕННЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ТЮРЬМА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true });
-            m_Global.Add(new OrgItemTypeTermin("ВЯЗНИЦЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true });
-            m_Global.Add(new OrgItemTypeTermin("КОЛОНИЯ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("КОЛОНІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            m_Global.Add((m_IsprKolon = new OrgItemTypeTermin("ИСПРАВИТЕЛЬНАЯ КОЛОНИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ИК", CanHasNumber = true }));
-            m_Global.Add(new OrgItemTypeTermin("ВИПРАВНА КОЛОНІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
-            for (int kk = 0; kk < 2; kk++) 
-            {
-                foreach (string s in new string[] {"ПОЛИЦИЯ", "МИЛИЦИЯ"}) 
-                {
-                    t = new OrgItemTypeTermin(((kk == 0 ? "" : "НАЦИОНАЛЬНАЯ ")) + s) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanBeSingleGeo = true, CanHasSingleName = false };
-                    if (kk == 1) 
-                        t.AddVariant("НАЦ" + s, false);
-                    m_Global.Add(t);
-                }
-                foreach (string s in new string[] {"ПОЛІЦІЯ", "МІЛІЦІЯ"}) 
-                {
-                    t = new OrgItemTypeTermin(((kk == 0 ? "" : "НАЦІОНАЛЬНА ")) + s) { Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, Coeff = 3, CanBeSingleGeo = true, CanHasSingleName = false };
-                    if (kk == 1) 
-                        t.AddVariant("НАЦ" + s, false);
-                    m_Global.Add(t);
-                }
-            }
-            m_Global.Add(new OrgItemTypeTermin("ПАЕВЫЙ ИНВЕСТИЦИОННЫЙ ФОНД") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПИФ" });
-            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКОЕ ИНФОРМАЦИОННОЕ АГЕНТСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "РИА", Profile = Pullenti.Ner.Org.OrgProfile.Media });
-            t = new OrgItemTypeTermin("ИНФОРМАЦИОННОЕ АГЕНТСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ИА", Profile = Pullenti.Ner.Org.OrgProfile.Media };
-            t.AddVariant("ИНФОРМАГЕНТСТВО", false);
-            t.AddVariant("ИНФОРМАГЕНСТВО", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АГЕНТСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.State, CanHasLatinName = true };
-            t.AddVariant("ГОСАГЕНТСТВО", false);
-            t.AddVariant("ГОСАГЕНСТВО", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ОТДЕЛ") { Coeff = 1, Typ = OrgItemTypeTyp.Dep, IsDoubtWord = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ВІДДІЛ", Pullenti.Morph.MorphLang.UA) { Coeff = 1, Typ = OrgItemTypeTyp.Dep, IsDoubtWord = true, CanHasNumber = true });
-            t = new OrgItemTypeTermin("РАЙОННЫЙ ОТДЕЛ") { Coeff = 2, Acronym = "РО", Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            t.AddVariant("РАЙОТДЕЛ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("РАЙОННИЙ ВІДДІЛ", Pullenti.Morph.MorphLang.UA) { Coeff = 2, Acronym = "РВ", Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЦЕХ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ФАКУЛЬТЕТ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            t.AddAbridge("ФАК.");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КАФЕДРА") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            t.AddAbridge("КАФ.");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЛАБОРАТОРИЯ") { Coeff = 1, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            t.AddAbridge("ЛАБ.");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЛАБОРАТОРІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 1, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            t.AddAbridge("ЛАБ.");
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ПАТРИАРХИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            m_Global.Add(new OrgItemTypeTermin("ПАТРІАРХІЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            m_Global.Add(new OrgItemTypeTermin("ЕПАРХИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            m_Global.Add(new OrgItemTypeTermin("ЄПАРХІЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            m_Global.Add(new OrgItemTypeTermin("МИТРОПОЛИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            m_Global.Add(new OrgItemTypeTermin("МИТРОПОЛІЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
-            m_Global.Add(new OrgItemTypeTermin("ПРЕДСТАВИТЕЛЬСТВО") { Typ = OrgItemTypeTyp.DepAdd });
-            m_Global.Add(new OrgItemTypeTermin("ПРЕДСТАВНИЦТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd });
-            t = new OrgItemTypeTermin("ОТДЕЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
-            t.AddAbridge("ОТД.");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ВІДДІЛЕННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ИНСПЕКЦИЯ") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("ІНСПЕКЦІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("ФИЛИАЛ") { Typ = OrgItemTypeTyp.DepAdd });
-            m_Global.Add(new OrgItemTypeTermin("ФІЛІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd });
-            t = new OrgItemTypeTermin("ОФИС") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true, CanHasNumber = true };
-            t.AddVariant("ОПЕРАЦИОННЫЙ ОФИС", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОФІС", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true, CanHasNumber = true };
-            t.AddVariant("ОПЕРАЦІЙНИЙ ОФІС", false);
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ОТДЕЛ ПОЛИЦИИ", "ОТДЕЛ МИЛИЦИИ", "ОТДЕЛЕНИЕ ПОЛИЦИИ", "ОТДЕЛЕНИЕ МИЛИЦИИ"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Dep, Coeff = 1.5F, CanHasNumber = true, CanHasSingleName = true });
-                if (s.StartsWith("ОТДЕЛ ")) 
-                {
-                    t = new OrgItemTypeTermin("ГОРОДСКОЙ " + s) { Typ = OrgItemTypeTyp.Dep, Coeff = 3F, CanHasNumber = true, CanHasSingleName = true };
-                    t.AddVariant("ГОР" + s, false);
-                    m_Global.Add(t);
-                    t = new OrgItemTypeTermin("РАЙОННЫЙ " + s) { Acronym = "РО", Typ = OrgItemTypeTyp.Dep, Coeff = 3F, CanHasNumber = true, CanHasSingleName = true };
-                    m_Global.Add(t);
-                }
-            }
-            foreach (string s in new string[] {"ВІДДІЛ ПОЛІЦІЇ", "ВІДДІЛ МІЛІЦІЇ", "ВІДДІЛЕННЯ ПОЛІЦІЇ", "ВІДДІЛЕННЯ МІЛІЦІЇ"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, Coeff = 1.5F, CanHasNumber = true, CanHasSingleName = true });
-            }
-            t = new OrgItemTypeTermin("МЕЖМУНИЦИПАЛЬНЫЙ ОТДЕЛ") { Typ = OrgItemTypeTyp.Dep, Coeff = 1.5F, CanHasNumber = true, CanHasSingleName = true };
-            m_MejmunOtdel = t;
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГЛАВНОЕ УПРАВЛЕНИЕ") { Acronym = "ГУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЛИНЕЙНОЕ УПРАВЛЕНИЕ") { Acronym = "ЛУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МЕЖМУНИЦИПАЛЬНОЕ УПРАВЛЕНИЕ") { Acronym = "МУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГОЛОВНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ГУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГЛАВНОЕ ТЕРРИТОРИАЛЬНОЕ УПРАВЛЕНИЕ") { Acronym = "ГТУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГОЛОВНЕ ТЕРИТОРІАЛЬНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ГТУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СЛЕДСТВЕННОЕ УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СЛІДЧЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГЛАВНОЕ СЛЕДСТВЕННОЕ УПРАВЛЕНИЕ") { Acronym = "ГСУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ГОЛОВНЕ СЛІДЧЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ГСУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОПЕРАЦИОННОЕ УПРАВЛЕНИЕ") { Acronym = "ОПЕРУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОПЕРАЦІЙНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ОПЕРУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ТЕРРИТОРИАЛЬНОЕ УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ТЕРИТОРІАЛЬНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("РЕГИОНАЛЬНОЕ УПРАВЛЕНИЕ") { Acronym = "РУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("РЕГІОНАЛЬНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "РУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПОГРАНИЧНОЕ УПРАВЛЕНИЕ") { Acronym = "ПУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КАТЕГОРИЙНОЕ УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕЖУРНАЯ ЧАСТЬ") { Acronym = "ДЧ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
-            t.AddAbridge("Д/Ч");
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ПРЕСС-СЛУЖБА", "ПРЕСС-ЦЕНТР", "КОЛЛ-ЦЕНТР", "БУХГАЛТЕРИЯ", "МАГИСТРАТУРА", "АСПИРАНТУРА", "ДОКТОРАНТУРА", "ОРДИНАТУРА", "СОВЕТ ДИРЕКТОРОВ", "УЧЕНЫЙ СОВЕТ", "КОЛЛЕГИЯ", "НАБЛЮДАТЕЛЬНЫЙ СОВЕТ", "ОБЩЕСТВЕННЫЙ СОВЕТ", "ДИРЕКЦИЯ", "ЖЮРИ", "ПРЕЗИДИУМ", "СЕКРЕТАРИАТ", "СИНОД", "ПЛЕНУМ", "АППАРАТ", "PRESS CENTER", "CLIENT CENTER", "CALL CENTER", "ACCOUNTING", "MASTER DEGREE", "POSTGRADUATE", "DOCTORATE", "RESIDENCY", "BOARD OF DIRECTORS", "DIRECTOR BOARD", "ACADEMIC COUNCIL", "PLENARY", "SUPERVISORY BOARD", "PUBLIC COUNCIL", "LEADERSHIP", "JURY", "BUREAU", "SECRETARIAT"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit });
-            }
-            foreach (string s in new string[] {"ПРЕС-СЛУЖБА", "ПРЕС-ЦЕНТР", "БУХГАЛТЕРІЯ", "МАГІСТРАТУРА", "АСПІРАНТУРА", "ДОКТОРАНТУРА", "ОРДИНАТУРА", "РАДА ДИРЕКТОРІВ", "ВЧЕНА РАДА", "КОЛЕГІЯ", "ПЛЕНУМ", "НАГЛЯДОВА РАДА", "ГРОМАДСЬКА РАДА", "ДИРЕКЦІЯ", "ЖУРІ", "ПРЕЗИДІЯ", "СЕКРЕТАРІАТ", "АПАРАТ"}) 
-            {
-                m_Global.Add(new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit });
-            }
-            t = new OrgItemTypeTermin("ОТДЕЛ ИНФОРМАЦИОННОЙ БЕЗОПАСНОСТИ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
-            t.AddVariant("ОТДЕЛ ИБ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОТДЕЛ ИНФОРМАЦИОННЫХ ТЕХНОЛОГИЙ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
-            t.AddVariant("ОТДЕЛ ИТ", false);
-            t.AddVariant("ОТДЕЛ IT", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("СЕКТОР") { Typ = OrgItemTypeTyp.Dep, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("КУРС") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("ГРУППА") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true, CanHasLatinName = true, CanHasSingleName = true });
-            m_Global.Add(new OrgItemTypeTermin("ГРУПА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true, CanHasLatinName = true, CanHasSingleName = true });
-            m_Global.Add(new OrgItemTypeTermin("СОЗЫВ") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true });
-            m_Global.Add(new OrgItemTypeTermin("ДНЕВНОЕ ОТДЕЛЕНИЕ") { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ДЕННЕ ВІДДІЛЕННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ВЕЧЕРНЕЕ ОТДЕЛЕНИЕ") { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ВЕЧІРНЄ ВІДДІЛЕННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ДЕЖУРНАЯ ЧАСТЬ") { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true });
-            m_Global.Add(new OrgItemTypeTermin("ЧЕРГОВА ЧАСТИНА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true });
-            t = new OrgItemTypeTermin("ПАСПОРТНЫЙ СТОЛ") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            t.AddAbridge("П/С");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПАСПОРТНИЙ СТІЛ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            t.AddAbridge("П/С");
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ВЫСШЕЕ УЧЕБНОЕ ЗАВЕДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВУЗ" });
-            m_Global.Add(new OrgItemTypeTermin("ВИЩИЙ НАВЧАЛЬНИЙ ЗАКЛАД", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВНЗ" });
-            m_Global.Add(new OrgItemTypeTermin("ВЫСШЕЕ ПРОФЕССИОНАЛЬНОЕ УЧИЛИЩЕ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВПУ" });
-            m_Global.Add(new OrgItemTypeTermin("ВИЩЕ ПРОФЕСІЙНЕ УЧИЛИЩЕ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВПУ" });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science, Acronym = "НИИ" });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ДОСЛІДНИЙ ІНСТИТУТ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science, Acronym = "НДІ" });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ И ПРОЕКТНЫЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science, Acronym = "НИПИ" });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НИЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ НАУЧНЫЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГНЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАЦИОНАЛЬНЫЙ ИССЛЕДОВАТЕЛЬСКИЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НИЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ДОСЛІДНИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НДЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("ЦЕНТРАЛЬНЫЙ НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЦНИИ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("ВСЕРОССИЙСКИЙ НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВНИИ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКИЙ НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "РНИИ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            t = new OrgItemTypeTermin("ИННОВАЦИОННЫЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science };
-            t.AddVariant("ИННОВАЦИОННЫЙ НАУЧНО ТЕХНОЛОГИЧЕСКИЙ ЦЕНТР", false);
-            t.AddVariant("ИННОЦЕНТР", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ТЕХНИЧЕСКИЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ТЕХНІЧНИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ТЕХНИЧЕСКАЯ ФИРМА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТФ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧА ФІРМА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВФ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ ОБЪЕДИНЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПО", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧЕ ОБЄДНАННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВО", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО-ВИРОБНИЧИЙ КООПЕРАТИВ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВК", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            t = new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННАЯ КОРПОРАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПК", Profile = Pullenti.Ner.Org.OrgProfile.Science };
-            t.AddVariant("НАУЧНО ПРОИЗВОДСТВЕННАЯ КОМПАНИЯ", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ТЕХНИЧЕСКИЙ КОМПЛЕКС") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТК", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("МЕЖОТРАСЛЕВОЙ НАУЧНО ТЕХНИЧЕСКИЙ КОМПЛЕКС") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МНТК", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПП", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВП", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННЫЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧЕ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПУП", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("ИНДИВИДУАЛЬНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ИП" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧП" });
-            m_Global.Add(new OrgItemTypeTermin("ПРИВАТНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПП" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУП" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ПРОИЗВОДСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧПУП" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ИНДИВИДУАЛЬНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧИП" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ОХРАННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧОП" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНАЯ ОХРАННАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧОО" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ТРАНСПОРТНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧТУП" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ТРАНСПОРТНО ЭКСПЛУАТАЦИОННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧТЭУП" });
-            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ КОРПОРАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПК" });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУП" });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГУП" });
-            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГП" };
-            t.AddVariant("ГОСПРЕДПРИЯТИЕ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕРЖАВНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДП" };
-            t.AddVariant("ДЕРЖПІДПРИЄМСТВО", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ НАУЧНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГНУ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУ" });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГКУ" });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ КАЗЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГКОУ" });
-            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГБУ" };
-            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ НАУКИ", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ВОЕННО ПРОМЫШЛЕННАЯ КОРПОРАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВПК" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНАЯ ВОЕННАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧВК", Profile = Pullenti.Ner.Org.OrgProfile.Army });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФБУ" });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФУП" });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКУ" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ НЕКОММЕРЧЕСКОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МНУ" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МБУ" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАУ" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКУ" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУП" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УНИТАРНОЕ ПРОИЗВОДСТВЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУПП" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКП" });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МП" });
-            m_Global.Add(new OrgItemTypeTermin("КАЗЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix });
-            m_Global.Add(new OrgItemTypeTermin("КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix });
-            m_Global.Add(new OrgItemTypeTermin("НЕБАНКОВСКАЯ КРЕДИТНАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НКО" });
-            m_Global.Add(new OrgItemTypeTermin("РАСЧЕТНАЯ НЕБАНКОВСКАЯ КРЕДИТНАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "РНКО" });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУ" });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГКУ" });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГАУ" });
-            m_Global.Add(new OrgItemTypeTermin("МАЛОЕ ИННОВАЦИОННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix });
-            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННЫЙ ПЕНСИОННЫЙ ФОНД") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПФ" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix });
-            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНА АКЦІОНЕРНА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДАК" });
-            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДК" });
-            m_Global.Add(new OrgItemTypeTermin("КОЛЕКТИВНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "КП" });
-            m_Global.Add(new OrgItemTypeTermin("КОЛЕКТИВНЕ МАЛЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "КМП" });
-            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧА ФІРМА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВФ" });
-            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧЕ ОБЄДНАННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВО" });
-            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВП" });
-            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧИЙ КООПЕРАТИВ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВК" });
-            m_Global.Add(new OrgItemTypeTermin("СТРАХОВА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "СК" });
-            m_Global.Add(new OrgItemTypeTermin("ТВОРЧЕ ОБЄДНАННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ТО" });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГАУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ОБЛАСТНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОГАУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ОБЛАСТНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОГБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГАУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            m_Global.Add(new OrgItemTypeTermin("КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "КУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
-            t = new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУК" };
-            t.AddVariant("ЧАСТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ ЛФП", false);
-            t.AddVariant("ЧУК ЛФП", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБПОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ГБ ПОУ", true);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ОБЩЕОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ДОПОЛНИТЕЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУДО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГАОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ", false);
-            t.AddVariant("ФГАОУ ВО", true);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ ДОПОЛНИТЕЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУДО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ ДОПОЛНИТЕЛЬНОГО ПРОФЕССИОНАЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ ОБЩЕОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("АВТОНОМНАЯ НЕКОММЕРЧЕСКАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "АНО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            t = new OrgItemTypeTermin("АВТОНОМНАЯ НЕКОММЕРЧЕСКАЯ ОРГАНИЗАЦИЯ ДОПОЛНИТЕЛЬНОГО ПРОФЕССИОНАЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "АНОДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("АНО ДПО", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ ЧАСТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НОЧУ", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ЛЕЧЕБНО ПРОФИЛАКТИЧЕСКОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МЛПУ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ ЛЕЧЕБНО ПРОФИЛАКТИЧЕСКОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКЛПУ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГБОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГАОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education };
-            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ВЫСШЕЕ ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВПО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ДОПОЛНИТЕЛЬНОЕ ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ОРГАНИЗАЦИЯ ДОПОЛНИТЕЛЬНОГО ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ЦЕНТР ПРОФЕССИОНАЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЦПО", Profile = Pullenti.Ner.Org.OrgProfile.Education });
-            m_Global.Add(new OrgItemTypeTermin("ДЕПАРТАМЕНТ ЕДИНОГО ЗАКАЗЧИКА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДЕЗ", AcronymCanBeLower = true, CanBeSingleGeo = true });
-            t = new OrgItemTypeTermin("СОЮЗ АРБИТРАЖНЫХ УПРАВЛЯЮЩИХ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "САУ", CanHasLatinName = true };
-            t.AddVariant("САМОРЕГУЛИРУЕМАЯ ОРГАНИЗАЦИЯ АРБИТРАЖНЫХ УПРАВЛЯЮЩИХ", false);
-            t.AddVariant("СОАУ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОПЫТНО ПРОИЗВОДСТВЕННОЕ ХОЗЯЙСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОПХ", CanHasLatinName = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОРГАНИЗАЦИЯ НАУЧНОГО ОБСЛУЖИВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОНО", CanHasLatinName = true };
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АО" });
-            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АТ" });
-            m_Global.Add((m_SovmPred = new OrgItemTypeTermin("СОВМЕСТНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "СП" }));
-            m_Global.Add(new OrgItemTypeTermin("СПІЛЬНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "СП" });
-            m_Global.Add((m_AkcionComp = new OrgItemTypeTermin("АКЦИОНЕРНАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true }));
-            m_Global.Add(new OrgItemTypeTermin("УПРАВЛЯЮЩАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "УК", CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ЗАО" });
-            m_Global.Add(new OrgItemTypeTermin("ОБЩЕСТВО ОТКРЫТОГО ТИПА") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ООТ" });
-            m_Global.Add(new OrgItemTypeTermin("ОБЩЕСТВО С ДОПОЛНИТЕЛЬНОЙ ОТВЕТСТВЕННОСТЬЮ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОДО" });
-            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "РАО", AcronymSmart = "PAO" });
-            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКОЕ ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "РОАО" });
-            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНОЕ ОБЩЕСТВО ЗАКРЫТОГО ТИПА") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АОЗТ" });
-            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНЕ ТОВАРИСТВО ЗАКРИТОГО ТИПУ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АТЗТ" });
-            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНОЕ ОБЩЕСТВО ОТКРЫТОГО ТИПА") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АООТ" });
-            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНЕ ТОВАРИСТВО ВІДКРИТОГО ТИПУ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АТВТ" });
-            m_Global.Add(new OrgItemTypeTermin("ОБЩЕСТВЕННАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОО" });
-            m_Global.Add(new OrgItemTypeTermin("УПРАВЛЯЮЩАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("УПРАВЛЯЮЩАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ГОЛОВНАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ГРОМАДСЬКА ОРГАНІЗАЦІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ГО" });
-            m_Global.Add(new OrgItemTypeTermin("АВТОНОМНАЯ НЕКОММЕРЧЕСКАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АНО" });
-            m_Global.Add(new OrgItemTypeTermin("АВТОНОМНА НЕКОМЕРЦІЙНА ОРГАНІЗАЦІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АНО" });
-            m_Global.Add(new OrgItemTypeTermin("ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОАО", AcronymSmart = "OAO" });
-            m_Global.Add(new OrgItemTypeTermin("ВІДКРИТЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ВАТ", AcronymSmart = "ВАТ" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ЧАО", AcronymSmart = "ЧAO" });
-            m_Global.Add(new OrgItemTypeTermin("ОТКРЫТОЕ СТРАХОВОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОСАО" });
-            t = new OrgItemTypeTermin("ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ООО", AcronymSmart = "OOO" };
-            t.AddVariant("ОБЩЕСТВО ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬ", false);
-            t.AddVariant("ОБЩЕСТВО ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТИ", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТОВ", AcronymSmart = "ТОВ" });
-            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ПОВНОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТПВ", AcronymSmart = "ТПВ" });
-            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТЗОВ", AcronymSmart = "ТЗОВ" });
-            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ДОДАТКОВОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТДВ", AcronymSmart = "ТДВ" });
-            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ПРИВАТНЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ПРАТ", AcronymSmart = "ПРАТ" });
-            m_Global.Add(new OrgItemTypeTermin("ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ПУБЛІЧНЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ПАТ", AcronymSmart = "ПАТ" });
-            m_Global.Add(new OrgItemTypeTermin("ЗАКРЫТОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ЗАКРИТЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ЗАТ", AcronymSmart = "ЗАТ" });
-            m_Global.Add(new OrgItemTypeTermin("ОТКРЫТОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ВІДКРИТЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ВАТ", AcronymSmart = "ВАТ" });
-            m_Global.Add(new OrgItemTypeTermin("ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ПАО" });
-            m_Global.Add(new OrgItemTypeTermin("СТРАХОВОЕ ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "СПАО" });
-            t = new OrgItemTypeTermin("БЛАГОТВОРИТЕЛЬНАЯ ОБЩЕСТВЕННАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "БОО", AcronymSmart = "БОО" };
-            t.AddVariant("ОБЩЕСТВЕННАЯ БЛАГОТВОРИТЕЛЬНАЯ ОРГАНИЗАЦИЯ", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ТОВАРИЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ТОО", AcronymSmart = "TOO" });
-            m_Global.Add(new OrgItemTypeTermin("ПРЕДПРИНИМАТЕЛЬ БЕЗ ОБРАЗОВАНИЯ ЮРИДИЧЕСКОГО ЛИЦА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПБОЮЛ" });
-            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНЫЙ КОММЕРЧЕСКИЙ БАНК") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АКБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
-            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНИЙ КОМЕРЦІЙНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АКБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
-            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНЫЙ БАНК") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
-            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
-            m_Global.Add(new OrgItemTypeTermin("КОММЕРЧЕСКИЙ БАНК") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance });
-            m_Global.Add(new OrgItemTypeTermin("КОМЕРЦІЙНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance });
-            m_Global.Add(new OrgItemTypeTermin("КОНСТРУКТОРСКОЕ БЮРО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("КОНСТРУКТОРСЬКЕ БЮРО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ОПЫТНО КОНСТРУКТОРСКОЕ БЮРО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОКБ" });
-            m_Global.Add(new OrgItemTypeTermin("ДОСЛІДНО КОНСТРУКТОРСЬКЕ БЮРО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ДКБ" });
-            m_Global.Add(new OrgItemTypeTermin("СПЕЦИАЛЬНОЕ КОНСТРУКТОРСКОЕ БЮРО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "СКБ", CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("СПЕЦІАЛЬНЕ КОНСТРУКТОРСЬКЕ БЮРО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "СКБ", CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНАЯ СТРАХОВАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АСК" });
-            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНА СТРАХОВА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АСК" });
-            m_Global.Add(new OrgItemTypeTermin("РЕКЛАМНО ПРОИЗВОДСТВЕННАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "РПК" });
-            m_Global.Add(new OrgItemTypeTermin("АВТОТРАНСПОРТНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, CanHasNumber = true, Acronym = "АТП" });
-            m_Global.Add(new OrgItemTypeTermin("АВТОТРАНСПОРТНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, CanHasNumber = true, Acronym = "АТП" });
-            m_Global.Add(new OrgItemTypeTermin("ТЕЛЕРАДИОКОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            m_Global.Add(new OrgItemTypeTermin("ТЕЛЕРАДІОКОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
-            t = new OrgItemTypeTermin("ОРГАНИЗОВАННАЯ ПРЕСТУПНАЯ ГРУППИРОВКА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОПГ", CanHasLatinName = true };
-            t.AddVariant("ОРГАНИЗОВАННАЯ ПРЕСТУПНАЯ ГРУППА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОРГАНИЗОВАННОЕ ПРЕСТУПНОЕ СООБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОПС", CanHasLatinName = true };
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ПОДРОСТКОВО МОЛОДЕЖНЫЙ КЛУБ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПМК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("СКЛАД ВРЕМЕННОГО ХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "СВХ", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ЖИЛИЩНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЖСК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГСК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНО ЭКСПЛУАТАЦИОННЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГЭК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНО ПОТРЕБИТЕЛЬСКИЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГПК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ПОТРЕБИТЕЛЬСКИЙ ГАРАЖНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПГСК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНЫЙ СТРОИТЕЛЬНО ПОТРЕБИТЕЛЬСКИЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГСПК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ДАЧНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДСК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ПОТРЕБИТЕЛЬСКИЙ ГАРАЖНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПГК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ИНДИВИДУАЛЬНОЕ ЖИЛИЩНОЕ СТРОИТЕЛЬСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ИЖС", CanHasLatinName = true, CanHasNumber = true });
-            t = new OrgItemTypeTermin("САДОВОЕ НЕКОММЕРЧЕСКОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "СНТ", CanHasLatinName = true, CanHasNumber = true };
-            t.AddAbridge("САДОВОЕ НЕКОМ-Е ТОВАРИЩЕСТВО");
-            t.AddVariant("СНТ ПМК", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДАЧНОЕ НЕКОММЕРЧЕСКОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДНТ", CanHasLatinName = true, CanHasNumber = true };
-            t.AddAbridge("ДАЧНОЕ НЕКОМ-Е ТОВАРИЩЕСТВО");
-            t.AddVariant("ДНТ ПМК", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ПРЕДПРИЯТИЕ ПОТРЕБИТЕЛЬСКОЙ КООПЕРАЦИИ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ППК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ПІДПРИЄМСТВО СПОЖИВЧОЇ КООПЕРАЦІЇ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПСК", CanHasLatinName = true, CanHasNumber = true });
-            m_Global.Add(new OrgItemTypeTermin("ФІЗИЧНА ОСОБА ПІДПРИЄМЕЦЬ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФОП", CanHasLatinName = true, CanHasSingleName = true });
-            t = new OrgItemTypeTermin("ЖЕЛЕЗНАЯ ДОРОГА") { Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Transport, CanHasLatinName = true, Coeff = 3 };
-            t.AddVariant("ЖЕЛЕЗНОДОРОЖНАЯ МАГИСТРАЛЬ", false);
-            t.AddAbridge("Ж.Д.");
-            t.AddAbridge("Ж/Д");
-            t.AddAbridge("ЖЕЛ.ДОР.");
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ЗАВОД", "ФАБРИКА", "БАНК", "КОМБИНАТ", "МЯСОКОМБИНАТ", "БАНКОВСКАЯ ГРУППА", "БИРЖА", "ФОНДОВАЯ БИРЖА", "FACTORY", "MANUFACTORY", "BANK"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true }));
-                if (s == "БАНК" || s == "BANK" || s.EndsWith("БИРЖА")) 
-                {
-                    t.Profile = Pullenti.Ner.Org.OrgProfile.Finance;
-                    t.Coeff = 2;
-                    t.CanHasLatinName = true;
-                    if (m_Bank == null) 
-                        m_Bank = t;
-                }
-            }
-            t = new OrgItemTypeTermin("КРИТПОВАЛЮТНАЯ БИРЖА") { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Finance, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("КРИПТОБИРЖА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КРИПТОВАЛЮТНАЯ БІРЖА", Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Finance, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("КРИПТОБІРЖА", false);
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ЗАВОД", "ФАБРИКА", "БАНК", "КОМБІНАТ", "БАНКІВСЬКА ГРУПА", "БІРЖА", "ФОНДОВА БІРЖА"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true }));
-                if (s == "БАНК" || s.EndsWith("БІРЖА")) 
-                {
-                    t.Coeff = 2;
-                    t.CanHasLatinName = true;
-                    if (m_Bank == null) 
-                        m_Bank = t;
-                }
-            }
-            foreach (string s in new string[] {"ТУРФИРМА", "ТУРАГЕНТСТВО", "ТУРКОМПАНИЯ", "АВИАКОМПАНИЯ", "КИНОСТУДИЯ", "КООПЕРАТИВ", "РИТЕЙЛЕР", "ОНЛАЙН РИТЕЙЛЕР", "МЕДИАГИГАНТ", "МЕДИАКОМПАНИЯ", "МЕДИАХОЛДИНГ"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
-                if (s.StartsWith("МЕДИА")) 
-                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
-                if (s.Contains("РИТЕЙЛЕР")) 
-                    t.AddVariant(s.Replace("РИТЕЙЛЕР", "РЕТЕЙЛЕР"), false);
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ТУРФІРМА", "ТУРАГЕНТСТВО", "ТУРКОМПАНІЯ", "АВІАКОМПАНІЯ", "КІНОСТУДІЯ", "КООПЕРАТИВ", "РІТЕЙЛЕР", "ОНЛАЙН-РІТЕЙЛЕР", "МЕДІАГІГАНТ", "МЕДІАКОМПАНІЯ", "МЕДІАХОЛДИНГ"}) 
-            {
-                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ТУРОПЕРАТОР"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = (float)0.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ТУРОПЕРАТОР"}) 
-            {
-                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = (float)0.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
-                m_Global.Add(t);
-            }
-            m_SberBank = (t = new OrgItemTypeTermin("СБЕРЕГАТЕЛЬНЫЙ БАНК") { Coeff = 4, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance });
-            t.AddVariant("СБЕРБАНК", false);
-            m_Global.Add(t);
-            m_SecServ = (t = new OrgItemTypeTermin("СЛУЖБА БЕЗОПАСНОСТИ") { Coeff = 4, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.State });
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОЩАДНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Coeff = 4, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance };
-            t.AddVariant("ОЩАДБАНК", false);
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ОРГАНИЗАЦИЯ", "ПРЕДПРИЯТИЕ", "КОМИТЕТ", "КОМИССИЯ", "ПРОИЗВОДИТЕЛЬ", "ГИГАНТ", "ORGANIZATION", "ENTERPRISE", "COMMITTEE", "COMMISSION", "MANUFACTURER"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true }));
-            }
-            foreach (string s in new string[] {"ОБЩЕСТВО", "АССАМБЛЕЯ", "СЛУЖБА", "ОБЪЕДИНЕНИЕ", "ФЕДЕРАЦИЯ", "COMPANY", "ASSEMBLY", "SERVICE", "UNION", "FEDERATION"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true }));
-                if (s == "СЛУЖБА") 
-                    t.CanHasNumber = true;
-            }
-            foreach (string s in new string[] {"СООБЩЕСТВО", "ФОНД", "АССОЦИАЦИЯ", "АЛЬЯНС", "ГИЛЬДИЯ", "ОБЩИНА", "ОБЩЕСТВЕННОЕ ОБЪЕДИНЕНИЕ", "ОБЩЕСТВЕННАЯ ОРГАНИЗАЦИЯ", "ОБЩЕСТВЕННОЕ ФОРМИРОВАНИЕ", "СОЮЗ", "КЛУБ", "ГРУППИРОВКА", "ЛИГА", "COMMUNITY", "FOUNDATION", "ASSOCIATION", "ALLIANCE", "GUILD", "UNION", "CLUB", "GROUP", "LEAGUE"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true, Profile = Pullenti.Ner.Org.OrgProfile.Union }));
-            }
-            foreach (string s in new string[] {"ПАРТИЯ", "ДВИЖЕНИЕ", "PARTY", "MOVEMENT"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true, Profile = Pullenti.Ner.Org.OrgProfile.Union }));
-            }
-            foreach (string s in new string[] {"НОЧНОЙ КЛУБ", "NIGHTCLUB"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Music }));
-            }
-            foreach (string s in new string[] {"ОРГАНІЗАЦІЯ", "ПІДПРИЄМСТВО", "КОМІТЕТ", "КОМІСІЯ", "ВИРОБНИК", "ГІГАНТ", "СУСПІЛЬСТВО", "СПІЛЬНОТА", "ФОНД", "СЛУЖБА", "АСОЦІАЦІЯ", "АЛЬЯНС", "АСАМБЛЕЯ", "ГІЛЬДІЯ", "ОБЄДНАННЯ", "СОЮЗ", "ПАРТІЯ", "РУХ", "ФЕДЕРАЦІЯ", "КЛУБ", "ГРУПУВАННЯ"}) 
-            {
-                m_Global.Add((t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true }));
-            }
-            t = new OrgItemTypeTermin("ДЕПУТАТСКАЯ ГРУППА") { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasSingleName = true };
-            t.AddVariant("ГРУППА ДЕПУТАТОВ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДЕПУТАТСЬКА ГРУПА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasSingleName = true };
-            t.AddVariant("ГРУПА ДЕПУТАТІВ", false);
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ФОНД", "СОЮЗ", "ОБЪЕДИНЕНИЕ", "ОРГАНИЗАЦИЯ", "ФЕДЕРАЦИЯ", "ДВИЖЕНИЕ"}) 
-            {
-                foreach (string ss in new string[] {"ВСЕМИРНЫЙ", "МЕЖДУНАРОДНЫЙ", "ВСЕРОССИЙСКИЙ", "ОБЩЕСТВЕННЫЙ", "НЕКОММЕРЧЕСКИЙ", "ЕВРОПЕЙСКИЙ", "ВСЕУКРАИНСКИЙ"}) 
-                {
-                    t = new OrgItemTypeTermin(string.Format("{0} {1}", ss, s)) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-                    if (s == "ОБЪЕДИНЕНИЕ" || s == "ДВИЖЕНИЕ") 
-                        t.CanonicText = string.Format("{0}ОЕ {1}", ss.Substring(0, ss.Length - 2), s);
-                    else if (s == "ОРГАНИЗАЦИЯ" || s == "ФЕДЕРАЦИЯ") 
-                    {
-                        t.CanonicText = string.Format("{0}АЯ {1}", ss.Substring(0, ss.Length - 2), s);
-                        t.Coeff = 3;
-                    }
-                    m_Global.Add(t);
-                }
-            }
-            foreach (string s in new string[] {"ФОНД", "СОЮЗ", "ОБЄДНАННЯ", "ОРГАНІЗАЦІЯ", "ФЕДЕРАЦІЯ", "РУХ"}) 
-            {
-                foreach (string ss in new string[] {"СВІТОВИЙ", "МІЖНАРОДНИЙ", "ВСЕРОСІЙСЬКИЙ", "ГРОМАДСЬКИЙ", "НЕКОМЕРЦІЙНИЙ", "ЄВРОПЕЙСЬКИЙ", "ВСЕУКРАЇНСЬКИЙ"}) 
-                {
-                    t = new OrgItemTypeTermin(string.Format("{0} {1}", ss, s), Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-                    Pullenti.Morph.MorphWordForm bi = null;
-                    try 
-                    {
-                        bi = Pullenti.Morph.MorphologyService.GetWordBaseInfo(s, Pullenti.Morph.MorphLang.UA, false, false);
-                    }
-                    catch(Exception ex4479) 
-                    {
-                    }
-                    if (bi != null && bi.Gender != Pullenti.Morph.MorphGender.Masculine) 
-                    {
-                        string adj = null;
-                        try 
-                        {
-                            adj = Pullenti.Morph.MorphologyService.GetWordform(ss, new Pullenti.Morph.MorphBaseInfo() { Class = Pullenti.Morph.MorphClass.Adjective, Gender = bi.Gender, Number = Pullenti.Morph.MorphNumber.Singular, Language = Pullenti.Morph.MorphLang.UA });
-                            if (adj != null) 
-                                t.CanonicText = string.Format("{0} {1}", adj, s);
-                        }
-                        catch(Exception ex4483) 
-                        {
-                        }
-                    }
-                    if (s == "ОРГАНІЗАЦІЯ" || s == "ФЕДЕРАЦІЯ") 
-                        t.Coeff = 3;
-                    m_Global.Add(t);
-                }
-            }
-            t = new OrgItemTypeTermin("ИНВЕСТИЦИОННЫЙ ФОНД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("ИНВЕСТФОНД", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ІНВЕСТИЦІЙНИЙ ФОНД", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("ІНВЕСТФОНД", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СОЦИАЛЬНАЯ СЕТЬ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("СОЦСЕТЬ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СОЦІАЛЬНА МЕРЕЖА", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("СОЦМЕРЕЖА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОФФШОРНАЯ КОМПАНИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("ОФФШОР", false);
-            t.AddVariant("ОФШОР", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОФШОРНА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
-            t.AddVariant("ОФШОР", false);
-            m_Global.Add(t);
-            m_Global.Add(new OrgItemTypeTermin("ТЕРРОРИСТИЧЕСКАЯ ОРГАНИЗАЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true });
-            m_Global.Add(new OrgItemTypeTermin("ТЕРОРИСТИЧНА ОРГАНІЗАЦІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true });
-            m_Global.Add(new OrgItemTypeTermin("АТОМНАЯ ЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "АЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("АТОМНА ЕЛЕКТРОСТАНЦІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "АЕС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("ГИДРОЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ГЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("ГІДРОЕЛЕКТРОСТАНЦІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ГЕС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("ГИДРОРЕЦИРКУЛЯЦИОННАЯ ЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ГРЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("ТЕПЛОВАЯ ЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ТЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("НЕФТЕПЕРЕРАБАТЫВАЮЩИЙ ЗАВОД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "НПЗ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("НАФТОПЕРЕРОБНИЙ ЗАВОД", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "НПЗ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            m_Global.Add(new OrgItemTypeTermin("НЕФТЕПЕРЕКАЧИВАЮЩАЯ СТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "НПС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
-            foreach (string s in new string[] {"ФИРМА", "ТРЕСТ", "КОМПАНИЯ", "КОРПОРАЦИЯ", "ГОСКОРПОРАЦИЯ", "КОНЦЕРН", "КОНСОРЦИУМ", "ХОЛДИНГ", "МЕДИАХОЛДИНГ", "ТОРГОВЫЙ ДОМ", "ТОРГОВЫЙ ЦЕНТР", "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ ЦЕНТР", "УЧЕБНЫЙ ЦЕНТР", "ИССЛЕДОВАТЕЛЬСКИЙ ЦЕНТР", "КОСМИЧЕСКИЙ ЦЕНТР", "ДЕЛОВОЙ ЦЕНТР", "БИЗНЕС ЦЕНТР", "БИЗНЕС ПАРК", "БИЗНЕС КВАРТАЛ", "АУКЦИОННЫЙ ДОМ", "ИЗДАТЕЛЬСТВО", "ИЗДАТЕЛЬСКИЙ ДОМ", "ТОРГОВЫЙ КОМПЛЕКС", "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ КОМПЛЕКС", "ТОРГОВО ОФИСНЫЙ КОМПЛЕКС", "ТОРГОВО ОФИСНЫЙ ЦЕНТР", "МНОГОФУНКЦИОНАЛЬНЫЙ КОМПЛЕКС", "ОПТОВО РОЗНИЧНЫЙ ТОРГОВЫЙ КОМПЛЕКС", "СПЕЦИАЛИЗИРОВАННЫЙ ТОРГОВЫЙ ЦЕНТР", "СПОРТИВНЫЙ КОМПЛЕКС", "СПОРТИВНО РАЗВЛЕКАТЕЛЬНЫЙ КОМПЛЕКС", "СПОРТИВНО ОЗДОРОВИТЕЛЬНЫЙ КОМПЛЕКС", "ФИЗКУЛЬТУРНО ОЗДОРОВИТЕЛЬНЫЙ КОМПЛЕКС", "АГЕНТСТВО НЕДВИЖИМОСТИ", "ГРУППА КОМПАНИЙ", "МЕДИАГРУППА", "МАГАЗИН", "ТОРГОВЫЙ КОМПЛЕКС", "ГИПЕРМАРКЕТ", "СУПЕРМАРКЕТ", "КАФЕ", "РЕСТОРАН", "БАР", "ТРАКТИР", "ТАВЕРНА", "СТОЛОВАЯ", "АУКЦИОН", "АПТЕКА", "АПТЕЧНЫЙ ПУНКТ", "АНАЛИТИЧЕСКИЙ ЦЕНТР", "COMPANY", "CORPORATION"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
-                if (s == "ИЗДАТЕЛЬСТВО") 
-                {
-                    t.AddAbridge("ИЗД-ВО");
-                    t.AddAbridge("ИЗ-ВО");
-                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
-                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
-                    t.AddVariant("ИЗДАТЕЛЬСКИЙ ДОМ", false);
-                }
-                else if (s.StartsWith("ИЗДАТ")) 
-                {
-                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
-                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
-                }
-                else if (s == "ТОРГОВЫЙ ДОМ") 
-                    t.Acronym = "ТД";
-                else if (s == "ТОРГОВЫЙ ЦЕНТР") 
-                    t.Acronym = "ТЦ";
-                else if (s == "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ ЦЕНТР") 
-                    t.Acronym = "ТРЦ";
-                else if (s == "ТОРГОВО ОФИСНЫЙ КОМПЛЕКС") 
-                    t.Acronym = "ТОК";
-                else if (s == "ТОРГОВО ОФИСНЫЙ ЦЕНТР") 
-                    t.Acronym = "ТОЦ";
-                else if (s == "БИЗНЕС ЦЕНТР") 
-                    t.Acronym = "БЦ";
-                else if (s == "ТОРГОВЫЙ КОМПЛЕКС") 
-                    t.Acronym = "ТК";
-                else if (s == "СПОРТИВНЫЙ КОМПЛЕКС") 
-                    t.AddVariant("СПОРТКОМПЛЕКС", false);
-                else if (s == "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ КОМПЛЕКС") 
-                    t.Acronym = "ТРК";
-                else if (s == "ГРУППА КОМПАНИЙ") 
-                    t.Acronym = "ГК";
-                else if (s == "СТОЛОВАЯ" || s == "АПТЕКА") 
-                    t.CanHasNumber = true;
-                else if (s == "АПТЕЧНЫЙ ПУНКТ") 
-                {
-                    t.CanHasNumber = true;
-                    t.AddAbridge("А/П");
-                }
-                if (s.StartsWith("МЕДИА")) 
-                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
-                if (s.EndsWith(" ЦЕНТР")) 
-                    t.Coeff = 3.5F;
-                if (s == "КОМПАНИЯ" || s == "ФИРМА") 
-                    t.Coeff = 1;
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ФІРМА", "ТРЕСТ", "КОМПАНІЯ", "КОРПОРАЦІЯ", "ДЕРЖКОРПОРАЦІЯ", "КОНЦЕРН", "КОНСОРЦІУМ", "ХОЛДИНГ", "МЕДІАХОЛДИНГ", "ТОРГОВИЙ ДІМ", "ТОРГОВИЙ ЦЕНТР", "ТОРГОВО РОЗВАЖАЛЬНИЙ ЦЕНТР", "НАВЧАЛЬНИЙ ЦЕНТР", "ДІЛОВИЙ ЦЕНТР", " БІЗНЕС ЦЕНТР", "ВИДАВНИЦТВО", "ВИДАВНИЧИЙ ДІМ", "ТОРГОВИЙ КОМПЛЕКС", "ТОРГОВО РОЗВАЖАЛЬНИЙ КОМПЛЕКС", "СПОРТИВНИЙ КОМПЛЕКС", "СПОРТИВНО РОЗВАЖАЛЬНИЙ КОМПЛЕКС", "СПОРТИВНО ОЗДОРОВЧИЙ КОМПЛЕКС", "ФІЗКУЛЬТУРНО ОЗДОРОВЧИЙ КОМПЛЕКС", "АГЕНТСТВО НЕРУХОМОСТІ", "ГРУПА КОМПАНІЙ", "МЕДІАГРУПА", "МАГАЗИН", "ТОРГОВИЙ КОМПЛЕКС", "ГІПЕРМАРКЕТ", "СУПЕРМАРКЕТ", "КАФЕ", "БАР", "АУКЦІОН", "АНАЛІТИЧНИЙ ЦЕНТР"}) 
-            {
-                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
-                if (s == "ВИДАВНИЦТВО") 
-                {
-                    t.AddAbridge("ВИД-ВО");
-                    t.AddVariant("ВИДАВНИЧИЙ ДІМ", false);
-                }
-                else if (s == "ТОРГОВИЙ ДІМ") 
-                    t.Acronym = "ТД";
-                else if (s == "ТОРГОВИЙ ЦЕНТР") 
-                    t.Acronym = "ТЦ";
-                else if (s == "ТОРГОВО РОЗВАЖАЛЬНИЙ ЦЕНТР") 
-                    t.Acronym = "ТРЦ";
-                else if (s == "ТОРГОВИЙ КОМПЛЕКС") 
-                    t.Acronym = "ТК";
-                else if (s == "СПОРТИВНИЙ КОМПЛЕКС") 
-                    t.AddVariant("СПОРТКОМПЛЕКС", false);
-                else if (s == "ТОРГОВО РОЗВАЖАЛЬНИЙ КОМПЛЕКС") 
-                    t.Acronym = "ТРК";
-                else if (s == "ГРУПА КОМПАНІЙ") 
-                    t.Acronym = "ГК";
-                else if (s == "КОМПАНІЯ" || s == "ФІРМА") 
-                    t.Coeff = 1;
-                if (s.StartsWith("МЕДІА")) 
-                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("ЭКОЛОГИЧЕСКАЯ ГРУППА", Pullenti.Morph.MorphLang.RU) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            t.AddVariant("ЭКОГРУППА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("РОК ГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            t.AddVariant("РОКГРУППА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПАНК ГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            t.AddVariant("ПАНКГРУППА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ОРКЕСТР", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ХОР", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("МУЗЫКАЛЬНЫЙ КОЛЛЕКТИВ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("РОКГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            t.AddVariant("РОК ГРУППА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПАНКГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            t.AddVariant("ПАНК ГРУППА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("АРТГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            t.AddVariant("АРТ ГРУППА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ВОКАЛЬНО ИНСТРУМЕНТАЛЬНЫЙ АНСАМБЛЬ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true, Acronym = "ВИА" };
-            t.AddVariant("ИНСТРУМЕНТАЛЬНЫЙ АНСАМБЛЬ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("НАРОДНЫЙ АНСАМБЛЬ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("АНСАМБЛЬ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 1, CanHasLatinName = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СТУДИЯ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Culture) { Typ = OrgItemTypeTyp.Org, Coeff = 1, CanHasLatinName = true };
-            m_Global.Add(t);
-            foreach (string s in new string[] {"НОТАРИАЛЬНАЯ КОНТОРА", "АДВОКАТСКОЕ БЮРО", "СТРАХОВОЕ ОБЩЕСТВО", "ЮРИДИЧЕСКИЙ ДОМ"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"НОТАРІАЛЬНА КОНТОРА", "АДВОКАТСЬКЕ БЮРО", "СТРАХОВЕ ТОВАРИСТВО"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ГАЗЕТА", "ЕЖЕНЕДЕЛЬНИК", "ТАБЛОИД", "ЕЖЕНЕДЕЛЬНЫЙ ЖУРНАЛ", "NEWSPAPER", "WEEKLY", "TABLOID", "MAGAZINE"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
-                t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ГАЗЕТА", "ТИЖНЕВИК", "ТАБЛОЇД"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
-                t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"РАДИОСТАНЦИЯ", "РАДИО", "ТЕЛЕКАНАЛ", "ТЕЛЕКОМПАНИЯ", "НОВОСТНОЙ ПОРТАЛ", "ИНТЕРНЕТ ПОРТАЛ", "ИНТЕРНЕТ ИЗДАНИЕ", "ИНТЕРНЕТ РЕСУРС"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
-                if (s == "РАДИО") 
-                {
-                    t.CanonicText = "РАДИОСТАНЦИЯ";
-                    t.IsDoubtWord = true;
-                }
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"РАДІО", "РАДІО", "ТЕЛЕКАНАЛ", "ТЕЛЕКОМПАНІЯ", "НОВИННИЙ ПОРТАЛ", "ІНТЕРНЕТ ПОРТАЛ", "ІНТЕРНЕТ ВИДАННЯ", "ІНТЕРНЕТ РЕСУРС"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
-                if (s == "РАДІО") 
-                {
-                    t.CanonicText = "РАДІОСТАНЦІЯ";
-                    t.IsDoubtWord = true;
-                }
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ПАНСИОНАТ", "САНАТОРИЙ", "ДОМ ОТДЫХА", "ОТЕЛЬ", "ГОСТИНИЦА", "ГОСТЕВОЙ ДОМ", "ХОСТЕЛ", "МОТЕЛЬ", "ГОСТИНИЧНЫЙ КОМПЛЕКС", "SPA-ОТЕЛЬ", "ОЗДОРОВИТЕЛЬНЫЙ ЛАГЕРЬ", "ДЕТСКИЙ ЛАГЕРЬ", "ПИОНЕРСКИЙ ЛАГЕРЬ", "БАЗА ОТДЫХА", "СПОРТ-КЛУБ", "ФИТНЕС-КЛУБ"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
-                if (s == "САНАТОРИЙ") 
-                    t.AddAbridge("САН.");
-                else if (s == "ДОМ ОТДЫХА") 
-                {
-                    t.AddAbridge("Д.О.");
-                    t.AddAbridge("ДОМ ОТД.");
-                    t.AddAbridge("Д.ОТД.");
-                }
-                else if (s == "ПАНСИОНАТ") 
-                    t.AddAbridge("ПАНС.");
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ПАНСІОНАТ", "САНАТОРІЙ", "БУДИНОК ВІДПОЧИНКУ", "ГОТЕЛЬ", "SPA-ГОТЕЛЬ", "ОЗДОРОВЧИЙ ТАБІР", "БАЗА ВІДПОЧИНКУ", "СПОРТ-КЛУБ", "ФІТНЕС-КЛУБ"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
-                if (s == "САНАТОРІЙ") 
-                    t.AddAbridge("САН.");
-                m_Global.Add(t);
-            }
-            m_Global.Add(new OrgItemTypeTermin("ДЕТСКИЙ ОЗДОРОВИТЕЛЬНЫЙ ЛАГЕРЬ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ДОЛ", CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true });
-            m_Global.Add(new OrgItemTypeTermin("ДЕТСКИЙ СПОРТИВНЫЙ ОЗДОРОВИТЕЛЬНЫЙ ЛАГЕРЬ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ДСОЛ", CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true });
-            foreach (string s in new string[] {"САДОВО ОГОРОДНОЕ ТОВАРИЩЕСТВО", "КООПЕРАТИВ", "ФЕРМЕРСКОЕ ХОЗЯЙСТВО", "КРЕСТЬЯНСКО ФЕРМЕРСКОЕ ХОЗЯЙСТВО", "АГРОФИРМА", "АГРОСОЮЗ", "КОНЕЗАВОД", "ПТИЦЕФЕРМА", "СВИНОФЕРМА", "ФЕРМА", "ЛЕСПРОМХОЗ", "ЖИВОТНОВОДЧЕСКАЯ ТОЧКА"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("СЕМЕНОВОДЧЕСКАЯ АГРОФИРМА") { Coeff = 3, Acronym = "САФ", Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КОЛХОЗ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddVariant("К-З", false);
-            t.AddVariant("СПК К-З", false);
-            t.AddVariant("СПК КОЛХОЗ", false);
-            t.AddVariant("СЕЛЬСКОХОЗЯЙСТВЕННЫЙ ПРОИЗВОДСТВЕННЫЙ КООПЕРАТИВ", false);
-            t.AddVariant("СЕЛЬСКОХОЗЯЙСТВЕННЫЙ ПРОИЗВОДСТВЕННЫЙ КООПЕРАТИВ КОЛХОЗ", false);
-            m_Global.Add(t);
-            foreach (string s in new string[] {"КОЛГОСП", "САДОВО ГОРОДНЄ ТОВАРИСТВО", "КООПЕРАТИВ", "ФЕРМЕРСЬКЕ ГОСПОДАРСТВО", "СЕЛЯНСЬКО ФЕРМЕРСЬКЕ ГОСПОДАРСТВО", "АГРОФІРМА", "КОНЕЗАВОД", "ПТАХОФЕРМА", "СВИНОФЕРМА", "ФЕРМА"}) 
-            {
-                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("ЖИЛИЩНО КОММУНАЛЬНОЕ ХОЗЯЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ЖКХ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЖИТЛОВО КОМУНАЛЬНЕ ГОСПОДАРСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ЖКГ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КОММУНАЛЬНОЕ ПРЕДПРИЯТИЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("КОМУНАЛЬНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("АВТОМОБИЛЬНЫЙ ЗАВОД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddVariant("АВТОЗАВОД", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("АВТОМОБИЛЬНЫЙ ЦЕНТР") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddVariant("АВТОЦЕНТР", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЭКОЛОГИЧЕСКИЙ ЦЕНТР") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
-            t.AddVariant("ЭКОЦЕНТР", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("СОВХОЗ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddAbridge("С/Х");
-            t.AddAbridge("С-З");
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПЛЕМЕННОЕ ХОЗЯЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddVariant("ПЛЕМХОЗ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЛЕСНОЕ ХОЗЯЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddVariant("ЛЕСХОЗ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ЛЕСНИЧЕСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
-            t.AddAbridge("ЛЕС-ВО");
-            t.AddAbridge("ЛЕСН-ВО");
-            m_Global.Add(t);
-            string[] sads = new string[] {"Садоводческое некоммерческое товарищество;Садовое некоммерческое товарищество", "СНТ", "Садоводческое огородническое товарищество;Садовое огородническое товарищество", "СОТ", "Садовый огороднический кооператив;Садовый огородный кооператив", "СОК", "Садовый огороднический потребительский кооператив;Садовый огородный потребительский кооператив", "СОПК", "Садовое огородническое потребительское общество;Садовое огородное потребительское общество", "СОПО", "Потребительский Садовый огороднический кооператив;Потребительский Садовый огородний кооператив", "ПСОК", "Садоводческое огородническое некоммерческое товарищество;Садовое огородническое некоммерческое товарищество", "СОНТ", "некоммерческое Садоводческое огородническое товарищество;некоммерческое Садовое огородническое товарищество", "НСОТ", "Дачное некоммерческое товарищество", "ДНТ", "Огородническое некоммерческое товарищество", "ОНТ", "Садоводческое некоммерческое партнерство", "СНП", "Дачное некоммерческое партнерство", "ДНП", "Огородническое некоммерческое партнерство", "ОНП", "Огородническое некоммерческое товарищество", "ОНТ", "Дачный потребительский кооператив", "ДПК", "Огороднический потребительский кооператив;Огородный потребительский кооператив", "ОПК"};
-            for (int i = 0; i < sads.Length; i += 2) 
-            {
-                string[] parts = sads[i].ToUpper().Split(';');
-                t = new OrgItemTypeTermin(parts[0]) { Coeff = 3, Acronym = sads[i + 1], Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanHasNumber = true };
-                for (int j = 1; j < parts.Length; j++) 
-                {
-                    t.AddVariant(parts[j], false);
-                }
-                t.AddAbridge(sads[i + 1]);
-                if (t.Acronym == "СНТ") 
-                    t.AddAbridge("САДОВ.НЕКОМ.ТОВ.");
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("САДОВОДЧЕСКАЯ ПОТРЕБИТЕЛЬСКАЯ КООПЕРАЦИЯ") { Acronym = "СПК", Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddVariant("САДОВАЯ ПОТРЕБИТЕЛЬСКАЯ КООПЕРАЦИЯ", false);
-            t.AddVariant("САДОВОДЧЕСКИЙ ПОТРЕБИТЕЛЬНЫЙ КООПЕРАТИВ", false);
-            t.AddVariant("САДОВОДЧЕСКИЙ ПОТРЕБИТЕЛЬСКИЙ КООПЕРАТИВ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("САДОВОДЧЕСКОЕ ТОВАРИЩЕСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddAbridge("САДОВОДЧ.ТОВ.");
-            t.AddAbridge("САДОВ.ТОВ.");
-            t.AddAbridge("САД.ТОВ.");
-            t.AddAbridge("С.Т.");
-            t.AddVariant("САДОВОЕ ТОВАРИЩЕСТВО", false);
-            t.AddVariant("САДОВ. ТОВАРИЩЕСТВО", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("САДОВОДЧЕСКИЙ КООПЕРАТИВ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddAbridge("САДОВОДЧ.КООП.");
-            t.AddAbridge("САДОВ.КООП.");
-            t.AddVariant("САДОВЫЙ КООПЕРАТИВ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ДАЧНОЕ ТОВАРИЩЕСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
-            t.AddAbridge("ДАЧН.ТОВ.");
-            t.AddAbridge("ДАЧ.ТОВ.");
-            m_Global.Add(t);
-            foreach (string s in new string[] {"ФЕСТИВАЛЬ", "ЧЕМПИОНАТ", "ОЛИМПИАДА", "КОНКУРС"}) 
-            {
-                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true };
-                m_Global.Add(t);
-            }
-            foreach (string s in new string[] {"ФЕСТИВАЛЬ", "ЧЕМПІОНАТ", "ОЛІМПІАДА"}) 
-            {
-                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true };
-                m_Global.Add(t);
-            }
-            t = new OrgItemTypeTermin("ПОГРАНИЧНЫЙ ПОСТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-            t.AddVariant("ПОГП", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПОГРАНИЧНАЯ ЗАСТАВА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
-            t.AddVariant("ПОГЗ", false);
-            t.AddVariant("ПОГРАНЗАСТАВА", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ТЕРРИТОРИАЛЬНЫЙ ПУНКТ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            m_Global.Add(t);
-            m_TerPunkt = t;
-            t = new OrgItemTypeTermin("МИГРАЦИОННЫЙ ПУНКТ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ПРОПУСКНОЙ ПУНКТ") { Coeff = 3, CanBeNormalDep = true, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, CanBeSingleGeo = true };
-            t.AddVariant("ПУНКТ ПРОПУСКА", false);
-            t.AddVariant("КОНТРОЛЬНО ПРОПУСКНОЙ ПУНКТ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ТОРГОВАЯ ПЛОЩАДКА");
-            t.AddVariant("МАРКЕТПЛЕЙС", false);
-            t.AddVariant("ОНЛАЙН-МАГАЗИН ЭЛЕКТРОННОЙ ТОРГОВЛИ", false);
-            m_Global.Add(t);
-            t = new OrgItemTypeTermin("ИНТЕРНЕТ-МАГАЗИН");
-            m_Global.Add(t);
-            m_PrefWords = new Pullenti.Ner.Core.TerminCollection();
-            foreach (string s in new string[] {"КАПИТАЛ", "РУКОВОДСТВО", "СЪЕЗД", "СОБРАНИЕ", "СОВЕТ", "УПРАВЛЕНИЕ", "ДЕПАРТАМЕНТ"}) 
-            {
-                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s));
-            }
-            foreach (string s in new string[] {"КАПІТАЛ", "КЕРІВНИЦТВО", "ЗЇЗД", "ЗБОРИ", "РАДА", "УПРАВЛІННЯ"}) 
-            {
-                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s) { Lang = Pullenti.Morph.MorphLang.UA });
-            }
-            foreach (string s in new string[] {"АКЦИЯ", "ВЛАДЕЛЕЦ", "ВЛАДЕЛИЦА", "СОВЛАДЕЛЕЦ", "СОВЛАДЕЛИЦА", "КОНКУРЕНТ"}) 
-            {
-                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s) { Tag = s });
-            }
-            foreach (string s in new string[] {"АКЦІЯ", "ВЛАСНИК", "ВЛАСНИЦЯ", "СПІВВЛАСНИК", "СПІВВЛАСНИЦЯ", "КОНКУРЕНТ"}) 
-            {
-                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s) { Tag = s, Lang = Pullenti.Morph.MorphLang.UA });
-            }
-            for (int k = 0; k < 3; k++) 
-            {
-                string name = (k == 0 ? "pattrs_ru.dat" : (k == 1 ? "pattrs_ua.dat" : "pattrs_en.dat"));
-                byte[] dat = ResourceHelper.GetBytes(name);
-                if (dat == null) 
-                    throw new Exception(string.Format("Can't file resource file {0} in Organization analyzer", name));
-                using (MemoryStream tmp = new MemoryStream(Deflate(dat))) 
-                {
-                    tmp.Position = 0;
-                    XmlDocument xml = new XmlDocument();
-                    xml.Load(tmp);
-                    foreach (XmlNode x in xml.DocumentElement.ChildNodes) 
-                    {
-                        if (k == 0) 
-                            m_PrefWords.Add(new Pullenti.Ner.Core.Termin(x.InnerText) { Tag = 1 });
-                        else if (k == 1) 
-                            m_PrefWords.Add(new Pullenti.Ner.Core.Termin(x.InnerText) { Tag = 1, Lang = Pullenti.Morph.MorphLang.UA });
-                        else if (k == 2) 
-                            m_PrefWords.Add(new Pullenti.Ner.Core.Termin(x.InnerText) { Tag = 1, Lang = Pullenti.Morph.MorphLang.EN });
-                    }
-                }
-            }
-            m_KeyWordsForRefs = new Pullenti.Ner.Core.TerminCollection();
-            foreach (string s in new string[] {"КОМПАНИЯ", "ФИРМА", "ПРЕДПРИЯТИЕ", "КОРПОРАЦИЯ", "ВЕДОМСТВО", "УЧРЕЖДЕНИЕ", "КОНГЛОМЕРАТ", "КОМПАНІЯ", "ФІРМА", "ПІДПРИЄМСТВО", "КОРПОРАЦІЯ", "ВІДОМСТВО", "УСТАНОВА"}) 
-            {
-                m_KeyWordsForRefs.Add(new Pullenti.Ner.Core.Termin(s));
-            }
-            foreach (string s in new string[] {"ЧАСТЬ", "БАНК", "ЗАВОД", "ФАБРИКА", "АЭРОПОРТ", "БИРЖА", "СЛУЖБА", "МИНИСТЕРСТВО", "КОМИССИЯ", "КОМИТЕТ", "ГРУППА", "ЧАСТИНА", "БАНК", "ЗАВОД", "ФАБРИКА", "АЕРОПОРТ", "БІРЖА", "СЛУЖБА", "МІНІСТЕРСТВО", "КОМІСІЯ", "КОМІТЕТ", "ГРУПА"}) 
-            {
-                m_KeyWordsForRefs.Add(new Pullenti.Ner.Core.Termin(s) { Tag = s });
-            }
-            m_Markers = new Pullenti.Ner.Core.TerminCollection();
-            foreach (string s in new string[] {"МОРСКОЙ", "ВОЗДУШНЫЙ;ВОЗДУШНО", "ДЕСАНТНЫЙ;ДЕСАНТНО", "ТАНКОВЫЙ", "АРТИЛЛЕРИЙСКИЙ", "АВИАЦИОННЫЙ", "КОСМИЧЕСКИЙ", "РАКЕТНЫЙ;РАКЕТНО", "БРОНЕТАНКОВЫЙ", "КАВАЛЕРИЙСКИЙ", "СУХОПУТНЫЙ", "ПЕХОТНЫЙ;ПЕХОТНО", "МОТОПЕХОТНЫЙ", "МИНОМЕТНЫЙ", "МОТОСТРЕЛКОВЫЙ", "СТРЕЛКОВЫЙ", "ПРОТИВОРАКЕТНЫЙ", "ПРОТИВОВОЗДУШНЫЙ", "ШТУРМОВОЙ"}) 
-            {
-                string[] ss = s.Split(';');
-                t = new OrgItemTypeTermin(ss[0]);
-                if (ss.Length > 1) 
-                    t.AddVariant(ss[1], false);
-                m_Markers.Add(t);
-            }
-            m_StdAdjs = new Pullenti.Ner.Core.TerminCollection();
-            foreach (string s in new string[] {"РОССИЙСКИЙ", "ВСЕРОССИЙСКИЙ", "МЕЖДУНАРОДНЫЙ", "ВСЕМИРНЫЙ", "ЕВРОПЕЙСКИЙ", "ГОСУДАРСТВЕННЫЙ", "НЕГОСУДАРСТВЕННЫЙ", "ФЕДЕРАЛЬНЫЙ", "РЕГИОНАЛЬНЫЙ", "ОБЛАСТНОЙ", "ГОРОДСКОЙ", "МУНИЦИПАЛЬНЫЙ", "АВТОНОМНЫЙ", "НАЦИОНАЛЬНЫЙ", "МЕЖРАЙОННЫЙ", "РАЙОННЫЙ", "ОТРАСЛЕВОЙ", "МЕЖОТРАСЛЕВОЙ", "МЕЖРЕГИОНАЛЬНЫЙ", "НАРОДНЫЙ", "ВЕРХОВНЫЙ", "УКРАИНСКИЙ", "ВСЕУКРАИНСКИЙ", "РУССКИЙ"}) 
-            {
-                m_StdAdjs.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.RU) { Tag = s });
-            }
-            m_StdAdjsUA = new Pullenti.Ner.Core.TerminCollection();
-            foreach (string s in new string[] {"РОСІЙСЬКИЙ", "ВСЕРОСІЙСЬКИЙ", "МІЖНАРОДНИЙ", "СВІТОВИЙ", "ЄВРОПЕЙСЬКИЙ", "ДЕРЖАВНИЙ", "НЕДЕРЖАВНИЙ", "ФЕДЕРАЛЬНИЙ", "РЕГІОНАЛЬНИЙ", "ОБЛАСНИЙ", "МІСЬКИЙ", "МУНІЦИПАЛЬНИЙ", "АВТОНОМНИЙ", "НАЦІОНАЛЬНИЙ", "МІЖРАЙОННИЙ", "РАЙОННИЙ", "ГАЛУЗЕВИЙ", "МІЖГАЛУЗЕВИЙ", "МІЖРЕГІОНАЛЬНИЙ", "НАРОДНИЙ", "ВЕРХОВНИЙ", "УКРАЇНСЬКИЙ", "ВСЕУКРАЇНСЬКИЙ", "РОСІЙСЬКА"}) 
-            {
-                m_StdAdjsUA.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.UA) { Tag = s });
-            }
-            foreach (string s in new string[] {"КОММЕРЧЕСКИЙ", "НЕКОММЕРЧЕСКИЙ", "БЮДЖЕТНЫЙ", "КАЗЕННЫЙ", "БЛАГОТВОРИТЕЛЬНЫЙ", "СОВМЕСТНЫЙ", "ИНОСТРАННЫЙ", "ИССЛЕДОВАТЕЛЬСКИЙ", "ОБРАЗОВАТЕЛЬНЫЙ", "ОБЩЕОБРАЗОВАТЕЛЬНЫЙ", "ВЫСШИЙ", "УЧЕБНЫЙ", "СПЕЦИАЛИЗИРОВАННЫЙ", "ГЛАВНЫЙ", "ЦЕНТРАЛЬНЫЙ", "ТЕХНИЧЕСКИЙ", "ТЕХНОЛОГИЧЕСКИЙ", "ВОЕННЫЙ", "ПРОМЫШЛЕННЫЙ", "ТОРГОВЫЙ", "СИНОДАЛЬНЫЙ", "МЕДИЦИНСКИЙ", "ДИАГНОСТИЧЕСКИЙ", "ДЕТСКИЙ", "АКАДЕМИЧЕСКИЙ", "ПОЛИТЕХНИЧЕСКИЙ", "ИНВЕСТИЦИОННЫЙ", "ТЕРРОРИСТИЧЕСКИЙ", "РАДИКАЛЬНЫЙ", "ИСЛАМИСТСКИЙ", "ЛЕВОРАДИКАЛЬНЫЙ", "ПРАВОРАДИКАЛЬНЫЙ", "ОППОЗИЦИОННЫЙ", "НАЛОГОВЫЙ", "КРИМИНАЛЬНЫЙ", "СПОРТИВНЫЙ", "НЕФТЯНОЙ", "ГАЗОВЫЙ", "ВЕЛИКИЙ"}) 
-            {
-                m_StdAdjs.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.RU));
-            }
-            foreach (string s in new string[] {"КОМЕРЦІЙНИЙ", "НЕКОМЕРЦІЙНИЙ", "БЮДЖЕТНИЙ", "КАЗЕННИМ", "БЛАГОДІЙНИЙ", "СПІЛЬНИЙ", "ІНОЗЕМНИЙ", "ДОСЛІДНИЦЬКИЙ", "ОСВІТНІЙ", "ЗАГАЛЬНООСВІТНІЙ", "ВИЩИЙ", "НАВЧАЛЬНИЙ", "СПЕЦІАЛІЗОВАНИЙ", "ГОЛОВНИЙ", "ЦЕНТРАЛЬНИЙ", "ТЕХНІЧНИЙ", "ТЕХНОЛОГІЧНИЙ", "ВІЙСЬКОВИЙ", "ПРОМИСЛОВИЙ", "ТОРГОВИЙ", "СИНОДАЛЬНИЙ", "МЕДИЧНИЙ", "ДІАГНОСТИЧНИЙ", "ДИТЯЧИЙ", "АКАДЕМІЧНИЙ", "ПОЛІТЕХНІЧНИЙ", "ІНВЕСТИЦІЙНИЙ", "ТЕРОРИСТИЧНИЙ", "РАДИКАЛЬНИЙ", "ІСЛАМІЗМ", "ЛІВОРАДИКАЛЬНИЙ", "ПРАВОРАДИКАЛЬНИЙ", "ОПОЗИЦІЙНИЙ", "ПОДАТКОВИЙ", "КРИМІНАЛЬНИЙ", " СПОРТИВНИЙ", "НАФТОВИЙ", "ГАЗОВИЙ", "ВЕЛИКИЙ"}) 
-            {
-                m_StdAdjsUA.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.UA));
-            }
-        }
-        internal static byte[] Deflate(byte[] zip)
-        {
-            using (MemoryStream unzip = new MemoryStream()) 
-            {
-                MemoryStream data = new MemoryStream(zip);
-                data.Position = 0;
-                Pullenti.Morph.Internal.MorphDeserializer.DeflateGzip(data, unzip);
-                data.Dispose();
-                return unzip.ToArray();
-            }
-        }
-        public static string[] m_EmptyTypWords = new string[] {"КРУПНЫЙ", "КРУПНЕЙШИЙ", "ИЗВЕСТНЫЙ", "ИЗВЕСТНЕЙШИЙ", "МАЛОИЗВЕСТНЫЙ", "ЗАРУБЕЖНЫЙ", "ВЛИЯТЕЛЬНЫЙ", "ВЛИЯТЕЛЬНЕЙШИЙ", "ЗНАМЕНИТЫЙ", "НАЙБІЛЬШИЙ", "ВІДОМИЙ", "ВІДОМИЙ", "МАЛОВІДОМИЙ", "ЗАКОРДОННИЙ"};
-        static string[] m_DecreeKeyWords = new string[] {"УКАЗ", "УКАЗАНИЕ", "ПОСТАНОВЛЕНИЕ", "РАСПОРЯЖЕНИЕ", "ПРИКАЗ", "ДИРЕКТИВА", "ПИСЬМО", "ЗАКОН", "КОДЕКС", "КОНСТИТУЦИЯ", "РЕШЕНИЕ", "ПОЛОЖЕНИЕ", "РАСПОРЯЖЕНИЕ", "ПОРУЧЕНИЕ", "ДОГОВОР", "СУБДОГОВОР", "АГЕНТСКИЙ ДОГОВОР", "ОПРЕДЕЛЕНИЕ", "СОГЛАШЕНИЕ", "ПРОТОКОЛ", "УСТАВ", "ХАРТИЯ", "РЕГЛАМЕНТ", "КОНВЕНЦИЯ", "ПАКТ", "БИЛЛЬ", "ДЕКЛАРАЦИЯ", "ТЕЛЕФОНОГРАММА", "ТЕЛЕФАКСОГРАММА", "ФАКСОГРАММА", "ПРАВИЛО", "ПРОГРАММА", "ПЕРЕЧЕНЬ", "ПОСОБИЕ", "РЕКОМЕНДАЦИЯ", "НАСТАВЛЕНИЕ", "СТАНДАРТ", "СОГЛАШЕНИЕ", "МЕТОДИКА", "ТРЕБОВАНИЕ", "УКАЗ", "ВКАЗІВКА", "ПОСТАНОВА", "РОЗПОРЯДЖЕННЯ", "НАКАЗ", "ДИРЕКТИВА", "ЛИСТ", "ЗАКОН", "КОДЕКС", "КОНСТИТУЦІЯ", "РІШЕННЯ", "ПОЛОЖЕННЯ", "РОЗПОРЯДЖЕННЯ", "ДОРУЧЕННЯ", "ДОГОВІР", "СУБКОНТРАКТ", "АГЕНТСЬКИЙ ДОГОВІР", "ВИЗНАЧЕННЯ", "УГОДА", "ПРОТОКОЛ", "СТАТУТ", "ХАРТІЯ", "РЕГЛАМЕНТ", "КОНВЕНЦІЯ", "ПАКТ", "БІЛЛЬ", "ДЕКЛАРАЦІЯ", "ТЕЛЕФОНОГРАМА", "ТЕЛЕФАКСОГРАММА", "ФАКСОГРАМА", "ПРАВИЛО", "ПРОГРАМА", "ПЕРЕЛІК", "ДОПОМОГА", "РЕКОМЕНДАЦІЯ", "ПОВЧАННЯ", "СТАНДАРТ", "УГОДА", "МЕТОДИКА", "ВИМОГА"};
-        public static bool IsDecreeKeyword(Pullenti.Ner.Token t, int cou = 1)
-        {
-            if (t == null) 
-                return false;
-            for (int i = 0; (i < cou) && t != null; i++,t = t.Previous) 
-            {
-                if (t.IsNewlineAfter) 
-                    break;
-                if (!t.Chars.IsCyrillicLetter) 
-                    break;
-                foreach (string d in m_DecreeKeyWords) 
-                {
-                    if (t.IsValue(d, null)) 
-                        return true;
-                }
-            }
-            return false;
-        }
         internal OrgItemTypeToken(Pullenti.Ner.Token begin, Pullenti.Ner.Token end) : base(begin, end, null)
         {
         }
@@ -1958,6 +481,11 @@ namespace Pullenti.Ner.Org.Internal
                         {
                             res.EndToken = npt.EndToken;
                             res.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Education);
+                        }
+                        else if (res.Typ == "студия" && res.AltTyp == null) 
+                        {
+                            res.EndToken = npt.EndToken;
+                            res.AltTyp = string.Format("{0} {1}", res.Typ, Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(npt, Pullenti.Ner.Core.GetTextAttr.No).ToLower());
                         }
                     }
                     if (((tt2.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && res.Root != null && res.Root.Typ == OrgItemTypeTyp.Prefix) && res.Geo == null && !res.BeginToken.IsValue("УК", null)) 
@@ -2527,7 +1055,7 @@ namespace Pullenti.Ner.Org.Internal
                                     Pullenti.Morph.MorphWordForm mm = Pullenti.Morph.MorphologyService.GetWordBaseInfo(res1.Root.CanonicText.Substring(ii), null, false, false);
                                     gen = mm.Gender;
                                 }
-                                catch(Exception ex4672) 
+                                catch(Exception ex3610) 
                                 {
                                 }
                                 break;
@@ -2703,7 +1231,10 @@ namespace Pullenti.Ner.Org.Internal
                     {
                         if ((res.LengthChar < 4) && !res.BeginToken.IsValue(res.Root.CanonicText, null)) 
                         {
-                            if (!canBeFirstLetterLower) 
+                            if ((res.BeginToken is Pullenti.Ner.TextToken) && res.LengthChar > 2 && (res.BeginToken as Pullenti.Ner.TextToken).Term == res.Root.Acronym) 
+                            {
+                            }
+                            else if (!canBeFirstLetterLower) 
                                 return null;
                         }
                     }
@@ -3209,7 +1740,7 @@ namespace Pullenti.Ner.Org.Internal
         }
         public static bool IsTypeAccords(Pullenti.Ner.Org.OrganizationReferent r1, OrgItemTypeToken t2)
         {
-            if (t2 == null || t2.Typ == null) 
+            if (t2 == null || t2.Typ == null || t2.Typ == "организация") 
                 return false;
             List<Pullenti.Ner.Org.OrgProfile> prs = r1.Profiles;
             List<Pullenti.Ner.Org.OrgProfile> prs2 = t2.Profiles;
@@ -3495,7 +2026,1510 @@ namespace Pullenti.Ner.Org.Internal
                 foreach (Pullenti.Ner.Core.IntOntologyToken tok in toks) 
                 {
                     OrgItemTypeTermin ty = tok.Termin as OrgItemTypeTermin;
-                    if (ty != null && ty.IsPurePrefix) 
+                    if (ty != null && ty.IsLegalForm) 
+                        return true;
+                }
+            }
+            return false;
+        }
+        public static string GetShortLegalForm(string txt)
+        {
+            Pullenti.Ner.AnalysisResult ar = Pullenti.Ner.ProcessorService.EmptyProcessor.Process(new Pullenti.Ner.SourceOfAnalysis(txt), null, null);
+            List<Pullenti.Ner.Core.IntOntologyToken> toks = m_Global.TryAttach(ar.FirstToken, null, false);
+            if (toks != null) 
+            {
+                foreach (Pullenti.Ner.Core.IntOntologyToken tok in toks) 
+                {
+                    OrgItemTypeTermin ty = tok.Termin as OrgItemTypeTermin;
+                    if (ty != null && ty.IsLegalForm) 
+                        return ty.Acronym ?? ty.CanonicText;
+                }
+            }
+            return null;
+        }
+        static Pullenti.Ner.Core.IntOntologyCollection m_Global;
+        static OrgItemTypeTermin m_Bank;
+        static OrgItemTypeTermin m_MO;
+        public static OrgItemTypeTermin m_MejmunOtdel;
+        static OrgItemTypeTermin m_IsprKolon;
+        static OrgItemTypeTermin m_SberBank;
+        static OrgItemTypeTermin m_SecServ;
+        static OrgItemTypeTermin m_AkcionComp;
+        static OrgItemTypeTermin m_SovmPred;
+        static OrgItemTypeTermin m_SudUch;
+        static OrgItemTypeTermin m_TerPunkt;
+        internal static Pullenti.Ner.Core.TerminCollection m_PrefWords;
+        internal static Pullenti.Ner.Core.TerminCollection m_KeyWordsForRefs;
+        internal static Pullenti.Ner.Core.TerminCollection m_Markers;
+        static Pullenti.Ner.Core.TerminCollection m_StdAdjs;
+        static Pullenti.Ner.Core.TerminCollection m_StdAdjsUA;
+        public static void Initialize()
+        {
+            if (m_Global != null) 
+                return;
+            m_Global = new Pullenti.Ner.Core.IntOntologyCollection();
+            byte[] tdat = ResourceHelper.GetBytes("OrgTypes.dat");
+            if (tdat == null) 
+                throw new Exception("Can't file resource file OrgTypes.dat in Organization analyzer");
+            tdat = Deflate(tdat);
+            using (MemoryStream tmp = new MemoryStream(tdat)) 
+            {
+                tmp.Position = 0;
+                XmlDocument xml = new XmlDocument();
+                xml.Load(tmp);
+                OrgItemTypeTermin set = null;
+                foreach (XmlNode x in xml.DocumentElement.ChildNodes) 
+                {
+                    List<OrgItemTypeTermin> its = OrgItemTypeTermin.DeserializeSrc(x, set);
+                    if (x.LocalName == "set") 
+                    {
+                        set = null;
+                        if (its != null && its.Count > 0) 
+                            set = its[0];
+                    }
+                    else if (its != null) 
+                    {
+                        foreach (OrgItemTypeTermin ii in its) 
+                        {
+                            if (ii.CanonicText == "СУДЕБНЫЙ УЧАСТОК") 
+                                m_SudUch = ii;
+                            m_Global.Add(ii);
+                        }
+                    }
+                }
+            }
+            OrgItemTypeTermin t;
+            t = new OrgItemTypeTermin("СОВЕТ ДЕПУТАТОВ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            t.AddVariant("ДЕПСОВЕТ", false);
+            m_Global.Add(t);
+            string[] sovs = new string[] {"СОВЕТ БЕЗОПАСНОСТИ", "НАЦИОНАЛЬНЫЙ СОВЕТ", "ГОСУДАРСТВЕННЫЙ СОВЕТ", "ОБЛАСТНОЙ СОВЕТ", "РАЙОННЫЙ СОВЕТ", "ГОРОДСКОЙ СОВЕТ", "СЕЛЬСКИЙ СОВЕТ", "ПОСЕЛКОВЫЙ СОВЕТ", "КРАЕВОЙ СОВЕТ", "СЛЕДСТВЕННЫЙ КОМИТЕТ", "ГОСУДАРСТВЕННОЕ СОБРАНИЕ", "МУНИЦИПАЛЬНОЕ СОБРАНИЕ", "ГОРОДСКОЕ СОБРАНИЕ", "ЗАКОНОДАТЕЛЬНОЕ СОБРАНИЕ", "НАРОДНОЕ СОБРАНИЕ", "ОБЛАСТНАЯ ДУМА", "ГОРОДСКАЯ ДУМА", "КРАЕВАЯ ДУМА", "КАБИНЕТ МИНИСТРОВ"};
+            string[] sov2 = new string[] {"СОВБЕЗ", "НАЦСОВЕТ", "ГОССОВЕТ", "ОБЛСОВЕТ", "РАЙСОВЕТ", "ГОРСОВЕТ", "СЕЛЬСОВЕТ", "ПОССОВЕТ", "КРАЙСОВЕТ", null, "ГОССОБРАНИЕ", "МУНСОБРАНИЕ", "ГОРСОБРАНИЕ", "ЗАКСОБРАНИЕ", "НАРСОБРАНИЕ", "ОБЛДУМА", "ГОРДУМА", "КРАЙДУМА", "КАБМИН"};
+            for (int i = 0; i < sovs.Length; i++) 
+            {
+                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 4, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
+                if (sov2[i] != null) 
+                {
+                    t.AddVariant(sov2[i], false);
+                    if (sov2[i] == "ГОССОВЕТ" || sov2[i] == "НАЦСОВЕТ" || sov2[i] == "ЗАКСОБРАНИЕ") 
+                        t.Coeff = 5;
+                }
+                m_Global.Add(t);
+            }
+            sovs = new string[] {"РАДА БЕЗПЕКИ", "НАЦІОНАЛЬНА РАДА", "ДЕРЖАВНА РАДА", "ОБЛАСНА РАДА", "РАЙОННА РАДА", "МІСЬКА РАДА", "СІЛЬСЬКА РАДА", "КРАЙОВИЙ РАДА", "СЛІДЧИЙ КОМІТЕТ", "ДЕРЖАВНІ ЗБОРИ", "МУНІЦИПАЛЬНЕ ЗБОРИ", "МІСЬКЕ ЗБОРИ", "ЗАКОНОДАВЧІ ЗБОРИ", "НАРОДНІ ЗБОРИ", "ОБЛАСНА ДУМА", "МІСЬКА ДУМА", "КРАЙОВА ДУМА", "КАБІНЕТ МІНІСТРІВ"};
+            sov2 = new string[] {"РАДБЕЗ", null, null, "ОБЛРАДА", "РАЙРАДА", "МІСЬКРАДА", "СІЛЬРАДА", "КРАЙРАДА", null, "ДЕРЖЗБОРИ", "МУНЗБОРИ", "ГОРСОБРАНИЕ", "ЗАКЗБОРИ", "НАРСОБРАНИЕ", "ОБЛДУМА", "МІСЬКДУМА", "КРАЙДУМА", "КАБМІН"};
+            for (int i = 0; i < sovs.Length; i++) 
+            {
+                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.UA, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 4, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
+                if (sov2[i] != null) 
+                    t.AddVariant(sov2[i], false);
+                if (sov2[i] == "ГОССОВЕТ" || sov2[i] == "ЗАКЗБОРИ") 
+                    t.Coeff = 5;
+                m_Global.Add(t);
+            }
+            sovs = new string[] {"SECURITY COUNCIL", "NATIONAL COUNCIL", "STATE COUNCIL", "REGIONAL COUNCIL", "DISTRICT COUNCIL", "CITY COUNCIL", "RURAL COUNCIL", "INVESTIGATIVE COMMITTEE", "INVESTIGATION DEPARTMENT", "NATIONAL ASSEMBLY", "MUNICIPAL ASSEMBLY", "URBAN ASSEMBLY", "LEGISLATURE"};
+            for (int i = 0; i < sovs.Length; i++) 
+            {
+                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.EN, Pullenti.Ner.Org.OrgProfile.State) { Coeff = 4, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ КОМИТЕТ") { Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 2 };
+            t.AddVariant("ГОСКОМИТЕТ", false);
+            t.AddVariant("ГОСКОМ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕРЖАВНИЙ КОМІТЕТ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 2 };
+            t.AddVariant("ДЕРЖКОМІТЕТ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КРАЕВОЙ КОМИТЕТ ГОСУДАРСТВЕННОЙ СТАТИСТИКИ") { Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 3, CanBeSingleGeo = true };
+            t.AddVariant("КРАЙКОМСТАТ", false);
+            t.Profile = Pullenti.Ner.Org.OrgProfile.Unit;
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОБЛАСТНОЙ КОМИТЕТ ГОСУДАРСТВЕННОЙ СТАТИСТИКИ") { Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 3, CanBeSingleGeo = true };
+            t.AddVariant("ОБЛКОМСТАТ", false);
+            t.Profile = Pullenti.Ner.Org.OrgProfile.Unit;
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("РАЙОННЫЙ КОМИТЕТ ГОСУДАРСТВЕННОЙ СТАТИСТИКИ") { Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.State, Coeff = 3, CanBeSingleGeo = true };
+            t.AddVariant("РАЙКОМСТАТ", false);
+            t.Profile = Pullenti.Ner.Org.OrgProfile.Unit;
+            m_Global.Add(t);
+            sovs = new string[] {"ЦЕНТРАЛЬНЫЙ КОМИТЕТ", "РАЙОННЫЙ КОМИТЕТ", "ГОРОДСКОЙ КОМИТЕТ", "КРАЕВОЙ КОМИТЕТ", "ОБЛАСТНОЙ КОМИТЕТ", "ПОЛИТИЧЕСКОЕ БЮРО", "ИСПОЛНИТЕЛЬНЫЙ КОМИТЕТ"};
+            sov2 = new string[] {"ЦК", "РАЙКОМ", "ГОРКОМ", "КРАЙКОМ", "ОБКОМ", "ПОЛИТБЮРО", "ИСПОЛКОМ"};
+            for (int i = 0; i < sovs.Length; i++) 
+            {
+                t = new OrgItemTypeTermin(sovs[i]) { Coeff = 2, Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
+                if (i == 0) 
+                {
+                    t.Acronym = "ЦК";
+                    t.CanBeNormalDep = true;
+                }
+                else if (sov2[i] != null) 
+                    t.AddVariant(sov2[i], false);
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"Standing Committee", "Political Bureau", "Central Committee"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s.ToUpper()) { Coeff = 3, Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeNormalDep = true });
+            }
+            sovs = new string[] {"ЦЕНТРАЛЬНИЙ КОМІТЕТ", "РАЙОННИЙ КОМІТЕТ", "МІСЬКИЙ КОМІТЕТ", "КРАЙОВИЙ КОМІТЕТ", "ОБЛАСНИЙ КОМІТЕТ"};
+            for (int i = 0; i < sovs.Length; i++) 
+            {
+                t = new OrgItemTypeTermin(sovs[i], Pullenti.Morph.MorphLang.UA) { Coeff = 2, Typ = OrgItemTypeTyp.Dep, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
+                if (i == 0) 
+                {
+                    t.Acronym = "ЦК";
+                    t.CanBeNormalDep = true;
+                }
+                else if (sov2[i] != null) 
+                    t.AddVariant(sov2[i], false);
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("КАЗНАЧЕЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КАЗНАЧЕЙСТВО") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("TREASURY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПОСОЛЬСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("EMNASSY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КОНСУЛЬСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("CONSULATE") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ ДЕПАРТАМЕНТ") { Coeff = 5, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
+            t.AddVariant("ГОСДЕПАРТАМЕНТ", false);
+            t.AddVariant("ГОСДЕП", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("DEPARTMENT OF STATE") { Coeff = 5, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
+            t.AddVariant("STATE DEPARTMENT", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕРЖАВНИЙ ДЕПАРТАМЕНТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 5, Typ = OrgItemTypeTyp.Org, IsTop = true, CanBeSingleGeo = true };
+            t.AddVariant("ДЕРЖДЕПАРТАМЕНТ", false);
+            t.AddVariant("ДЕРЖДЕП", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ДЕПАРТАМЕНТ") { Coeff = 2, Typ = OrgItemTypeTyp.Org });
+            t = new OrgItemTypeTermin("DEPARTMENT") { Coeff = 2, Typ = OrgItemTypeTyp.Org };
+            t.AddAbridge("DEPT.");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("АГЕНТСТВО") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true };
+            t.AddVariant("АГЕНСТВО", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ADGENCY") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true });
+            t = new OrgItemTypeTermin("АКАДЕМИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("АКАДЕМІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ACADEMY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГЕНЕРАЛЬНЫЙ ШТАБ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+            t.AddVariant("ГЕНЕРАЛЬНИЙ ШТАБ", false);
+            t.AddVariant("ГЕНШТАБ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("GENERAL STAFF") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ФРОНТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("ВОЕННЫЙ ОКРУГ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("ВІЙСЬКОВИЙ ОКРУГ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("ГРУППА АРМИЙ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("ГРУПА АРМІЙ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("АРМИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("АРМІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("ARMY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("ГВАРДИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("ГВАРДІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_Global.Add(new OrgItemTypeTermin("GUARD") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            m_MilitaryUnit = (t = new OrgItemTypeTermin("ВОЙСКОВАЯ ЧАСТЬ") { Coeff = 3, Acronym = "ВЧ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army });
+            t.AddAbridge("В.Ч.");
+            t.AddVariant("ВОИНСКАЯ ЧАСТЬ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ВІЙСЬКОВА ЧАСТИНА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
+            t.AddAbridge("В.Ч.");
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ДИВИЗИЯ", "ДИВИЗИОН", "ПОЛК", "БАТАЛЬОН", "РОТА", "ВЗВОД", "АВИАДИВИЗИЯ", "АВИАПОЛК", "АРТБРИГАДА", "МОТОМЕХБРИГАДА", "ТАНКОВЫЙ КОРПУС", "ГАРНИЗОН", "ДРУЖИНА", "СПЕЦНАЗ"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+                if (s == "ГАРНИЗОН") 
+                    t.CanBeSingleGeo = true;
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("ПОГРАНИЧНЫЙ ОТРЯД") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+            t.AddVariant("ПОГРАНОТРЯД", false);
+            t.AddAbridge("ПОГРАН. ОТРЯД");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПОГРАНИЧНЫЙ ПОЛК") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+            t.AddVariant("ПОГРАНПОЛК", false);
+            t.AddAbridge("ПОГРАН. ПОЛК");
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ДИВІЗІЯ", "ДИВІЗІОН", "ПОЛК", "БАТАЛЬЙОН", "РОТА", "ВЗВОД", "АВІАДИВІЗІЯ", "АВІАПОЛК", "ПОГРАНПОЛК", "АРТБРИГАДА", "МОТОМЕХБРИГАДА", "ТАНКОВИЙ КОРПУС", "ГАРНІЗОН", "ДРУЖИНА"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+                if (s == "ГАРНІЗОН") 
+                    t.CanBeSingleGeo = true;
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"КОРПУС", "БРИГАДА"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"КОРПУС", "БРИГАДА"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 1, Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("ПРИКОРДОННИЙ ЗАГІН") { Coeff = 3, Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНИЙ УНІВЕРСИТЕТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("STATE UNIVERSITY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("УНИВЕРСИТЕТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("УНІВЕРСИТЕТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("UNIVERSITY") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanBeSingleGeo = true });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ УНИВЕРСИТЕТ") { Coeff = 3, Acronym = "НИУ", Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("УЧРЕЖДЕНИЕ") { Coeff = 1, Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("УСТАНОВА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 1, Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("INSTITUTION") { Coeff = 1, Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org });
+            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНА УСТАНОВА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org });
+            m_Global.Add(new OrgItemTypeTermin("STATE INSTITUTION") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeSingleGeo = true });
+            t = new OrgItemTypeTermin("ИНСТИТУТ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ІНСТИТУТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("INSTITUTE") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Science);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОТДЕЛ СУДЕБНЫХ ПРИСТАВОВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОСП", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Justice);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МЕЖРАЙОННЫЙ ОТДЕЛ СУДЕБНЫХ ПРИСТАВОВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОСП", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
+            t.AddVariant("МЕЖРАЙОННЫЙ ОСП", false);
+            t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Justice);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОТДЕЛ ВНЕВЕДОМСТВЕННОЙ ОХРАНЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОВО", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОТДЕЛ ПО ВОПРОСАМ МИГРАЦИИ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОВМ", Profile = Pullenti.Ner.Org.OrgProfile.Unit, CanBeSingleGeo = true, CanHasNumber = true };
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ЛИЦЕЙ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("ЛІЦЕЙ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Profile = Pullenti.Ner.Org.OrgProfile.Education, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("ИНТЕРНАТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("ІНТЕРНАТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Profile = Pullenti.Ner.Org.OrgProfile.Education, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("HIGH SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("SECONDARY SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("MIDDLE SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("PUBLIC SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("JUNIOR SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("GRAMMAR SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true, CanHasLatinName = true });
+            t = new OrgItemTypeTermin("СРЕДНЯЯ ШКОЛА") { Coeff = 3, Acronym = "СШ", Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanBeSingleGeo = true, CanHasNumber = true };
+            t.AddVariant("СРЕДНЯЯ ОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
+            t.AddAbridge("СОШ");
+            t.AddVariant("ОБЩЕОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
+            t.AddVariant("СРЕДНЯЯ ОБЩЕОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
+            t.AddVariant("ОСНОВНАЯ ОБЩЕОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
+            t.AddVariant("ОСНОВНАЯ ОБРАЗОВАТЕЛЬНАЯ ШКОЛА", false);
+            t.AddAbridge("ООШ");
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ШКОЛА ИНТЕРНАТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, CanBeSingleGeo = true, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("БИЗНЕС ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, CanBeSingleGeo = true, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("БІЗНЕС ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, CanBeSingleGeo = true, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("СЕРЕДНЯ ШКОЛА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Profile = Pullenti.Ner.Org.OrgProfile.Education, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("ВЫСШАЯ ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ВИЩА ШКОЛА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("НАЧАЛЬНАЯ ШКОЛА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ПОЧАТКОВА ШКОЛА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("СЕМИНАРИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("СЕМІНАРІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ГИМНАЗИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ГІМНАЗІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            t = new OrgItemTypeTermin("СПЕЦИАЛИЗИРОВАННАЯ ДЕТСКО ЮНОШЕСКАЯ СПОРТИВНАЯ ШКОЛА ОЛИМПИЙСКОГО РЕЗЕРВА") { Coeff = 3, Acronym = "СДЮСШОР", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕТСКО ЮНОШЕСКАЯ СПОРТИВНАЯ ШКОЛА ОЛИМПИЙСКОГО РЕЗЕРВА") { Coeff = 3, Acronym = "ДЮСШОР", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕТСКО ЮНОШЕСКАЯ СПОРТИВНАЯ ШКОЛА") { Coeff = 3, Acronym = "ДЮСШ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕТСКИЙ САД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ДЕТСАД", false);
+            t.AddAbridge("Д.С.");
+            t.AddAbridge("Д/С");
+            t.AddVariant("ЯСЛИ САД", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДИТЯЧИЙ САДОК") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ДИТСАДОК", false);
+            t.AddAbridge("Д.С.");
+            t.AddAbridge("Д/З");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕТСКИЙ ДОМ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ДЕТДОМ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДИТЯЧИЙ БУДИНОК") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ДИТБУДИНОК", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДОМ ДЕТСКОГО ТВОРЧЕСТВА") { Coeff = 3, Acronym = "ДДТ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ДОМ ДЕТСКОГО И ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
+            t.AddVariant("ДДЮТ", false);
+            t.AddVariant("ДОМ ДЕТСКО ЮНЕШЕСКОГО ТВОРЧЕСТВА", false);
+            t.AddVariant("ДВОРЕЦ ДЕТСКОГО ТВОРЧЕСТВА", false);
+            t.AddVariant("ДВОРЕЦ ПИОНЕРОВ", false);
+            t.AddVariant("ДВОРЕЦ ДЕТСКОГО И ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
+            t.AddVariant("ДВОРЕЦ ДЕТСКОГО ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
+            t.AddVariant("ДВОРЕЦ ДЕТСКО ЮНОШЕСКОГО ТВОРЧЕСТВА", false);
+            t.AddVariant("ДВОРЕЦ ДЕТСКОГО (ЮНОШЕСКОГО) ТВОРЧЕСТВА", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ШКОЛА") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("SCHOOL") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("КОЛЛЕДЖ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("КОЛЛЕГИУМ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ТЕХНИКУМ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("COLLEGE") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("ЦЕНТР") { Typ = OrgItemTypeTyp.Org, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНЫЙ ЦЕНТР") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВИЙ ЦЕНТР") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("УЧЕБНО ВОСПИТАТЕЛЬНЫЙ КОМПЛЕКС") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "УВК", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("НАВЧАЛЬНО ВИХОВНИЙ КОМПЛЕКС") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "УВК", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education, CanHasLatinName = true });
+            t = new OrgItemTypeTermin("ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКОЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ПРОФТЕХУЧИЛИЩЕ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКОЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ГПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ГОСПРОФТЕХУЧИЛИЩЕ", false);
+            t.AddVariant("ГОСУДАРСТВЕННОЕ ПРОФТЕХУЧИЛИЩЕ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СРЕДНЕЕ ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКОЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "СПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("СРЕДНЕЕ ПРОФТЕХУЧИЛИЩЕ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПРОФЕССИОНАЛЬНО ТЕХНИЧЕСКАЯ ШКОЛА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТШ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ПРОФТЕХШКОЛА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПРОФЕСІЙНО ТЕХНІЧНЕ УЧИЛИЩЕ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТУ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ПРОФТЕХУЧИЛИЩЕ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПРОФЕСІЙНО ТЕХНІЧНА ШКОЛА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПТШ", CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Education };
+            t.AddVariant("ПРОФТЕХШКОЛА", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("БОЛЬНИЦА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("ЛІКАРНЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("МОРГ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("МОРГ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("ХОСПИС") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("ХОСПІС") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            t = new OrgItemTypeTermin("ГОРОДСКАЯ БОЛЬНИЦА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            t.AddAbridge("ГОР.БОЛЬНИЦА");
+            t.AddVariant("ГОРБОЛЬНИЦА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МІСЬКА ЛІКАРНЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГОРОДСКАЯ КЛИНИЧЕСКАЯ БОЛЬНИЦА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Acronym = "ГКБ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МІСЬКА КЛІНІЧНА ЛІКАРНЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Acronym = "МКЛ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КЛАДБИЩЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КЛАДОВИЩЕ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ПОЛИКЛИНИКА") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("ПОЛІКЛІНІКА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("ГОСПИТАЛЬ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("ГОСПІТАЛЬ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("КЛИНИКА") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            m_Global.Add(new OrgItemTypeTermin("КЛІНІКА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine });
+            t = new OrgItemTypeTermin("МЕДИКО САНИТАРНАЯ ЧАСТЬ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            t.AddVariant("МЕДСАНЧАСТЬ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЦЕНТРАЛЬНАЯ МЕДИКО САНИТАРНАЯ ЧАСТЬ") { Coeff = 2, Acronym = "ЦМСЧ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МЕДИКО САНІТАРНА ЧАСТИНА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            t.AddVariant("МЕДСАНЧАСТИНА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЦЕНТРАЛЬНА МЕДИКО САНІТАРНА ЧАСТИНА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Acronym = "ЦМСЧ", Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МЕДИЦИНСКИЙ ЦЕНТР") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            t.AddVariant("МЕДЦЕНТР", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МЕДИЧНИЙ ЦЕНТР") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            t.AddVariant("МЕДЦЕНТР", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("РОДИЛЬНЫЙ ДОМ") { Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            t.AddVariant("РОДДОМ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПОЛОГОВИЙ БУДИНОК") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 1, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Medicine };
+            m_Global.Add(t);
+            m_Global.Add((t = new OrgItemTypeTermin("АЭРОПОРТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Transport }));
+            m_Global.Add((t = new OrgItemTypeTermin("АЕРОПОРТ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true }));
+            t = new OrgItemTypeTermin("ТОРГОВЫЙ ПОРТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Transport };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МОРСКОЙ ТОРГОВЫЙ ПОРТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, IsTop = true, CanHasSingleName = true, CanHasLatinName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Transport };
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ТЕАТР", "ТЕАТР-СТУДИЯ", "КИНОТЕАТР", "МУЗЕЙ", "ГАЛЕРЕЯ", "КОНЦЕРТНЫЙ ЗАЛ", "ФИЛАРМОНИЯ", "КОНСЕРВАТОРИЯ", "ДОМ КУЛЬТУРЫ", "ДВОРЕЦ КУЛЬТУРЫ", "ДВОРЕЦ ПИОНЕРОВ", "ДВОРЕЦ СПОРТА", "ДВОРЕЦ ТВОРЧЕСТВА", "ДОМ ПИОНЕРОВ", "ДОМ СПОРТА", "ДОМ ТВОРЧЕСТВА"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true });
+            }
+            foreach (string s in new string[] {"ТЕАТР", "ТЕАТР-СТУДІЯ", "КІНОТЕАТР", "МУЗЕЙ", "ГАЛЕРЕЯ", "КОНЦЕРТНИЙ ЗАЛ", "ФІЛАРМОНІЯ", "КОНСЕРВАТОРІЯ", "БУДИНОК КУЛЬТУРИ", "ПАЛАЦ КУЛЬТУРИ", "ПАЛАЦ ПІОНЕРІВ", "ПАЛАЦ СПОРТУ", "ПАЛАЦ ТВОРЧОСТІ", "БУДИНОК ПІОНЕРІВ", "БУДИНОК СПОРТУ", "БУДИНОК ТВОРЧОСТІ"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true });
+            }
+            m_Global.Add(new OrgItemTypeTermin("БИБЛИОТЕКА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("БІБЛІОТЕКА") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true });
+            foreach (string s in new string[] {"ЦЕРКОВЬ", "ХРАМ", "СОБОР", "МЕЧЕТЬ", "СИНАГОГА", "МОНАСТЫРЬ", "ЛАВРА", "ПАТРИАРХАТ", "МЕДРЕСЕ", "СЕКТА", "РЕЛИГИОЗНАЯ ГРУППА", "РЕЛИГИОЗНОЕ ОБЪЕДИНЕНИЕ", "РЕЛИГИОЗНАЯ ОРГАНИЗАЦИЯ"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            }
+            foreach (string s in new string[] {"ЦЕРКВА", "ХРАМ", "СОБОР", "МЕЧЕТЬ", "СИНАГОГА", "МОНАСТИР", "ЛАВРА", "ПАТРІАРХАТ", "МЕДРЕСЕ", "СЕКТА", "РЕЛІГІЙНА ГРУПА", "РЕЛІГІЙНЕ ОБЄДНАННЯ", " РЕЛІГІЙНА ОРГАНІЗАЦІЯ"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            }
+            foreach (string s in new string[] {"ФЕДЕРАЛЬНАЯ СЛУЖБА", "ГОСУДАРСТВЕННАЯ СЛУЖБА", "ФЕДЕРАЛЬНОЕ УПРАВЛЕНИЕ", "ГОСУДАРСТВЕННЫЙ КОМИТЕТ", "ГОСУДАРСТВЕННАЯ ИНСПЕКЦИЯ"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, MustBePartofName = true };
+                m_Global.Add(t);
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanonicText = s };
+                t.Terms.Insert(1, new Pullenti.Ner.Core.Termin.Term(null) { IsPatternAny = true });
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ФЕДЕРАЛЬНА СЛУЖБА", "ДЕРЖАВНА СЛУЖБА", "ФЕДЕРАЛЬНЕ УПРАВЛІННЯ", "ДЕРЖАВНИЙ КОМІТЕТ УКРАЇНИ", "ДЕРЖАВНА ІНСПЕКЦІЯ"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, MustBePartofName = true };
+                m_Global.Add(t);
+                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanonicText = s };
+                t.Terms.Insert(1, new Pullenti.Ner.Core.Termin.Term(null) { IsPatternAny = true });
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("СЛЕДСТВЕННЫЙ ИЗОЛЯТОР") { Coeff = 5, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
+            t.AddVariant("СИЗО", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СЛІДЧИЙ ІЗОЛЯТОР") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true };
+            t.AddVariant("СІЗО", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("КОЛОНИЯ-ПОСЕЛЕНИЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("КОЛОНІЯ-ПОСЕЛЕННЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("ТЮРЬМА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true });
+            m_Global.Add(new OrgItemTypeTermin("ВЯЗНИЦЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true, CanHasLatinName = true, CanHasSingleName = true });
+            m_Global.Add(new OrgItemTypeTermin("КОЛОНИЯ") { Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("КОЛОНІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 2, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            m_Global.Add((m_IsprKolon = new OrgItemTypeTermin("ИСПРАВИТЕЛЬНАЯ КОЛОНИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ИК", CanHasNumber = true }));
+            m_Global.Add(new OrgItemTypeTermin("ВИПРАВНА КОЛОНІЯ") { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasNumber = true });
+            for (int kk = 0; kk < 2; kk++) 
+            {
+                foreach (string s in new string[] {"ПОЛИЦИЯ", "МИЛИЦИЯ"}) 
+                {
+                    t = new OrgItemTypeTermin(((kk == 0 ? "" : "НАЦИОНАЛЬНАЯ ")) + s) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanBeSingleGeo = true, CanHasSingleName = false };
+                    if (kk == 1) 
+                        t.AddVariant("НАЦ" + s, false);
+                    m_Global.Add(t);
+                }
+                foreach (string s in new string[] {"ПОЛІЦІЯ", "МІЛІЦІЯ"}) 
+                {
+                    t = new OrgItemTypeTermin(((kk == 0 ? "" : "НАЦІОНАЛЬНА ")) + s) { Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, Coeff = 3, CanBeSingleGeo = true, CanHasSingleName = false };
+                    if (kk == 1) 
+                        t.AddVariant("НАЦ" + s, false);
+                    m_Global.Add(t);
+                }
+            }
+            m_Global.Add(new OrgItemTypeTermin("ПАЕВЫЙ ИНВЕСТИЦИОННЫЙ ФОНД") { Coeff = 2, Typ = OrgItemTypeTyp.Org, Acronym = "ПИФ" });
+            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКОЕ ИНФОРМАЦИОННОЕ АГЕНТСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "РИА", Profile = Pullenti.Ner.Org.OrgProfile.Media });
+            t = new OrgItemTypeTermin("ИНФОРМАЦИОННОЕ АГЕНТСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ИА", Profile = Pullenti.Ner.Org.OrgProfile.Media };
+            t.AddVariant("ИНФОРМАГЕНТСТВО", false);
+            t.AddVariant("ИНФОРМАГЕНСТВО", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АГЕНТСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.State, CanHasLatinName = true };
+            t.AddVariant("ГОСАГЕНТСТВО", false);
+            t.AddVariant("ГОСАГЕНСТВО", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ОТДЕЛ") { Coeff = 1, Typ = OrgItemTypeTyp.Dep, IsDoubtWord = true, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("ВІДДІЛ", Pullenti.Morph.MorphLang.UA) { Coeff = 1, Typ = OrgItemTypeTyp.Dep, IsDoubtWord = true, CanHasNumber = true });
+            t = new OrgItemTypeTermin("РАЙОННЫЙ ОТДЕЛ") { Coeff = 2, Acronym = "РО", Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            t.AddVariant("РАЙОТДЕЛ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("РАЙОННИЙ ВІДДІЛ", Pullenti.Morph.MorphLang.UA) { Coeff = 2, Acronym = "РВ", Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЦЕХ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ФАКУЛЬТЕТ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            t.AddAbridge("ФАК.");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КАФЕДРА") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            t.AddAbridge("КАФ.");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЛАБОРАТОРИЯ") { Coeff = 1, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            t.AddAbridge("ЛАБ.");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЛАБОРАТОРІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 1, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            t.AddAbridge("ЛАБ.");
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ПАТРИАРХИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            m_Global.Add(new OrgItemTypeTermin("ПАТРІАРХІЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            m_Global.Add(new OrgItemTypeTermin("ЕПАРХИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            m_Global.Add(new OrgItemTypeTermin("ЄПАРХІЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            m_Global.Add(new OrgItemTypeTermin("МИТРОПОЛИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            m_Global.Add(new OrgItemTypeTermin("МИТРОПОЛІЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Religion });
+            m_Global.Add(new OrgItemTypeTermin("ПРЕДСТАВИТЕЛЬСТВО") { Typ = OrgItemTypeTyp.DepAdd });
+            m_Global.Add(new OrgItemTypeTermin("ПРЕДСТАВНИЦТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd });
+            t = new OrgItemTypeTermin("ОТДЕЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
+            t.AddAbridge("ОТД.");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ВІДДІЛЕННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ИНСПЕКЦИЯ") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("ІНСПЕКЦІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("ФИЛИАЛ") { Typ = OrgItemTypeTyp.DepAdd });
+            m_Global.Add(new OrgItemTypeTermin("ФІЛІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd });
+            t = new OrgItemTypeTermin("ОФИС") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true, CanHasNumber = true };
+            t.AddVariant("ОПЕРАЦИОННЫЙ ОФИС", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОФІС", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true, CanHasNumber = true };
+            t.AddVariant("ОПЕРАЦІЙНИЙ ОФІС", false);
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ОТДЕЛ ПОЛИЦИИ", "ОТДЕЛ МИЛИЦИИ", "ОТДЕЛЕНИЕ ПОЛИЦИИ", "ОТДЕЛЕНИЕ МИЛИЦИИ"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Dep, Coeff = 1.5F, CanHasNumber = true, CanHasSingleName = true });
+                if (s.StartsWith("ОТДЕЛ ")) 
+                {
+                    t = new OrgItemTypeTermin("ГОРОДСКОЙ " + s) { Typ = OrgItemTypeTyp.Dep, Coeff = 3F, CanHasNumber = true, CanHasSingleName = true };
+                    t.AddVariant("ГОР" + s, false);
+                    m_Global.Add(t);
+                    t = new OrgItemTypeTermin("РАЙОННЫЙ " + s) { Acronym = "РО", Typ = OrgItemTypeTyp.Dep, Coeff = 3F, CanHasNumber = true, CanHasSingleName = true };
+                    m_Global.Add(t);
+                }
+            }
+            foreach (string s in new string[] {"ВІДДІЛ ПОЛІЦІЇ", "ВІДДІЛ МІЛІЦІЇ", "ВІДДІЛЕННЯ ПОЛІЦІЇ", "ВІДДІЛЕННЯ МІЛІЦІЇ"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, Coeff = 1.5F, CanHasNumber = true, CanHasSingleName = true });
+            }
+            t = new OrgItemTypeTermin("МЕЖМУНИЦИПАЛЬНЫЙ ОТДЕЛ") { Typ = OrgItemTypeTyp.Dep, Coeff = 1.5F, CanHasNumber = true, CanHasSingleName = true };
+            m_MejmunOtdel = t;
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГЛАВНОЕ УПРАВЛЕНИЕ") { Acronym = "ГУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЛИНЕЙНОЕ УПРАВЛЕНИЕ") { Acronym = "ЛУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МЕЖМУНИЦИПАЛЬНОЕ УПРАВЛЕНИЕ") { Acronym = "МУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГОЛОВНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ГУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГЛАВНОЕ ТЕРРИТОРИАЛЬНОЕ УПРАВЛЕНИЕ") { Acronym = "ГТУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГОЛОВНЕ ТЕРИТОРІАЛЬНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ГТУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СЛЕДСТВЕННОЕ УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СЛІДЧЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГЛАВНОЕ СЛЕДСТВЕННОЕ УПРАВЛЕНИЕ") { Acronym = "ГСУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ГОЛОВНЕ СЛІДЧЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ГСУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОПЕРАЦИОННОЕ УПРАВЛЕНИЕ") { Acronym = "ОПЕРУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОПЕРАЦІЙНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "ОПЕРУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ТЕРРИТОРИАЛЬНОЕ УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ТЕРИТОРІАЛЬНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("РЕГИОНАЛЬНОЕ УПРАВЛЕНИЕ") { Acronym = "РУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("РЕГІОНАЛЬНЕ УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Acronym = "РУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("УПРАВЛІННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, IsDoubtWord = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПОГРАНИЧНОЕ УПРАВЛЕНИЕ") { Acronym = "ПУ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КАТЕГОРИЙНОЕ УПРАВЛЕНИЕ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕЖУРНАЯ ЧАСТЬ") { Acronym = "ДЧ", Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
+            t.AddAbridge("Д/Ч");
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ПРЕСС-СЛУЖБА", "ПРЕСС-ЦЕНТР", "КОЛЛ-ЦЕНТР", "БУХГАЛТЕРИЯ", "МАГИСТРАТУРА", "АСПИРАНТУРА", "ДОКТОРАНТУРА", "ОРДИНАТУРА", "СОВЕТ ДИРЕКТОРОВ", "УЧЕНЫЙ СОВЕТ", "КОЛЛЕГИЯ", "НАБЛЮДАТЕЛЬНЫЙ СОВЕТ", "ОБЩЕСТВЕННЫЙ СОВЕТ", "ДИРЕКЦИЯ", "ЖЮРИ", "ПРЕЗИДИУМ", "СЕКРЕТАРИАТ", "СИНОД", "ПЛЕНУМ", "АППАРАТ", "PRESS CENTER", "CLIENT CENTER", "CALL CENTER", "ACCOUNTING", "MASTER DEGREE", "POSTGRADUATE", "DOCTORATE", "RESIDENCY", "BOARD OF DIRECTORS", "DIRECTOR BOARD", "ACADEMIC COUNCIL", "PLENARY", "SUPERVISORY BOARD", "PUBLIC COUNCIL", "LEADERSHIP", "JURY", "BUREAU", "SECRETARIAT"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit });
+            }
+            foreach (string s in new string[] {"ПРЕС-СЛУЖБА", "ПРЕС-ЦЕНТР", "БУХГАЛТЕРІЯ", "МАГІСТРАТУРА", "АСПІРАНТУРА", "ДОКТОРАНТУРА", "ОРДИНАТУРА", "РАДА ДИРЕКТОРІВ", "ВЧЕНА РАДА", "КОЛЕГІЯ", "ПЛЕНУМ", "НАГЛЯДОВА РАДА", "ГРОМАДСЬКА РАДА", "ДИРЕКЦІЯ", "ЖУРІ", "ПРЕЗИДІЯ", "СЕКРЕТАРІАТ", "АПАРАТ"}) 
+            {
+                m_Global.Add(new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit });
+            }
+            t = new OrgItemTypeTermin("ОТДЕЛ ИНФОРМАЦИОННОЙ БЕЗОПАСНОСТИ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
+            t.AddVariant("ОТДЕЛ ИБ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОТДЕЛ ИНФОРМАЦИОННЫХ ТЕХНОЛОГИЙ") { Typ = OrgItemTypeTyp.DepAdd, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Unit };
+            t.AddVariant("ОТДЕЛ ИТ", false);
+            t.AddVariant("ОТДЕЛ IT", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("СЕКТОР") { Typ = OrgItemTypeTyp.Dep, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("КУРС") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("ГРУППА") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true, CanHasLatinName = true, CanHasSingleName = true });
+            m_Global.Add(new OrgItemTypeTermin("ГРУПА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true, CanHasLatinName = true, CanHasSingleName = true });
+            m_Global.Add(new OrgItemTypeTermin("СОЗЫВ") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, IsDoubtWord = true });
+            m_Global.Add(new OrgItemTypeTermin("ДНЕВНОЕ ОТДЕЛЕНИЕ") { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ДЕННЕ ВІДДІЛЕННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ВЕЧЕРНЕЕ ОТДЕЛЕНИЕ") { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ВЕЧІРНЄ ВІДДІЛЕННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Education });
+            m_Global.Add(new OrgItemTypeTermin("ДЕЖУРНАЯ ЧАСТЬ") { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧЕРГОВА ЧАСТИНА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanBeNormalDep = true });
+            t = new OrgItemTypeTermin("ПАСПОРТНЫЙ СТОЛ") { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            t.AddAbridge("П/С");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПАСПОРТНИЙ СТІЛ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            t.AddAbridge("П/С");
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ВЫСШЕЕ УЧЕБНОЕ ЗАВЕДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВУЗ" });
+            m_Global.Add(new OrgItemTypeTermin("ВИЩИЙ НАВЧАЛЬНИЙ ЗАКЛАД", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВНЗ" });
+            m_Global.Add(new OrgItemTypeTermin("ВЫСШЕЕ ПРОФЕССИОНАЛЬНОЕ УЧИЛИЩЕ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВПУ" });
+            m_Global.Add(new OrgItemTypeTermin("ВИЩЕ ПРОФЕСІЙНЕ УЧИЛИЩЕ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Education, Acronym = "ВПУ" });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science, Acronym = "НИИ" });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ДОСЛІДНИЙ ІНСТИТУТ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science, Acronym = "НДІ" });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ И ПРОЕКТНЫЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science, Acronym = "НИПИ" });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НИЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННЫЙ НАУЧНЫЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГНЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАЦИОНАЛЬНЫЙ ИССЛЕДОВАТЕЛЬСКИЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НИЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ДОСЛІДНИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НДЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("ЦЕНТРАЛЬНЫЙ НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЦНИИ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("ВСЕРОССИЙСКИЙ НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВНИИ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКИЙ НАУЧНО ИССЛЕДОВАТЕЛЬСКИЙ ИНСТИТУТ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "РНИИ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            t = new OrgItemTypeTermin("ИННОВАЦИОННЫЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science };
+            t.AddVariant("ИННОВАЦИОННЫЙ НАУЧНО ТЕХНОЛОГИЧЕСКИЙ ЦЕНТР", false);
+            t.AddVariant("ИННОЦЕНТР", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ТЕХНИЧЕСКИЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ТЕХНІЧНИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ТЕХНИЧЕСКАЯ ФИРМА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТФ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧА ФІРМА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВФ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ ОБЪЕДИНЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПО", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧЕ ОБЄДНАННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВО", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО-ВИРОБНИЧИЙ КООПЕРАТИВ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВК", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            t = new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННАЯ КОРПОРАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПК", Profile = Pullenti.Ner.Org.OrgProfile.Science };
+            t.AddVariant("НАУЧНО ПРОИЗВОДСТВЕННАЯ КОМПАНИЯ", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ТЕХНИЧЕСКИЙ КОМПЛЕКС") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НТК", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("МЕЖОТРАСЛЕВОЙ НАУЧНО ТЕХНИЧЕСКИЙ КОМПЛЕКС") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МНТК", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПП", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВП", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННЫЙ ЦЕНТР") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУКОВО ВИРОБНИЧЕ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "НВЦ", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПУП", Profile = Pullenti.Ner.Org.OrgProfile.Science });
+            m_Global.Add(new OrgItemTypeTermin("ИНДИВИДУАЛЬНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ИП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПРИВАТНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ПРОИЗВОДСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧПУП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ИНДИВИДУАЛЬНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧИП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ОХРАННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧОП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНАЯ ОХРАННАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧОО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ТРАНСПОРТНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧТУП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ ТРАНСПОРТНО ЭКСПЛУАТАЦИОННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧТЭУП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("НАУЧНО ПРОИЗВОДСТВЕННОЕ КОРПОРАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПК", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГУП", IsLegalForm = true });
+            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГП", IsLegalForm = true };
+            t.AddVariant("ГОСПРЕДПРИЯТИЕ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕРЖАВНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДП", IsLegalForm = true };
+            t.AddVariant("ДЕРЖПІДПРИЄМСТВО", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ НАУЧНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГНУ", Profile = Pullenti.Ner.Org.OrgProfile.Science, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГКУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ КАЗЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГКОУ", IsLegalForm = true });
+            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГБУ", IsLegalForm = true };
+            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ НАУКИ", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ВОЕННО ПРОМЫШЛЕННАЯ КОРПОРАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВПК", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНАЯ ВОЕННАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧВК", Profile = Pullenti.Ner.Org.OrgProfile.Army, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФБУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФУП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ НЕКОММЕРЧЕСКОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МНУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МБУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УНИТАРНОЕ ПРОИЗВОДСТВЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУПП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("КАЗЕННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("НЕБАНКОВСКАЯ КРЕДИТНАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НКО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("РАСЧЕТНАЯ НЕБАНКОВСКАЯ КРЕДИТНАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "РНКО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГКУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГАУ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МАЛОЕ ИННОВАЦИОННОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННЫЙ ПЕНСИОННЫЙ ФОНД") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НПФ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНА АКЦІОНЕРНА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДАК", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ДЕРЖАВНА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДК", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("КОЛЕКТИВНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "КП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("КОЛЕКТИВНЕ МАЛЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "КМП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧА ФІРМА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВФ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧЕ ОБЄДНАННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВП", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ВИРОБНИЧИЙ КООПЕРАТИВ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВК", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("СТРАХОВА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "СК" });
+            m_Global.Add(new OrgItemTypeTermin("ТВОРЧЕ ОБЄДНАННЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ТО" });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГАУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОБЛАСТНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОГАУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОБЛАСТНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОГБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОБУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАУЗ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Profile = Pullenti.Ner.Org.OrgProfile.Culture });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГАУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБЛАСТНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ОБЛАСТНОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОБУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("КАЗЕННОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "КУК", Profile = Pullenti.Ner.Org.OrgProfile.Culture });
+            t = new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУК", IsLegalForm = true };
+            t.AddVariant("ЧАСТНОЕ УЧРЕЖДЕНИЕ КУЛЬТУРЫ ЛФП", false);
+            t.AddVariant("ЧУК ЛФП", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            t = new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБПОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true };
+            t.AddVariant("ГБ ПОУ", true);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ОБЩЕОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ДОПОЛНИТЕЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБУДО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГАОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true };
+            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ", false);
+            t.AddVariant("ФГАОУ ВО", true);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ ДОПОЛНИТЕЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУДО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ УЧРЕЖДЕНИЕ ДОПОЛНИТЕЛЬНОГО ПРОФЕССИОНАЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЧУДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ КАЗЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МКОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ АВТОНОМНОЕ ОБЩЕОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МАОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            t = new OrgItemTypeTermin("АВТОНОМНАЯ НЕКОММЕРЧЕСКАЯ ОРГАНИЗАЦИЯ ДОПОЛНИТЕЛЬНОГО ПРОФЕССИОНАЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "АНОДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true };
+            t.AddVariant("АНО ДПО", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("НЕГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ ЧАСТНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "НОЧУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("МУНИЦИПАЛЬНОЕ ЛЕЧЕБНО ПРОФИЛАКТИЧЕСКОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "МЛПУ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ КАЗЕННОЕ ЛЕЧЕБНО ПРОФИЛАКТИЧЕСКОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФКЛПУ", Profile = Pullenti.Ner.Org.OrgProfile.Medicine, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГБОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГБОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true };
+            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФГАОУ", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true };
+            t.AddVariant("ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("АВТОНОМНАЯ НЕКОММЕРЧЕСКАЯ ОБРАЗОВАТЕЛЬНАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "АНООВО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true };
+            t.AddVariant("АВТОНОМНАЯ НЕКОММЕРЧЕСКАЯ ОБРАЗОВАТЕЛЬНАЯ ОРГАНИЗАЦИЯ ВЫСШЕГО ОБРАЗОВАНИЯ", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ВЫСШЕЕ ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ВПО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ДОПОЛНИТЕЛЬНОЕ ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОРГАНИЗАЦИЯ ДОПОЛНИТЕЛЬНОГО ПРОФЕССИОНАЛЬНОЕ ОБРАЗОВАНИЕ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОДПО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЦЕНТР ПРОФЕССИОНАЛЬНОГО ОБРАЗОВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЦПО", Profile = Pullenti.Ner.Org.OrgProfile.Education, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ДЕПАРТАМЕНТ ЕДИНОГО ЗАКАЗЧИКА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДЕЗ", AcronymCanBeLower = true, CanBeSingleGeo = true });
+            t = new OrgItemTypeTermin("СОЮЗ АРБИТРАЖНЫХ УПРАВЛЯЮЩИХ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "САУ", CanHasLatinName = true };
+            t.AddVariant("САМОРЕГУЛИРУЕМАЯ ОРГАНИЗАЦИЯ АРБИТРАЖНЫХ УПРАВЛЯЮЩИХ", false);
+            t.AddVariant("СОАУ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОПЫТНО ПРОИЗВОДСТВЕННОЕ ХОЗЯЙСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОПХ", CanHasLatinName = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОРГАНИЗАЦИЯ НАУЧНОГО ОБСЛУЖИВАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОНО", CanHasLatinName = true };
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АТ", IsLegalForm = true });
+            m_Global.Add((m_SovmPred = new OrgItemTypeTermin("СОВМЕСТНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "СП", IsLegalForm = true }));
+            m_Global.Add(new OrgItemTypeTermin("СПІЛЬНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "СП", IsLegalForm = true });
+            m_Global.Add((m_AkcionComp = new OrgItemTypeTermin("АКЦИОНЕРНАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true }));
+            m_Global.Add(new OrgItemTypeTermin("УПРАВЛЯЮЩАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "УК", CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ЗАО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОБЩЕСТВО ОТКРЫТОГО ТИПА") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ООТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОБЩЕСТВО С ДОПОЛНИТЕЛЬНОЙ ОТВЕТСТВЕННОСТЬЮ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОДО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "РАО", AcronymSmart = "PAO", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("РОССИЙСКОЕ ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "РОАО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНОЕ ОБЩЕСТВО ЗАКРЫТОГО ТИПА") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АОЗТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНЕ ТОВАРИСТВО ЗАКРИТОГО ТИПУ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АТЗТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНОЕ ОБЩЕСТВО ОТКРЫТОГО ТИПА") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АООТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНЕ ТОВАРИСТВО ВІДКРИТОГО ТИПУ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АТВТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОБЩЕСТВЕННАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("УПРАВЛЯЮЩАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("УПРАВЛЯЮЩАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГОЛОВНАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГРОМАДСЬКА ОРГАНІЗАЦІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ГО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АВТОНОМНАЯ НЕКОММЕРЧЕСКАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АНО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АВТОНОМНА НЕКОМЕРЦІЙНА ОРГАНІЗАЦІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АНО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("НЕКОММЕРЧЕСКАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "НО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("НЕКОМЕРЦІЙНА ОРГАНІЗАЦІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "НО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОАО", AcronymSmart = "OAO", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ВІДКРИТЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ВАТ", AcronymSmart = "ВАТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ЧАО", AcronymSmart = "ЧAO", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОТКРЫТОЕ СТРАХОВОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОСАО", IsLegalForm = true });
+            t = new OrgItemTypeTermin("ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ООО", AcronymSmart = "OOO", IsLegalForm = true };
+            t.AddVariant("ОБЩЕСТВО ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬ", false);
+            t.AddVariant("ОБЩЕСТВО ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТИ", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТОВ", AcronymSmart = "ТОВ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ПОВНОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТПВ", AcronymSmart = "ТПВ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТЗОВ", AcronymSmart = "ТЗОВ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ТОВАРИСТВО З ДОДАТКОВОЮ ВІДПОВІДАЛЬНІСТЮ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ТДВ", AcronymSmart = "ТДВ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЧАСТНОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПРИВАТНЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ПРАТ", AcronymSmart = "ПРАТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПУБЛІЧНЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ПАТ", AcronymSmart = "ПАТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЗАКРЫТОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ЗАКРИТЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ЗАТ", AcronymSmart = "ЗАТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ОТКРЫТОЕ АКЦИОНЕРНОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ВІДКРИТЕ АКЦІОНЕРНЕ ТОВАРИСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ВАТ", AcronymSmart = "ВАТ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ПАО", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("СТРАХОВОЕ ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "СПАО", IsLegalForm = true });
+            t = new OrgItemTypeTermin("БЛАГОТВОРИТЕЛЬНАЯ ОБЩЕСТВЕННАЯ ОРГАНИЗАЦИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "БОО", AcronymSmart = "БОО", IsLegalForm = true };
+            t.AddVariant("ОБЩЕСТВЕННАЯ БЛАГОТВОРИТЕЛЬНАЯ ОРГАНИЗАЦИЯ", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ТОВАРИЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ТОО", AcronymSmart = "TOO", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПРЕДПРИНИМАТЕЛЬ БЕЗ ОБРАЗОВАНИЯ ЮРИДИЧЕСКОГО ЛИЦА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПБОЮЛ", IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНЫЙ КОММЕРЧЕСКИЙ БАНК") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АКБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
+            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНИЙ КОМЕРЦІЙНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АКБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
+            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНЫЙ БАНК") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
+            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АБ", Profile = Pullenti.Ner.Org.OrgProfile.Finance });
+            m_Global.Add(new OrgItemTypeTermin("КОММЕРЧЕСКИЙ БАНК") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance });
+            m_Global.Add(new OrgItemTypeTermin("КОМЕРЦІЙНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance });
+            m_Global.Add(new OrgItemTypeTermin("КОНСТРУКТОРСКОЕ БЮРО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("КОНСТРУКТОРСЬКЕ БЮРО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("ОПЫТНО КОНСТРУКТОРСКОЕ БЮРО") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ОКБ" });
+            m_Global.Add(new OrgItemTypeTermin("ДОСЛІДНО КОНСТРУКТОРСЬКЕ БЮРО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "ДКБ" });
+            m_Global.Add(new OrgItemTypeTermin("СПЕЦИАЛЬНОЕ КОНСТРУКТОРСКОЕ БЮРО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "СКБ", CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("СПЕЦІАЛЬНЕ КОНСТРУКТОРСЬКЕ БЮРО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "СКБ", CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("АКЦИОНЕРНАЯ СТРАХОВАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АСК" });
+            m_Global.Add(new OrgItemTypeTermin("АКЦІОНЕРНА СТРАХОВА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "АСК" });
+            m_Global.Add(new OrgItemTypeTermin("РЕКЛАМНО ПРОИЗВОДСТВЕННАЯ КОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, Acronym = "РПК" });
+            m_Global.Add(new OrgItemTypeTermin("АВТОТРАНСПОРТНОЕ ПРЕДПРИЯТИЕ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, CanHasNumber = true, Acronym = "АТП" });
+            m_Global.Add(new OrgItemTypeTermin("АВТОТРАНСПОРТНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true, CanHasNumber = true, Acronym = "АТП" });
+            m_Global.Add(new OrgItemTypeTermin("ТЕЛЕРАДИОКОМПАНИЯ") { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
+            m_Global.Add(new OrgItemTypeTermin("ТЕЛЕРАДІОКОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, CanHasLatinName = true });
+            t = new OrgItemTypeTermin("ОРГАНИЗОВАННАЯ ПРЕСТУПНАЯ ГРУППИРОВКА") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОПГ", CanHasLatinName = true };
+            t.AddVariant("ОРГАНИЗОВАННАЯ ПРЕСТУПНАЯ ГРУППА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОРГАНИЗОВАННОЕ ПРЕСТУПНОЕ СООБЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ОПС", CanHasLatinName = true };
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ПОДРОСТКОВО МОЛОДЕЖНЫЙ КЛУБ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПМК", CanHasLatinName = true, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("СКЛАД ВРЕМЕННОГО ХРАНЕНИЯ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "СВХ", CanHasLatinName = true, CanHasNumber = true });
+            m_Global.Add(new OrgItemTypeTermin("ЖИЛИЩНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ЖСК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГСК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНО ЭКСПЛУАТАЦИОННЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГЭК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНО ПОТРЕБИТЕЛЬСКИЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГПК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПОТРЕБИТЕЛЬСКИЙ ГАРАЖНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПГСК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ГАРАЖНЫЙ СТРОИТЕЛЬНО ПОТРЕБИТЕЛЬСКИЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ГСПК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ДАЧНО СТРОИТЕЛЬНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДСК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПОТРЕБИТЕЛЬСКИЙ ГАРАЖНЫЙ КООПЕРАТИВ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПГК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ИНДИВИДУАЛЬНОЕ ЖИЛИЩНОЕ СТРОИТЕЛЬСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ИЖС", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            t = new OrgItemTypeTermin("САДОВОЕ НЕКОММЕРЧЕСКОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "СНТ", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true };
+            t.AddAbridge("САДОВОЕ НЕКОМ-Е ТОВАРИЩЕСТВО");
+            t.AddVariant("СНТ ПМК", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДАЧНОЕ НЕКОММЕРЧЕСКОЕ ТОВАРИЩЕСТВО") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ДНТ", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true };
+            t.AddAbridge("ДАЧНОЕ НЕКОМ-Е ТОВАРИЩЕСТВО");
+            t.AddVariant("ДНТ ПМК", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ПРЕДПРИЯТИЕ ПОТРЕБИТЕЛЬСКОЙ КООПЕРАЦИИ") { Typ = OrgItemTypeTyp.Prefix, Acronym = "ППК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ПІДПРИЄМСТВО СПОЖИВЧОЇ КООПЕРАЦІЇ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ПСК", CanHasLatinName = true, CanHasNumber = true, IsLegalForm = true });
+            m_Global.Add(new OrgItemTypeTermin("ФІЗИЧНА ОСОБА ПІДПРИЄМЕЦЬ", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Prefix, Acronym = "ФОП", CanHasLatinName = true, CanHasSingleName = true, IsLegalForm = true });
+            t = new OrgItemTypeTermin("ЖЕЛЕЗНАЯ ДОРОГА") { Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Transport, CanHasLatinName = true, Coeff = 3 };
+            t.AddVariant("ЖЕЛЕЗНОДОРОЖНАЯ МАГИСТРАЛЬ", false);
+            t.AddAbridge("Ж.Д.");
+            t.AddAbridge("Ж/Д");
+            t.AddAbridge("ЖЕЛ.ДОР.");
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ЗАВОД", "ФАБРИКА", "БАНК", "КОМБИНАТ", "МЯСОКОМБИНАТ", "БАНКОВСКАЯ ГРУППА", "БИРЖА", "ФОНДОВАЯ БИРЖА", "КРИПТОБИРЖА", "FACTORY", "MANUFACTORY", "BANK"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true }));
+                if (s == "БАНК" || s == "BANK" || s.EndsWith("БИРЖА")) 
+                {
+                    t.Profile = Pullenti.Ner.Org.OrgProfile.Finance;
+                    t.Coeff = 2;
+                    t.CanHasLatinName = true;
+                    if (m_Bank == null) 
+                        m_Bank = t;
+                }
+            }
+            t = new OrgItemTypeTermin("КРИТПОВАЛЮТНАЯ БИРЖА") { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Finance, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("КРИПТОБИРЖА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КРИПТОВАЛЮТНАЯ БІРЖА", Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, Profile = Pullenti.Ner.Org.OrgProfile.Finance, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("КРИПТОБІРЖА", false);
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ЗАВОД", "ФАБРИКА", "БАНК", "КОМБІНАТ", "БАНКІВСЬКА ГРУПА", "БІРЖА", "ФОНДОВА БІРЖА"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true }));
+                if (s == "БАНК" || s.EndsWith("БІРЖА")) 
+                {
+                    t.Coeff = 2;
+                    t.CanHasLatinName = true;
+                    if (m_Bank == null) 
+                        m_Bank = t;
+                }
+            }
+            foreach (string s in new string[] {"ТУРФИРМА", "ТУРАГЕНТСТВО", "ТУРКОМПАНИЯ", "АВИАКОМПАНИЯ", "КИНОСТУДИЯ", "КООПЕРАТИВ", "РИТЕЙЛЕР", "ОНЛАЙН РИТЕЙЛЕР", "МЕДИАГИГАНТ", "МЕДИАКОМПАНИЯ", "МЕДИАХОЛДИНГ"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
+                if (s.StartsWith("МЕДИА")) 
+                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
+                if (s.Contains("РИТЕЙЛЕР")) 
+                    t.AddVariant(s.Replace("РИТЕЙЛЕР", "РЕТЕЙЛЕР"), false);
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ТУРФІРМА", "ТУРАГЕНТСТВО", "ТУРКОМПАНІЯ", "АВІАКОМПАНІЯ", "КІНОСТУДІЯ", "КООПЕРАТИВ", "РІТЕЙЛЕР", "ОНЛАЙН-РІТЕЙЛЕР", "МЕДІАГІГАНТ", "МЕДІАКОМПАНІЯ", "МЕДІАХОЛДИНГ"}) 
+            {
+                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ТУРОПЕРАТОР"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = (float)0.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ТУРОПЕРАТОР"}) 
+            {
+                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = (float)0.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, MustHasCapitalName = true };
+                m_Global.Add(t);
+            }
+            m_SberBank = (t = new OrgItemTypeTermin("СБЕРЕГАТЕЛЬНЫЙ БАНК") { Coeff = 4, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance });
+            t.AddVariant("СБЕРБАНК", false);
+            m_Global.Add(t);
+            m_SecServ = (t = new OrgItemTypeTermin("СЛУЖБА БЕЗОПАСНОСТИ") { Coeff = 4, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.State });
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОЩАДНИЙ БАНК", Pullenti.Morph.MorphLang.UA) { Coeff = 4, Typ = OrgItemTypeTyp.Org, CanBeNormalDep = true, Profile = Pullenti.Ner.Org.OrgProfile.Finance };
+            t.AddVariant("ОЩАДБАНК", false);
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ОРГАНИЗАЦИЯ", "ПРЕДПРИЯТИЕ", "КОМИТЕТ", "КОМИССИЯ", "ПРОИЗВОДИТЕЛЬ", "ГИГАНТ", "ORGANIZATION", "ENTERPRISE", "COMMITTEE", "COMMISSION", "MANUFACTURER"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true }));
+            }
+            foreach (string s in new string[] {"ОБЩЕСТВО", "АССАМБЛЕЯ", "СЛУЖБА", "ОБЪЕДИНЕНИЕ", "ФЕДЕРАЦИЯ", "COMPANY", "ASSEMBLY", "SERVICE", "UNION", "FEDERATION"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true }));
+                if (s == "СЛУЖБА") 
+                    t.CanHasNumber = true;
+            }
+            foreach (string s in new string[] {"СООБЩЕСТВО", "ФОНД", "АССОЦИАЦИЯ", "АЛЬЯНС", "ГИЛЬДИЯ", "ОБЩИНА", "ОБЩЕСТВЕННОЕ ОБЪЕДИНЕНИЕ", "ОБЩЕСТВЕННАЯ ОРГАНИЗАЦИЯ", "ОБЩЕСТВЕННОЕ ФОРМИРОВАНИЕ", "СОЮЗ", "КЛУБ", "ГРУППИРОВКА", "ЛИГА", "COMMUNITY", "FOUNDATION", "ASSOCIATION", "ALLIANCE", "GUILD", "UNION", "CLUB", "GROUP", "LEAGUE"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true, Profile = Pullenti.Ner.Org.OrgProfile.Union }));
+            }
+            foreach (string s in new string[] {"ПАРТИЯ", "ДВИЖЕНИЕ", "PARTY", "MOVEMENT"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true, Profile = Pullenti.Ner.Org.OrgProfile.Union }));
+            }
+            foreach (string s in new string[] {"НОЧНОЙ КЛУБ", "NIGHTCLUB"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, Profile = Pullenti.Ner.Org.OrgProfile.Music }));
+            }
+            foreach (string s in new string[] {"ОРГАНІЗАЦІЯ", "ПІДПРИЄМСТВО", "КОМІТЕТ", "КОМІСІЯ", "ВИРОБНИК", "ГІГАНТ", "СУСПІЛЬСТВО", "СПІЛЬНОТА", "ФОНД", "СЛУЖБА", "АСОЦІАЦІЯ", "АЛЬЯНС", "АСАМБЛЕЯ", "ГІЛЬДІЯ", "ОБЄДНАННЯ", "СОЮЗ", "ПАРТІЯ", "РУХ", "ФЕДЕРАЦІЯ", "КЛУБ", "ГРУПУВАННЯ"}) 
+            {
+                m_Global.Add((t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true, IsDoubtWord = true }));
+            }
+            t = new OrgItemTypeTermin("ДЕПУТАТСКАЯ ГРУППА") { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasSingleName = true };
+            t.AddVariant("ГРУППА ДЕПУТАТОВ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДЕПУТАТСЬКА ГРУПА", Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasSingleName = true };
+            t.AddVariant("ГРУПА ДЕПУТАТІВ", false);
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ФОНД", "СОЮЗ", "ОБЪЕДИНЕНИЕ", "ОРГАНИЗАЦИЯ", "ФЕДЕРАЦИЯ", "ДВИЖЕНИЕ"}) 
+            {
+                foreach (string ss in new string[] {"ВСЕМИРНЫЙ", "МЕЖДУНАРОДНЫЙ", "ВСЕРОССИЙСКИЙ", "ОБЩЕСТВЕННЫЙ", "НЕКОММЕРЧЕСКИЙ", "ЕВРОПЕЙСКИЙ", "ВСЕУКРАИНСКИЙ"}) 
+                {
+                    t = new OrgItemTypeTermin(string.Format("{0} {1}", ss, s)) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+                    if (s == "ОБЪЕДИНЕНИЕ" || s == "ДВИЖЕНИЕ") 
+                        t.CanonicText = string.Format("{0}ОЕ {1}", ss.Substring(0, ss.Length - 2), s);
+                    else if (s == "ОРГАНИЗАЦИЯ" || s == "ФЕДЕРАЦИЯ") 
+                    {
+                        t.CanonicText = string.Format("{0}АЯ {1}", ss.Substring(0, ss.Length - 2), s);
+                        t.Coeff = 3;
+                    }
+                    m_Global.Add(t);
+                }
+            }
+            foreach (string s in new string[] {"ФОНД", "СОЮЗ", "ОБЄДНАННЯ", "ОРГАНІЗАЦІЯ", "ФЕДЕРАЦІЯ", "РУХ"}) 
+            {
+                foreach (string ss in new string[] {"СВІТОВИЙ", "МІЖНАРОДНИЙ", "ВСЕРОСІЙСЬКИЙ", "ГРОМАДСЬКИЙ", "НЕКОМЕРЦІЙНИЙ", "ЄВРОПЕЙСЬКИЙ", "ВСЕУКРАЇНСЬКИЙ"}) 
+                {
+                    t = new OrgItemTypeTermin(string.Format("{0} {1}", ss, s), Pullenti.Morph.MorphLang.UA) { Coeff = (float)3.5, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+                    Pullenti.Morph.MorphWordForm bi = null;
+                    try 
+                    {
+                        bi = Pullenti.Morph.MorphologyService.GetWordBaseInfo(s, Pullenti.Morph.MorphLang.UA, false, false);
+                    }
+                    catch(Exception ex4611) 
+                    {
+                    }
+                    if (bi != null && bi.Gender != Pullenti.Morph.MorphGender.Masculine) 
+                    {
+                        string adj = null;
+                        try 
+                        {
+                            adj = Pullenti.Morph.MorphologyService.GetWordform(ss, new Pullenti.Morph.MorphBaseInfo() { Class = Pullenti.Morph.MorphClass.Adjective, Gender = bi.Gender, Number = Pullenti.Morph.MorphNumber.Singular, Language = Pullenti.Morph.MorphLang.UA });
+                            if (adj != null) 
+                                t.CanonicText = string.Format("{0} {1}", adj, s);
+                        }
+                        catch(Exception ex4615) 
+                        {
+                        }
+                    }
+                    if (s == "ОРГАНІЗАЦІЯ" || s == "ФЕДЕРАЦІЯ") 
+                        t.Coeff = 3;
+                    m_Global.Add(t);
+                }
+            }
+            t = new OrgItemTypeTermin("ИНВЕСТИЦИОННЫЙ ФОНД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("ИНВЕСТФОНД", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ІНВЕСТИЦІЙНИЙ ФОНД", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("ІНВЕСТФОНД", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СОЦИАЛЬНАЯ СЕТЬ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("СОЦСЕТЬ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СОЦІАЛЬНА МЕРЕЖА", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("СОЦМЕРЕЖА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОФФШОРНАЯ КОМПАНИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("ОФФШОР", false);
+            t.AddVariant("ОФШОР", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОФШОРНА КОМПАНІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasSingleName = true, CanHasLatinName = true };
+            t.AddVariant("ОФШОР", false);
+            m_Global.Add(t);
+            m_Global.Add(new OrgItemTypeTermin("ТЕРРОРИСТИЧЕСКАЯ ОРГАНИЗАЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true });
+            m_Global.Add(new OrgItemTypeTermin("ТЕРОРИСТИЧНА ОРГАНІЗАЦІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true });
+            m_Global.Add(new OrgItemTypeTermin("АТОМНАЯ ЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "АЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("АТОМНА ЕЛЕКТРОСТАНЦІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "АЕС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("ГИДРОЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ГЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("ГІДРОЕЛЕКТРОСТАНЦІЯ", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ГЕС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("ГИДРОРЕЦИРКУЛЯЦИОННАЯ ЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ГРЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("ТЕПЛОВАЯ ЭЛЕКТРОСТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ТЭС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("НЕФТЕПЕРЕРАБАТЫВАЮЩИЙ ЗАВОД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "НПЗ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("НАФТОПЕРЕРОБНИЙ ЗАВОД", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "НПЗ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            m_Global.Add(new OrgItemTypeTermin("НЕФТЕПЕРЕКАЧИВАЮЩАЯ СТАНЦИЯ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "НПС", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true, Profile = Pullenti.Ner.Org.OrgProfile.Industry });
+            foreach (string s in new string[] {"ФИРМА", "ТРЕСТ", "КОМПАНИЯ", "КОРПОРАЦИЯ", "ГОСКОРПОРАЦИЯ", "КОНЦЕРН", "КОНСОРЦИУМ", "ХОЛДИНГ", "МЕДИАХОЛДИНГ", "ТОРГОВЫЙ ДОМ", "ТОРГОВЫЙ ЦЕНТР", "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ ЦЕНТР", "УЧЕБНЫЙ ЦЕНТР", "ИССЛЕДОВАТЕЛЬСКИЙ ЦЕНТР", "КОСМИЧЕСКИЙ ЦЕНТР", "ДЕЛОВОЙ ЦЕНТР", "БИЗНЕС ЦЕНТР", "БИЗНЕС ПАРК", "БИЗНЕС КВАРТАЛ", "АУКЦИОННЫЙ ДОМ", "ИЗДАТЕЛЬСТВО", "ИЗДАТЕЛЬСКИЙ ДОМ", "ТОРГОВЫЙ КОМПЛЕКС", "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ КОМПЛЕКС", "ТОРГОВО ОФИСНЫЙ КОМПЛЕКС", "ТОРГОВО ОФИСНЫЙ ЦЕНТР", "МНОГОФУНКЦИОНАЛЬНЫЙ КОМПЛЕКС", "ОПТОВО РОЗНИЧНЫЙ ТОРГОВЫЙ КОМПЛЕКС", "СПЕЦИАЛИЗИРОВАННЫЙ ТОРГОВЫЙ ЦЕНТР", "СПОРТИВНЫЙ КОМПЛЕКС", "СПОРТИВНО РАЗВЛЕКАТЕЛЬНЫЙ КОМПЛЕКС", "СПОРТИВНО ОЗДОРОВИТЕЛЬНЫЙ КОМПЛЕКС", "ФИЗКУЛЬТУРНО ОЗДОРОВИТЕЛЬНЫЙ КОМПЛЕКС", "АГЕНТСТВО НЕДВИЖИМОСТИ", "ГРУППА КОМПАНИЙ", "МЕДИАГРУППА", "МАГАЗИН", "ТОРГОВЫЙ КОМПЛЕКС", "ГИПЕРМАРКЕТ", "СУПЕРМАРКЕТ", "КАФЕ", "РЕСТОРАН", "БАР", "ТРАКТИР", "ТАВЕРНА", "СТОЛОВАЯ", "АУКЦИОН", "АПТЕКА", "АПТЕЧНЫЙ ПУНКТ", "АНАЛИТИЧЕСКИЙ ЦЕНТР", "COMPANY", "CORPORATION"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
+                if (s == "ИЗДАТЕЛЬСТВО") 
+                {
+                    t.AddAbridge("ИЗД-ВО");
+                    t.AddAbridge("ИЗ-ВО");
+                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
+                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
+                    t.AddVariant("ИЗДАТЕЛЬСКИЙ ДОМ", false);
+                }
+                else if (s.StartsWith("ИЗДАТ")) 
+                {
+                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
+                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
+                }
+                else if (s == "ТОРГОВЫЙ ДОМ") 
+                    t.Acronym = "ТД";
+                else if (s == "ТОРГОВЫЙ ЦЕНТР") 
+                    t.Acronym = "ТЦ";
+                else if (s == "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ ЦЕНТР") 
+                    t.Acronym = "ТРЦ";
+                else if (s == "ТОРГОВО ОФИСНЫЙ КОМПЛЕКС") 
+                    t.Acronym = "ТОК";
+                else if (s == "ТОРГОВО ОФИСНЫЙ ЦЕНТР") 
+                    t.Acronym = "ТОЦ";
+                else if (s == "БИЗНЕС ЦЕНТР") 
+                    t.Acronym = "БЦ";
+                else if (s == "ТОРГОВЫЙ КОМПЛЕКС") 
+                    t.Acronym = "ТК";
+                else if (s == "СПОРТИВНЫЙ КОМПЛЕКС") 
+                    t.AddVariant("СПОРТКОМПЛЕКС", false);
+                else if (s == "ТОРГОВО РАЗВЛЕКАТЕЛЬНЫЙ КОМПЛЕКС") 
+                    t.Acronym = "ТРК";
+                else if (s == "ГРУППА КОМПАНИЙ") 
+                    t.Acronym = "ГК";
+                else if (s == "СТОЛОВАЯ" || s == "АПТЕКА") 
+                    t.CanHasNumber = true;
+                else if (s == "АПТЕЧНЫЙ ПУНКТ") 
+                {
+                    t.CanHasNumber = true;
+                    t.AddAbridge("А/П");
+                }
+                else if (s == "РЕСТОРАН") 
+                    t.AddAbridge("РЕСТ.");
+                if (s.StartsWith("МЕДИА")) 
+                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
+                if (s.EndsWith(" ЦЕНТР")) 
+                    t.Coeff = 3.5F;
+                if (s == "КОМПАНИЯ" || s == "ФИРМА") 
+                    t.Coeff = 1;
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ФІРМА", "ТРЕСТ", "КОМПАНІЯ", "КОРПОРАЦІЯ", "ДЕРЖКОРПОРАЦІЯ", "КОНЦЕРН", "КОНСОРЦІУМ", "ХОЛДИНГ", "МЕДІАХОЛДИНГ", "ТОРГОВИЙ ДІМ", "ТОРГОВИЙ ЦЕНТР", "ТОРГОВО РОЗВАЖАЛЬНИЙ ЦЕНТР", "НАВЧАЛЬНИЙ ЦЕНТР", "ДІЛОВИЙ ЦЕНТР", " БІЗНЕС ЦЕНТР", "ВИДАВНИЦТВО", "ВИДАВНИЧИЙ ДІМ", "ТОРГОВИЙ КОМПЛЕКС", "ТОРГОВО РОЗВАЖАЛЬНИЙ КОМПЛЕКС", "СПОРТИВНИЙ КОМПЛЕКС", "СПОРТИВНО РОЗВАЖАЛЬНИЙ КОМПЛЕКС", "СПОРТИВНО ОЗДОРОВЧИЙ КОМПЛЕКС", "ФІЗКУЛЬТУРНО ОЗДОРОВЧИЙ КОМПЛЕКС", "АГЕНТСТВО НЕРУХОМОСТІ", "ГРУПА КОМПАНІЙ", "МЕДІАГРУПА", "МАГАЗИН", "ТОРГОВИЙ КОМПЛЕКС", "ГІПЕРМАРКЕТ", "СУПЕРМАРКЕТ", "КАФЕ", "БАР", "АУКЦІОН", "АНАЛІТИЧНИЙ ЦЕНТР"}) 
+            {
+                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
+                if (s == "ВИДАВНИЦТВО") 
+                {
+                    t.AddAbridge("ВИД-ВО");
+                    t.AddVariant("ВИДАВНИЧИЙ ДІМ", false);
+                }
+                else if (s == "ТОРГОВИЙ ДІМ") 
+                    t.Acronym = "ТД";
+                else if (s == "ТОРГОВИЙ ЦЕНТР") 
+                    t.Acronym = "ТЦ";
+                else if (s == "ТОРГОВО РОЗВАЖАЛЬНИЙ ЦЕНТР") 
+                    t.Acronym = "ТРЦ";
+                else if (s == "ТОРГОВИЙ КОМПЛЕКС") 
+                    t.Acronym = "ТК";
+                else if (s == "СПОРТИВНИЙ КОМПЛЕКС") 
+                    t.AddVariant("СПОРТКОМПЛЕКС", false);
+                else if (s == "ТОРГОВО РОЗВАЖАЛЬНИЙ КОМПЛЕКС") 
+                    t.Acronym = "ТРК";
+                else if (s == "ГРУПА КОМПАНІЙ") 
+                    t.Acronym = "ГК";
+                else if (s == "КОМПАНІЯ" || s == "ФІРМА") 
+                    t.Coeff = 1;
+                if (s.StartsWith("МЕДІА")) 
+                    t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Media);
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("ЭКОЛОГИЧЕСКАЯ ГРУППА", Pullenti.Morph.MorphLang.RU) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            t.AddVariant("ЭКОГРУППА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("РОК ГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            t.AddVariant("РОКГРУППА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПАНК ГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            t.AddVariant("ПАНКГРУППА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ОРКЕСТР", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ХОР", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("МУЗЫКАЛЬНЫЙ КОЛЛЕКТИВ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("РОКГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            t.AddVariant("РОК ГРУППА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПАНКГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            t.AddVariant("ПАНК ГРУППА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("АРТГРУППА", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            t.AddVariant("АРТ ГРУППА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ВОКАЛЬНО ИНСТРУМЕНТАЛЬНЫЙ АНСАМБЛЬ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true, Acronym = "ВИА" };
+            t.AddVariant("ИНСТРУМЕНТАЛЬНЫЙ АНСАМБЛЬ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("НАРОДНЫЙ АНСАМБЛЬ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 3, CanHasLatinName = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("АНСАМБЛЬ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Music) { Typ = OrgItemTypeTyp.Org, Coeff = 1, CanHasLatinName = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СТУДИЯ", Pullenti.Morph.MorphLang.RU, Pullenti.Ner.Org.OrgProfile.Culture) { Typ = OrgItemTypeTyp.Org, Coeff = 1, CanHasLatinName = true };
+            m_Global.Add(t);
+            foreach (string s in new string[] {"НОТАРИАЛЬНАЯ КОНТОРА", "АДВОКАТСКОЕ БЮРО", "СТРАХОВОЕ ОБЩЕСТВО", "ЮРИДИЧЕСКИЙ ДОМ"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"НОТАРІАЛЬНА КОНТОРА", "АДВОКАТСЬКЕ БЮРО", "СТРАХОВЕ ТОВАРИСТВО"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ГАЗЕТА", "ЕЖЕНЕДЕЛЬНИК", "ТАБЛОИД", "ЕЖЕНЕДЕЛЬНЫЙ ЖУРНАЛ", "NEWSPAPER", "WEEKLY", "TABLOID", "MAGAZINE"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
+                t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ГАЗЕТА", "ТИЖНЕВИК", "ТАБЛОЇД"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
+                t.Profiles.Add(Pullenti.Ner.Org.OrgProfile.Press);
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"РАДИОСТАНЦИЯ", "РАДИО", "ТЕЛЕКАНАЛ", "ТЕЛЕКОМПАНИЯ", "НОВОСТНОЙ ПОРТАЛ", "ИНТЕРНЕТ ПОРТАЛ", "ИНТЕРНЕТ ИЗДАНИЕ", "ИНТЕРНЕТ РЕСУРС"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
+                if (s == "РАДИО") 
+                {
+                    t.CanonicText = "РАДИОСТАНЦИЯ";
+                    t.IsDoubtWord = true;
+                }
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"РАДІО", "РАДІО", "ТЕЛЕКАНАЛ", "ТЕЛЕКОМПАНІЯ", "НОВИННИЙ ПОРТАЛ", "ІНТЕРНЕТ ПОРТАЛ", "ІНТЕРНЕТ ВИДАННЯ", "ІНТЕРНЕТ РЕСУРС"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, Profile = Pullenti.Ner.Org.OrgProfile.Media };
+                if (s == "РАДІО") 
+                {
+                    t.CanonicText = "РАДІОСТАНЦІЯ";
+                    t.IsDoubtWord = true;
+                }
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ПАНСИОНАТ", "САНАТОРИЙ", "ДОМ ОТДЫХА", "ОТЕЛЬ", "ГОСТИНИЦА", "ГОСТЕВОЙ ДОМ", "ХОСТЕЛ", "МОТЕЛЬ", "ГОСТИНИЧНЫЙ КОМПЛЕКС", "SPA-ОТЕЛЬ", "ОЗДОРОВИТЕЛЬНЫЙ ЛАГЕРЬ", "ДЕТСКИЙ ЛАГЕРЬ", "ПИОНЕРСКИЙ ЛАГЕРЬ", "БАЗА ОТДЫХА", "СПОРТ-КЛУБ", "ФИТНЕС-КЛУБ"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
+                if (s == "САНАТОРИЙ") 
+                    t.AddAbridge("САН.");
+                else if (s == "ДОМ ОТДЫХА") 
+                {
+                    t.AddAbridge("Д.О.");
+                    t.AddAbridge("ДОМ ОТД.");
+                    t.AddAbridge("Д.ОТД.");
+                }
+                else if (s == "ПАНСИОНАТ") 
+                    t.AddAbridge("ПАНС.");
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ПАНСІОНАТ", "САНАТОРІЙ", "БУДИНОК ВІДПОЧИНКУ", "ГОТЕЛЬ", "SPA-ГОТЕЛЬ", "ОЗДОРОВЧИЙ ТАБІР", "БАЗА ВІДПОЧИНКУ", "СПОРТ-КЛУБ", "ФІТНЕС-КЛУБ"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Lang = Pullenti.Morph.MorphLang.UA, Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
+                if (s == "САНАТОРІЙ") 
+                    t.AddAbridge("САН.");
+                m_Global.Add(t);
+            }
+            m_Global.Add(new OrgItemTypeTermin("ДЕТСКИЙ ОЗДОРОВИТЕЛЬНЫЙ ЛАГЕРЬ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ДОЛ", CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true });
+            m_Global.Add(new OrgItemTypeTermin("ДЕТСКИЙ СПОРТИВНЫЙ ОЗДОРОВИТЕЛЬНЫЙ ЛАГЕРЬ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ДСОЛ", CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true });
+            foreach (string s in new string[] {"САДОВО ОГОРОДНОЕ ТОВАРИЩЕСТВО", "КООПЕРАТИВ", "ФЕРМЕРСКОЕ ХОЗЯЙСТВО", "КРЕСТЬЯНСКО ФЕРМЕРСКОЕ ХОЗЯЙСТВО", "АГРОФИРМА", "АГРОСОЮЗ", "КОНЕЗАВОД", "ПТИЦЕФЕРМА", "СВИНОФЕРМА", "ФЕРМА", "ЛЕСПРОМХОЗ", "ЖИВОТНОВОДЧЕСКАЯ ТОЧКА"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("СЕМЕНОВОДЧЕСКАЯ АГРОФИРМА") { Coeff = 3, Acronym = "САФ", Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КОЛХОЗ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddVariant("К-З", false);
+            t.AddVariant("СПК К-З", false);
+            t.AddVariant("СПК КОЛХОЗ", false);
+            t.AddVariant("СЕЛЬСКОХОЗЯЙСТВЕННЫЙ ПРОИЗВОДСТВЕННЫЙ КООПЕРАТИВ", false);
+            t.AddVariant("СЕЛЬСКОХОЗЯЙСТВЕННЫЙ ПРОИЗВОДСТВЕННЫЙ КООПЕРАТИВ КОЛХОЗ", false);
+            m_Global.Add(t);
+            foreach (string s in new string[] {"КОЛГОСП", "САДОВО ГОРОДНЄ ТОВАРИСТВО", "КООПЕРАТИВ", "ФЕРМЕРСЬКЕ ГОСПОДАРСТВО", "СЕЛЯНСЬКО ФЕРМЕРСЬКЕ ГОСПОДАРСТВО", "АГРОФІРМА", "КОНЕЗАВОД", "ПТАХОФЕРМА", "СВИНОФЕРМА", "ФЕРМА"}) 
+            {
+                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("ЖИЛИЩНО КОММУНАЛЬНОЕ ХОЗЯЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ЖКХ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЖИТЛОВО КОМУНАЛЬНЕ ГОСПОДАРСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, Acronym = "ЖКГ", CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КОММУНАЛЬНОЕ ПРЕДПРИЯТИЕ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("КОМУНАЛЬНЕ ПІДПРИЄМСТВО", Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("АВТОМОБИЛЬНЫЙ ЗАВОД") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddVariant("АВТОЗАВОД", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("АВТОМОБИЛЬНЫЙ ЦЕНТР") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddVariant("АВТОЦЕНТР", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЭКОЛОГИЧЕСКИЙ ЦЕНТР") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true };
+            t.AddVariant("ЭКОЦЕНТР", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("СОВХОЗ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddAbridge("С/Х");
+            t.AddAbridge("С-З");
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПЛЕМЕННОЕ ХОЗЯЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddVariant("ПЛЕМХОЗ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЛЕСНОЕ ХОЗЯЙСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddVariant("ЛЕСХОЗ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ЛЕСНИЧЕСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanBeSingleGeo = true };
+            t.AddAbridge("ЛЕС-ВО");
+            t.AddAbridge("ЛЕСН-ВО");
+            m_Global.Add(t);
+            string[] sads = new string[] {"Садоводческое некоммерческое товарищество;Садовое некоммерческое товарищество", "СНТ", "Садоводческое огородническое товарищество;Садовое огородническое товарищество", "СОТ", "Садовый огороднический кооператив;Садовый огородный кооператив", "СОК", "Садовый огороднический потребительский кооператив;Садовый огородный потребительский кооператив", "СОПК", "Садовое огородническое потребительское общество;Садовое огородное потребительское общество", "СОПО", "Потребительский Садовый огороднический кооператив;Потребительский Садовый огородний кооператив", "ПСОК", "Садоводческое огородническое некоммерческое товарищество;Садовое огородническое некоммерческое товарищество", "СОНТ", "некоммерческое Садоводческое огородническое товарищество;некоммерческое Садовое огородническое товарищество", "НСОТ", "Дачное некоммерческое товарищество", "ДНТ", "Огородническое некоммерческое товарищество", "ОНТ", "Садоводческое некоммерческое партнерство", "СНП", "Дачное некоммерческое партнерство", "ДНП", "Огородническое некоммерческое партнерство", "ОНП", "Огородническое некоммерческое товарищество", "ОНТ", "Дачный потребительский кооператив", "ДПК", "Огороднический потребительский кооператив;Огородный потребительский кооператив", "ОПК"};
+            for (int i = 0; i < sads.Length; i += 2) 
+            {
+                string[] parts = sads[i].ToUpper().Split(';');
+                t = new OrgItemTypeTermin(parts[0]) { Coeff = 3, Acronym = sads[i + 1], Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, CanHasNumber = true };
+                for (int j = 1; j < parts.Length; j++) 
+                {
+                    t.AddVariant(parts[j], false);
+                }
+                t.AddAbridge(sads[i + 1]);
+                if (t.Acronym == "СНТ") 
+                    t.AddAbridge("САДОВ.НЕКОМ.ТОВ.");
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("САДОВОДЧЕСКАЯ ПОТРЕБИТЕЛЬСКАЯ КООПЕРАЦИЯ") { Acronym = "СПК", Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddVariant("САДОВАЯ ПОТРЕБИТЕЛЬСКАЯ КООПЕРАЦИЯ", false);
+            t.AddVariant("САДОВОДЧЕСКИЙ ПОТРЕБИТЕЛЬНЫЙ КООПЕРАТИВ", false);
+            t.AddVariant("САДОВОДЧЕСКИЙ ПОТРЕБИТЕЛЬСКИЙ КООПЕРАТИВ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("САДОВОДЧЕСКОЕ ТОВАРИЩЕСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddAbridge("САДОВОДЧ.ТОВ.");
+            t.AddAbridge("САДОВ.ТОВ.");
+            t.AddAbridge("САД.ТОВ.");
+            t.AddAbridge("С.Т.");
+            t.AddVariant("САДОВОЕ ТОВАРИЩЕСТВО", false);
+            t.AddVariant("САДОВ. ТОВАРИЩЕСТВО", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("САДОВОДЧЕСКИЙ КООПЕРАТИВ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddAbridge("САДОВОДЧ.КООП.");
+            t.AddAbridge("САДОВ.КООП.");
+            t.AddVariant("САДОВЫЙ КООПЕРАТИВ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ДАЧНОЕ ТОВАРИЩЕСТВО") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasSingleName = true, MustHasCapitalName = true, CanHasNumber = true };
+            t.AddAbridge("ДАЧН.ТОВ.");
+            t.AddAbridge("ДАЧ.ТОВ.");
+            m_Global.Add(t);
+            foreach (string s in new string[] {"ФЕСТИВАЛЬ", "ЧЕМПИОНАТ", "ОЛИМПИАДА", "КОНКУРС"}) 
+            {
+                t = new OrgItemTypeTermin(s) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true };
+                m_Global.Add(t);
+            }
+            foreach (string s in new string[] {"ФЕСТИВАЛЬ", "ЧЕМПІОНАТ", "ОЛІМПІАДА"}) 
+            {
+                t = new OrgItemTypeTermin(s, Pullenti.Morph.MorphLang.UA) { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true };
+                m_Global.Add(t);
+            }
+            t = new OrgItemTypeTermin("ПОГРАНИЧНЫЙ ПОСТ") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+            t.AddVariant("ПОГП", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПОГРАНИЧНАЯ ЗАСТАВА") { Coeff = 3, Typ = OrgItemTypeTyp.Org, CanHasLatinName = true, CanHasNumber = true, Profile = Pullenti.Ner.Org.OrgProfile.Army };
+            t.AddVariant("ПОГЗ", false);
+            t.AddVariant("ПОГРАНЗАСТАВА", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ТЕРРИТОРИАЛЬНЫЙ ПУНКТ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            m_Global.Add(t);
+            m_TerPunkt = t;
+            t = new OrgItemTypeTermin("МИГРАЦИОННЫЙ ПУНКТ") { Coeff = 3, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ПРОПУСКНОЙ ПУНКТ") { Coeff = 3, CanBeNormalDep = true, Typ = OrgItemTypeTyp.Dep, CanHasNumber = true, CanBeSingleGeo = true };
+            t.AddVariant("ПУНКТ ПРОПУСКА", false);
+            t.AddVariant("КОНТРОЛЬНО ПРОПУСКНОЙ ПУНКТ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ТОРГОВАЯ ПЛОЩАДКА") { CanHasLatinName = true, Coeff = 3 };
+            t.AddVariant("МАРКЕТПЛЕЙС", false);
+            t.AddVariant("ОНЛАЙН-МАГАЗИН ЭЛЕКТРОННОЙ ТОРГОВЛИ", false);
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ИНТЕРНЕТ-МАГАЗИН") { CanHasLatinName = true, Coeff = 3 };
+            m_Global.Add(t);
+            t = new OrgItemTypeTermin("ВЕБ-СТУДИЯ") { CanHasLatinName = true, Coeff = 3 };
+            t.AddVariant("WEB-СТУДИЯ", false);
+            t.AddVariant("ВЕБСТУДИЯ", false);
+            m_Global.Add(t);
+            m_PrefWords = new Pullenti.Ner.Core.TerminCollection();
+            foreach (string s in new string[] {"КАПИТАЛ", "РУКОВОДСТВО", "СЪЕЗД", "СОБРАНИЕ", "СОВЕТ", "УПРАВЛЕНИЕ", "ДЕПАРТАМЕНТ"}) 
+            {
+                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s));
+            }
+            foreach (string s in new string[] {"КАПІТАЛ", "КЕРІВНИЦТВО", "ЗЇЗД", "ЗБОРИ", "РАДА", "УПРАВЛІННЯ"}) 
+            {
+                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s) { Lang = Pullenti.Morph.MorphLang.UA });
+            }
+            foreach (string s in new string[] {"АКЦИЯ", "ВЛАДЕЛЕЦ", "ВЛАДЕЛИЦА", "СОВЛАДЕЛЕЦ", "СОВЛАДЕЛИЦА", "КОНКУРЕНТ"}) 
+            {
+                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s) { Tag = s });
+            }
+            foreach (string s in new string[] {"АКЦІЯ", "ВЛАСНИК", "ВЛАСНИЦЯ", "СПІВВЛАСНИК", "СПІВВЛАСНИЦЯ", "КОНКУРЕНТ"}) 
+            {
+                m_PrefWords.Add(new Pullenti.Ner.Core.Termin(s) { Tag = s, Lang = Pullenti.Morph.MorphLang.UA });
+            }
+            for (int k = 0; k < 3; k++) 
+            {
+                string name = (k == 0 ? "pattrs_ru.dat" : (k == 1 ? "pattrs_ua.dat" : "pattrs_en.dat"));
+                byte[] dat = ResourceHelper.GetBytes(name);
+                if (dat == null) 
+                    throw new Exception(string.Format("Can't file resource file {0} in Organization analyzer", name));
+                using (MemoryStream tmp = new MemoryStream(Deflate(dat))) 
+                {
+                    tmp.Position = 0;
+                    XmlDocument xml = new XmlDocument();
+                    xml.Load(tmp);
+                    foreach (XmlNode x in xml.DocumentElement.ChildNodes) 
+                    {
+                        if (k == 0) 
+                            m_PrefWords.Add(new Pullenti.Ner.Core.Termin(x.InnerText) { Tag = 1 });
+                        else if (k == 1) 
+                            m_PrefWords.Add(new Pullenti.Ner.Core.Termin(x.InnerText) { Tag = 1, Lang = Pullenti.Morph.MorphLang.UA });
+                        else if (k == 2) 
+                            m_PrefWords.Add(new Pullenti.Ner.Core.Termin(x.InnerText) { Tag = 1, Lang = Pullenti.Morph.MorphLang.EN });
+                    }
+                }
+            }
+            m_KeyWordsForRefs = new Pullenti.Ner.Core.TerminCollection();
+            foreach (string s in new string[] {"КОМПАНИЯ", "ФИРМА", "ПРЕДПРИЯТИЕ", "КОРПОРАЦИЯ", "ВЕДОМСТВО", "УЧРЕЖДЕНИЕ", "КОНГЛОМЕРАТ", "КОМПАНІЯ", "ФІРМА", "ПІДПРИЄМСТВО", "КОРПОРАЦІЯ", "ВІДОМСТВО", "УСТАНОВА"}) 
+            {
+                m_KeyWordsForRefs.Add(new Pullenti.Ner.Core.Termin(s));
+            }
+            foreach (string s in new string[] {"ЧАСТЬ", "БАНК", "ЗАВОД", "ФАБРИКА", "АЭРОПОРТ", "БИРЖА", "СЛУЖБА", "МИНИСТЕРСТВО", "КОМИССИЯ", "КОМИТЕТ", "ГРУППА", "ЧАСТИНА", "БАНК", "ЗАВОД", "ФАБРИКА", "АЕРОПОРТ", "БІРЖА", "СЛУЖБА", "МІНІСТЕРСТВО", "КОМІСІЯ", "КОМІТЕТ", "ГРУПА"}) 
+            {
+                m_KeyWordsForRefs.Add(new Pullenti.Ner.Core.Termin(s) { Tag = s });
+            }
+            m_Markers = new Pullenti.Ner.Core.TerminCollection();
+            foreach (string s in new string[] {"МОРСКОЙ", "ВОЗДУШНЫЙ;ВОЗДУШНО", "ДЕСАНТНЫЙ;ДЕСАНТНО", "ТАНКОВЫЙ", "АРТИЛЛЕРИЙСКИЙ", "АВИАЦИОННЫЙ", "КОСМИЧЕСКИЙ", "РАКЕТНЫЙ;РАКЕТНО", "БРОНЕТАНКОВЫЙ", "КАВАЛЕРИЙСКИЙ", "СУХОПУТНЫЙ", "ПЕХОТНЫЙ;ПЕХОТНО", "МОТОПЕХОТНЫЙ", "МИНОМЕТНЫЙ", "МОТОСТРЕЛКОВЫЙ", "СТРЕЛКОВЫЙ", "ПРОТИВОРАКЕТНЫЙ", "ПРОТИВОВОЗДУШНЫЙ", "ШТУРМОВОЙ"}) 
+            {
+                string[] ss = s.Split(';');
+                t = new OrgItemTypeTermin(ss[0]);
+                if (ss.Length > 1) 
+                    t.AddVariant(ss[1], false);
+                m_Markers.Add(t);
+            }
+            m_StdAdjs = new Pullenti.Ner.Core.TerminCollection();
+            foreach (string s in new string[] {"РОССИЙСКИЙ", "ВСЕРОССИЙСКИЙ", "МЕЖДУНАРОДНЫЙ", "ВСЕМИРНЫЙ", "ЕВРОПЕЙСКИЙ", "ГОСУДАРСТВЕННЫЙ", "НЕГОСУДАРСТВЕННЫЙ", "ФЕДЕРАЛЬНЫЙ", "РЕГИОНАЛЬНЫЙ", "ОБЛАСТНОЙ", "ГОРОДСКОЙ", "МУНИЦИПАЛЬНЫЙ", "АВТОНОМНЫЙ", "НАЦИОНАЛЬНЫЙ", "МЕЖРАЙОННЫЙ", "РАЙОННЫЙ", "ОТРАСЛЕВОЙ", "МЕЖОТРАСЛЕВОЙ", "МЕЖРЕГИОНАЛЬНЫЙ", "НАРОДНЫЙ", "ВЕРХОВНЫЙ", "УКРАИНСКИЙ", "ВСЕУКРАИНСКИЙ", "РУССКИЙ"}) 
+            {
+                m_StdAdjs.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.RU) { Tag = s });
+            }
+            m_StdAdjsUA = new Pullenti.Ner.Core.TerminCollection();
+            foreach (string s in new string[] {"РОСІЙСЬКИЙ", "ВСЕРОСІЙСЬКИЙ", "МІЖНАРОДНИЙ", "СВІТОВИЙ", "ЄВРОПЕЙСЬКИЙ", "ДЕРЖАВНИЙ", "НЕДЕРЖАВНИЙ", "ФЕДЕРАЛЬНИЙ", "РЕГІОНАЛЬНИЙ", "ОБЛАСНИЙ", "МІСЬКИЙ", "МУНІЦИПАЛЬНИЙ", "АВТОНОМНИЙ", "НАЦІОНАЛЬНИЙ", "МІЖРАЙОННИЙ", "РАЙОННИЙ", "ГАЛУЗЕВИЙ", "МІЖГАЛУЗЕВИЙ", "МІЖРЕГІОНАЛЬНИЙ", "НАРОДНИЙ", "ВЕРХОВНИЙ", "УКРАЇНСЬКИЙ", "ВСЕУКРАЇНСЬКИЙ", "РОСІЙСЬКА"}) 
+            {
+                m_StdAdjsUA.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.UA) { Tag = s });
+            }
+            foreach (string s in new string[] {"КОММЕРЧЕСКИЙ", "НЕКОММЕРЧЕСКИЙ", "БЮДЖЕТНЫЙ", "КАЗЕННЫЙ", "БЛАГОТВОРИТЕЛЬНЫЙ", "СОВМЕСТНЫЙ", "ИНОСТРАННЫЙ", "ИССЛЕДОВАТЕЛЬСКИЙ", "ОБРАЗОВАТЕЛЬНЫЙ", "ОБЩЕОБРАЗОВАТЕЛЬНЫЙ", "ВЫСШИЙ", "УЧЕБНЫЙ", "СПЕЦИАЛИЗИРОВАННЫЙ", "ГЛАВНЫЙ", "ЦЕНТРАЛЬНЫЙ", "ТЕХНИЧЕСКИЙ", "ТЕХНОЛОГИЧЕСКИЙ", "ВОЕННЫЙ", "ПРОМЫШЛЕННЫЙ", "ТОРГОВЫЙ", "СИНОДАЛЬНЫЙ", "МЕДИЦИНСКИЙ", "ДИАГНОСТИЧЕСКИЙ", "ДЕТСКИЙ", "АКАДЕМИЧЕСКИЙ", "ПОЛИТЕХНИЧЕСКИЙ", "ИНВЕСТИЦИОННЫЙ", "ТЕРРОРИСТИЧЕСКИЙ", "РАДИКАЛЬНЫЙ", "ИСЛАМИСТСКИЙ", "ЛЕВОРАДИКАЛЬНЫЙ", "ПРАВОРАДИКАЛЬНЫЙ", "ОППОЗИЦИОННЫЙ", "НАЛОГОВЫЙ", "КРИМИНАЛЬНЫЙ", "СПОРТИВНЫЙ", "НЕФТЯНОЙ", "ГАЗОВЫЙ", "ВЕЛИКИЙ"}) 
+            {
+                m_StdAdjs.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.RU));
+            }
+            foreach (string s in new string[] {"КОМЕРЦІЙНИЙ", "НЕКОМЕРЦІЙНИЙ", "БЮДЖЕТНИЙ", "КАЗЕННИМ", "БЛАГОДІЙНИЙ", "СПІЛЬНИЙ", "ІНОЗЕМНИЙ", "ДОСЛІДНИЦЬКИЙ", "ОСВІТНІЙ", "ЗАГАЛЬНООСВІТНІЙ", "ВИЩИЙ", "НАВЧАЛЬНИЙ", "СПЕЦІАЛІЗОВАНИЙ", "ГОЛОВНИЙ", "ЦЕНТРАЛЬНИЙ", "ТЕХНІЧНИЙ", "ТЕХНОЛОГІЧНИЙ", "ВІЙСЬКОВИЙ", "ПРОМИСЛОВИЙ", "ТОРГОВИЙ", "СИНОДАЛЬНИЙ", "МЕДИЧНИЙ", "ДІАГНОСТИЧНИЙ", "ДИТЯЧИЙ", "АКАДЕМІЧНИЙ", "ПОЛІТЕХНІЧНИЙ", "ІНВЕСТИЦІЙНИЙ", "ТЕРОРИСТИЧНИЙ", "РАДИКАЛЬНИЙ", "ІСЛАМІЗМ", "ЛІВОРАДИКАЛЬНИЙ", "ПРАВОРАДИКАЛЬНИЙ", "ОПОЗИЦІЙНИЙ", "ПОДАТКОВИЙ", "КРИМІНАЛЬНИЙ", " СПОРТИВНИЙ", "НАФТОВИЙ", "ГАЗОВИЙ", "ВЕЛИКИЙ"}) 
+            {
+                m_StdAdjsUA.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.UA));
+            }
+        }
+        internal static byte[] Deflate(byte[] zip)
+        {
+            using (MemoryStream unzip = new MemoryStream()) 
+            {
+                MemoryStream data = new MemoryStream(zip);
+                data.Position = 0;
+                Pullenti.Morph.Internal.MorphDeserializer.DeflateGzip(data, unzip);
+                data.Dispose();
+                return unzip.ToArray();
+            }
+        }
+        public static string[] m_EmptyTypWords = new string[] {"КРУПНЫЙ", "КРУПНЕЙШИЙ", "ИЗВЕСТНЫЙ", "ИЗВЕСТНЕЙШИЙ", "МАЛОИЗВЕСТНЫЙ", "ЗАРУБЕЖНЫЙ", "ВЛИЯТЕЛЬНЫЙ", "ВЛИЯТЕЛЬНЕЙШИЙ", "ЗНАМЕНИТЫЙ", "НАЙБІЛЬШИЙ", "ВІДОМИЙ", "ВІДОМИЙ", "МАЛОВІДОМИЙ", "ЗАКОРДОННИЙ"};
+        static string[] m_DecreeKeyWords = new string[] {"УКАЗ", "УКАЗАНИЕ", "ПОСТАНОВЛЕНИЕ", "РАСПОРЯЖЕНИЕ", "ПРИКАЗ", "ДИРЕКТИВА", "ПИСЬМО", "ЗАКОН", "КОДЕКС", "КОНСТИТУЦИЯ", "РЕШЕНИЕ", "ПОЛОЖЕНИЕ", "РАСПОРЯЖЕНИЕ", "ПОРУЧЕНИЕ", "ДОГОВОР", "СУБДОГОВОР", "АГЕНТСКИЙ ДОГОВОР", "ОПРЕДЕЛЕНИЕ", "СОГЛАШЕНИЕ", "ПРОТОКОЛ", "УСТАВ", "ХАРТИЯ", "РЕГЛАМЕНТ", "КОНВЕНЦИЯ", "ПАКТ", "БИЛЛЬ", "ДЕКЛАРАЦИЯ", "ТЕЛЕФОНОГРАММА", "ТЕЛЕФАКСОГРАММА", "ФАКСОГРАММА", "ПРАВИЛО", "ПРОГРАММА", "ПЕРЕЧЕНЬ", "ПОСОБИЕ", "РЕКОМЕНДАЦИЯ", "НАСТАВЛЕНИЕ", "СТАНДАРТ", "СОГЛАШЕНИЕ", "МЕТОДИКА", "ТРЕБОВАНИЕ", "УКАЗ", "ВКАЗІВКА", "ПОСТАНОВА", "РОЗПОРЯДЖЕННЯ", "НАКАЗ", "ДИРЕКТИВА", "ЛИСТ", "ЗАКОН", "КОДЕКС", "КОНСТИТУЦІЯ", "РІШЕННЯ", "ПОЛОЖЕННЯ", "РОЗПОРЯДЖЕННЯ", "ДОРУЧЕННЯ", "ДОГОВІР", "СУБКОНТРАКТ", "АГЕНТСЬКИЙ ДОГОВІР", "ВИЗНАЧЕННЯ", "УГОДА", "ПРОТОКОЛ", "СТАТУТ", "ХАРТІЯ", "РЕГЛАМЕНТ", "КОНВЕНЦІЯ", "ПАКТ", "БІЛЛЬ", "ДЕКЛАРАЦІЯ", "ТЕЛЕФОНОГРАМА", "ТЕЛЕФАКСОГРАММА", "ФАКСОГРАМА", "ПРАВИЛО", "ПРОГРАМА", "ПЕРЕЛІК", "ДОПОМОГА", "РЕКОМЕНДАЦІЯ", "ПОВЧАННЯ", "СТАНДАРТ", "УГОДА", "МЕТОДИКА", "ВИМОГА"};
+        public static bool IsDecreeKeyword(Pullenti.Ner.Token t, int cou = 1)
+        {
+            if (t == null) 
+                return false;
+            for (int i = 0; (i < cou) && t != null; i++,t = t.Previous) 
+            {
+                if (t.IsNewlineAfter) 
+                    break;
+                if (!t.Chars.IsCyrillicLetter) 
+                    break;
+                foreach (string d in m_DecreeKeyWords) 
+                {
+                    if (t.IsValue(d, null)) 
                         return true;
                 }
             }

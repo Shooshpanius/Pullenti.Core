@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -14,1337 +14,6 @@ namespace Pullenti.Ner.Address.Internal
 {
     public class StreetItemToken : Pullenti.Ner.MetaToken
     {
-        public static void Initialize()
-        {
-            if (m_Ontology != null) 
-                return;
-            m_Ontology = new Pullenti.Ner.Core.TerminCollection();
-            m_OntologyEx = new Pullenti.Ner.Core.TerminCollection();
-            m_StdOntMisc = new Pullenti.Ner.Core.TerminCollection();
-            m_StdAdj = new Pullenti.Ner.Core.TerminCollection();
-            Pullenti.Ner.Core.Termin t;
-            t = new Pullenti.Ner.Core.Termin("УЛИЦА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("УЛ.");
-            t.AddAbridge("УЛЮ");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ВУЛИЦЯ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("ВУЛ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("STREET") { Tag = StreetItemType.Noun };
-            t.AddAbridge("ST.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПЛОЩАДЬ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("ПЛ.");
-            t.AddAbridge("ПЛОЩ.");
-            t.AddAbridge("ПЛ-ДЬ");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПЛОЩА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("ПЛ.");
-            t.AddAbridge("ПЛОЩ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МАЙДАН") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("SQUARE") { Tag = StreetItemType.Noun };
-            t.AddAbridge("SQ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПРОЕЗД") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("ПР.");
-            t.AddAbridge("П-Д");
-            t.AddAbridge("ПР-Д");
-            t.AddAbridge("ПР-ЗД");
-            t.AddAbridge("ПД");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПРОЕЗД") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("ПР.");
-            t.AddAbridge("П-Д");
-            t.AddAbridge("ПР-Д");
-            t.AddAbridge("ПР-ЗД");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ЛИНИЯ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("ЛИН.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ЛІНІЯ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Feminie };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("РЯД") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
-            m_Ontology.Add(t);
-            m_Block = (t = new Pullenti.Ner.Core.Termin("БЛОК") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine });
-            t.AddAbridge("БЛ.");
-            t.AddVariant("БЛОК ГАРАЖЕЙ", false);
-            t.AddVariant("ГАРАЖНЫЙ БЛОК", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПАНЕЛЬ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Feminie };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("КУСТ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddVariant("КУСТ ГАЗОВЫХ СКВАЖИН", false);
-            t.AddVariant("КУСТОВАЯ ПЛОЩАДКА СКВАЖИН", false);
-            t.AddVariant("КУСТ СКВАЖИН", false);
-            m_Ontology.Add(t);
-            m_Prospect = (t = new Pullenti.Ner.Core.Termin("ПРОСПЕКТ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine });
-            t.AddAbridge("ПРОС.");
-            t.AddAbridge("ПРКТ");
-            t.AddAbridge("ПРОСП.");
-            t.AddAbridge("ПР-Т");
-            t.AddAbridge("ПР-КТ");
-            t.AddAbridge("П-Т");
-            t.AddAbridge("П-КТ");
-            t.AddAbridge("ПР Т");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПЕРЕУЛОК") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("ПЕР.");
-            t.AddAbridge("ПЕР-К");
-            t.AddAbridge("П-К");
-            t.AddVariant("ПРЕУЛОК", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПРОУЛОК") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("ПРОУЛ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПРОВУЛОК") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("ПРОВ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("LANE") { Tag = StreetItemType.Noun, Tag2 = 0 };
-            t.AddAbridge("LN.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ТУПИК") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("ТУП.");
-            t.AddAbridge("Т.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("БУЛЬВАР") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("БУЛЬВ.");
-            t.AddAbridge("БУЛ.");
-            t.AddAbridge("Б-Р");
-            t.AddAbridge("Б-РЕ");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("BOULEVARD") { Tag = StreetItemType.Noun, Tag2 = 0 };
-            t.AddAbridge("BLVD");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СКВЕР") { Tag = StreetItemType.Noun, Tag2 = 1 };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НАБЕРЕЖНАЯ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("НАБ.");
-            t.AddAbridge("НАБЕР.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НАБЕРЕЖНА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("НАБ.");
-            t.AddAbridge("НАБЕР.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("АЛЛЕЯ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("АЛ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("АЛЕЯ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("АЛ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ALLEY") { Tag = StreetItemType.Noun, Tag2 = 0 };
-            t.AddAbridge("ALY.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("АВЕНЮ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("АВЕНЬЮ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПРОСЕКА") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("ПРОСЕК", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПЛОЩАДКА") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddAbridge("ПЛ-КА");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПРОСІКА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ТРАКТ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Neuter };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ШОССЕ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Neuter };
-            t.AddAbridge("Ш.");
-            t.AddAbridge("ШОС.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ШОСЕ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Neuter };
-            t.AddAbridge("Ш.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ROAD") { Tag = StreetItemType.Noun, Tag2 = 1 };
-            t.AddAbridge("RD.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МИКРОРАЙОН") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("МКР.");
-            t.AddAbridge("МКН.");
-            t.AddAbridge("МИКР-Н");
-            t.AddAbridge("МИКР.");
-            t.AddAbridge("МКР-Н");
-            t.AddAbridge("МКР-ОН");
-            t.AddAbridge("МКРН.");
-            t.AddAbridge("М-Н");
-            t.AddAbridge("М-ОН");
-            t.AddAbridge("М.Р-Н");
-            t.AddAbridge("МИКР-ОН");
-            t.AddVariant("МИКРОН", false);
-            t.AddAbridge("М/Р");
-            t.AddVariant("МІКРОРАЙОН", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("КВАРТАЛ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("КВАРТ.");
-            t.AddAbridge("КВ-Л");
-            t.AddAbridge("КВ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("КАДАСТРОВЫЙ КВАРТАЛ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("КАД.КВАРТ.");
-            t.AddAbridge("КАД.КВ-Л");
-            t.AddAbridge("КАД.КВ.");
-            t.AddAbridge("КАД.КВАРТАЛ");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ТОРФЯНОЙ УЧАСТОК") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddVariant("ТОРФУЧАСТОК", false);
-            t.AddVariant("ТОРФОУЧАСТОК", false);
-            t.AddAbridge("ТОРФ.УЧАСТОК");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МОСТ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МІСТ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("PLAZA") { Tag = StreetItemType.Noun, Tag2 = 1 };
-            t.AddAbridge("PLZ");
-            m_Ontology.Add(t);
-            m_Metro = (t = new Pullenti.Ner.Core.Termin("СТАНЦИЯ МЕТРО") { CanonicText = "МЕТРО", Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie });
-            t.AddVariant("СТАНЦІЯ МЕТРО", false);
-            t.AddAbridge("СТ.МЕТРО");
-            t.AddAbridge("СТ.М.");
-            t.AddAbridge("МЕТРО");
-            m_Ontology.Add(t);
-            m_Road = (t = new Pullenti.Ner.Core.Termin("АВТОДОРОГА") { Tag = StreetItemType.Noun, Acronym = "ФАД", Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie });
-            t.AddVariant("ФЕДЕРАЛЬНАЯ АВТОДОРОГА", false);
-            t.AddVariant("АВТОМОБИЛЬНАЯ ДОРОГА", false);
-            t.AddVariant("АВТОТРАССА", false);
-            t.AddVariant("ФЕДЕРАЛЬНАЯ ТРАССА", false);
-            t.AddVariant("ФЕДЕР ТРАССА", false);
-            t.AddVariant("АВТОМАГИСТРАЛЬ", false);
-            t.AddAbridge("А/Д");
-            t.AddAbridge("ФЕДЕР.ТРАССА");
-            t.AddAbridge("ФЕД.ТРАССА");
-            t.AddVariant("ГОСТРАССА", false);
-            t.AddVariant("ГОС.ТРАССА", false);
-            t.AddVariant("АВТОМАГ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ДОРОГА") { CanonicText = "АВТОДОРОГА", Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("ТРАССА", false);
-            t.AddAbridge("ДОР.");
-            t.AddVariant("ДОР", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МАГИСТРАЛЬ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("МГСТР", false);
-            t.AddAbridge("МАГ-ЛЬ");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("АВТОДОРОГА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("ФЕДЕРАЛЬНА АВТОДОРОГА", false);
-            t.AddVariant("АВТОМОБІЛЬНА ДОРОГА", false);
-            t.AddVariant("АВТОТРАСА", false);
-            t.AddVariant("ФЕДЕРАЛЬНА ТРАСА", false);
-            t.AddVariant("АВТОМАГІСТРАЛЬ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ДОРОГА") { CanonicText = "АВТОДОРОГА", Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("ТРАСА", false);
-            t.AddVariant("МАГІСТРАЛЬ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МАГІСТРАЛЬ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("МГСТР", false);
-            t.AddAbridge("МАГ-ЛЬ");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МОСКОВСКАЯ КОЛЬЦЕВАЯ АВТОМОБИЛЬНАЯ ДОРОГА") { Acronym = "МКАД", Tag = StreetItemType.Fix, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("МОСКОВСКАЯ КОЛЬЦЕВАЯ АВТОДОРОГА", false);
-            m_Ontology.Add(t);
-            m_Ontology.Add(new Pullenti.Ner.Core.Termin("САДОВОЕ КОЛЬЦО") { Tag = StreetItemType.Fix });
-            m_Ontology.Add(new Pullenti.Ner.Core.Termin("БУЛЬВАРНОЕ КОЛЬЦО") { Tag = StreetItemType.Fix });
-            m_Ontology.Add(new Pullenti.Ner.Core.Termin("ТРАНСПОРТНОЕ КОЛЬЦО") { Tag = StreetItemType.Fix });
-            t = new Pullenti.Ner.Core.Termin("ПОЧТОВОЕ ОТДЕЛЕНИЕ") { Tag = StreetItemType.Noun, Acronym = "ОПС", Gender = Pullenti.Morph.MorphGender.Neuter };
-            t.AddAbridge("П.О.");
-            t.AddAbridge("ПОЧТ.ОТД.");
-            t.AddAbridge("ПОЧТОВ.ОТД.");
-            t.AddAbridge("ПОЧТОВОЕ ОТД.");
-            t.AddAbridge("П/О");
-            t.AddVariant("ОТДЕЛЕНИЕ ПОЧТОВОЙ СВЯЗИ", false);
-            t.AddVariant("ПОЧТАМТ", false);
-            t.AddVariant("ГЛАВПОЧТАМТ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("БУДКА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("ЖЕЛЕЗНОДОРОЖНАЯ БУДКА", false);
-            t.AddAbridge("Ж/Д БУДКА");
-            t.AddAbridge("ЖЕЛ.ДОР.БУДКА");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("КАЗАРМА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
-            t.AddVariant("ЖЕЛЕЗНОДОРОЖНАЯ КАЗАРМА", false);
-            t.AddAbridge("Ж/Д КАЗАРМА");
-            t.AddAbridge("ЖЕЛ.ДОР.КАЗАРМА");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТОЯНКА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПУНКТ") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("РАЗЪЕЗД") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
-            t.AddAbridge("РЗД");
-            t.AddAbridge("Ж/Д РАЗЪЕЗД");
-            t.AddVariant("ЖЕЛЕЗНОДОРОЖНЫЙ РАЗЪЕЗД", false);
-            t.AddAbridge("ЖЕЛ.ДОР.РАЗЪЕЗД");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ЗАЕЗД") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПЕРЕЕЗД") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("БОЛЬШОЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("БОЛ.");
-            t.AddAbridge("Б.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ВЕЛИКИЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("ВЕЛ.");
-            t.AddAbridge("В.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МАЛЫЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("МАЛ.");
-            t.AddAbridge("М.");
-            t.AddVariant("МАЛИЙ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СРЕДНИЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("СРЕД.");
-            t.AddAbridge("СР.");
-            t.AddAbridge("С.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕРЕДНІЙ") { Tag = StreetItemType.StdAdjective, Lang = Pullenti.Morph.MorphLang.UA };
-            t.AddAbridge("СЕРЕД.");
-            t.AddAbridge("СЕР.");
-            t.AddAbridge("С.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ВЕРХНИЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("ВЕРХН.");
-            t.AddAbridge("ВЕРХ.");
-            t.AddAbridge("ВЕР.");
-            t.AddAbridge("В.");
-            t.AddVariant("ВЕРХНІЙ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НИЖНИЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("НИЖН.");
-            t.AddAbridge("НИЖ.");
-            t.AddAbridge("Н.");
-            t.AddVariant("НИЖНІЙ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТАРЫЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("СТАР.");
-            t.AddAbridge("СТ.");
-            t.AddVariant("СТАРИЙ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НОВЫЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("НОВ.");
-            t.AddAbridge("Н.");
-            t.AddVariant("НОВИЙ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("КРАСНЫЙ") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("КРАСН.");
-            t.AddAbridge("КР.");
-            t.AddAbridge("КРАС.");
-            t.AddVariant("ЧЕРВОНИЙ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НОМЕР") { Tag = StreetItemType.StdAdjective };
-            t.AddAbridge("N");
-            t.AddAbridge("№");
-            t.AddAbridge("НОМ.");
-            m_Ontology.Add(t);
-            foreach (string s in new string[] {"ПРОЕКТИРУЕМЫЙ", "МИРА", "СВОБОДЫ"}) 
-            {
-                string[] pp = s.Split(';');
-                t = new Pullenti.Ner.Core.Termin(pp[0]) { Tag = StreetItemType.StdName, IgnoreTermsOrder = true };
-                for (int kk = 1; kk < pp.Length; kk++) 
-                {
-                    if (pp[kk].IndexOf('.') > 0) 
-                        t.AddAbridge(pp[kk]);
-                    else 
-                        t.AddVariant(pp[kk], false);
-                }
-                m_Ontology.Add(t);
-            }
-            foreach (string s in Pullenti.Ner.Geo.Internal.NameToken.StandardNames) 
-            {
-                string[] pp = s.Split(';');
-                t = new Pullenti.Ner.Core.Termin(pp[0]) { Tag = StreetItemType.StdName, IgnoreTermsOrder = true };
-                for (int kk = 1; kk < pp.Length; kk++) 
-                {
-                    if (pp[kk].IndexOf('.') > 0 || pp[kk].IndexOf('/') > 0 || pp[kk].IndexOf('-') > 0) 
-                        t.AddAbridge(pp[kk]);
-                    else if (t.Acronym == null && (pp[kk].Length < 4)) 
-                        t.Acronym = pp[kk];
-                    else 
-                        t.AddVariant(pp[kk], false);
-                }
-                m_Ontology.Add(t);
-            }
-            foreach (string s in new string[] {"МАРТА", "МАЯ", "ОКТЯБРЯ", "НОЯБРЯ", "БЕРЕЗНЯ", "ТРАВНЯ", "ЖОВТНЯ", "ЛИСТОПАДА", "ДОРОЖКА", "ЛУЧ", "НАДЕЛ", "ПОЛЕ", "СКЛОН"}) 
-            {
-                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.StdName });
-            }
-            foreach (string s in new string[] {"МАРШАЛА", "ГЕНЕРАЛА", "ГЕНЕРАЛ-МАЙОРА", "ГЕНЕРАЛ-ЛЕЙТЕНАНТА", "ГЕНЕРАЛ-ПОЛКОВНИКА", "АДМИРАЛА", "КОНТРАДМИРАЛА", "КОСМОНАВТА", "ЛЕТЧИКА", "ЛЕТЧИКА-ИСПЫТАТЕЛЯ", "ПИЛОТА", "ПОГРАНИЧНИКА", "ПУТЕШЕСТВЕННИКА", "ПАРТИЗАНА", "АТАМАНА", "ВОЕВОДЫ", "ТАНКИСТА", "ОРУЖЕЙНИКА", "ПОЛЯРНИКА", "АВИАКОНСТРУКТОРА", "АРХИТЕКТОРА", "ГЛАВНОГО АРХИТЕКТОРА", "СКУЛЬПТОРА", "ХУДОЖНИКА", "КОНСТРУКТОРА", "ГЛАВНОГО КОНСТРУКТОРА", "АКАДЕМИКА", "ПРОФЕССОРА", "КОМПОЗИТОРА", "ПИСАТЕЛЯ", "ПОЭТА", "ДИРИЖЕРА", "ГЕРОЯ", "БРАТЬЕВ", "ЛЕЙТЕНАНТА", "СТАРШЕГО ЛЕЙТЕНАНТА", "КАПИТАНА", "КАПИТАНА-ЛЕЙТЕНАНТА", "МАЙОРА", "ПОДПОЛКОВНИКА", "ПОЛКОВНИКА", "СЕРЖАНТА", "МЛАДШЕГО СЕРЖАНТА", "СТАРШЕГО СЕРЖАНТА", "ЕФРЕЙТОРА", "СТАРШИНЫ", "ПРАПОРЩИКА", "СТАРШЕГО ПРАПОРЩИКА", "ПОЛИТРУКА", "МИТРОПОЛИТА", "ПАТРИАРХА", "ИЕРЕЯ", "ПРОТОИЕРЕЯ", "МОНАХА", "СВЯТОГО", "СВЯТИТЕЛЯ", "ШЕЙХА", "БАЛЕРИНЫ", "ПЕВИЦЫ", "ХИРУРГА", "НАРОДНОГО АРТИСТА"}) 
-            {
-                m_StdOntMisc.Add(new Pullenti.Ner.Core.Termin(s));
-                t = new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.StdPartOfName };
-                if (s == "СВЯТОГО" || s == "СВЯТИТЕЛЯ") 
-                {
-                    t.AddAbridge("СВ.");
-                    t.AddAbridge("СВЯТ.");
-                }
-                else 
-                {
-                    t.AddAllAbridges(0, 0, 2);
-                    t.AddAllAbridges(2, 5, 0);
-                    if (s == "ПРОФЕССОРА") 
-                        t.AddVariant("ПРОФЕСОРА", false);
-                }
-                m_Ontology.Add(t);
-            }
-            foreach (string s in new string[] {"МАРШАЛА", "ГЕНЕРАЛА", "ГЕНЕРАЛ-МАЙОРА", "ГЕНЕРАЛ-ЛЕЙТЕНАНТА", "ГЕНЕРАЛ-ПОЛКОВНИКА", "АДМІРАЛА", "КОНТРАДМІРАЛА", "КОСМОНАВТА", "ЛЬОТЧИКА", " ПРИКОРДОННИКА", " МАНДРІВНИКА", "ПАРТИЗАНА", "ОТАМАНА", "ТАНКІСТА", "АВІАКОНСТРУКТОРА", "АРХІТЕКТОРА", "СКУЛЬПТОРА", "ХУДОЖНИКА", "КОНСТРУКТОРА", "АКАДЕМІКА", "ПРОФЕСОРА", "КОМПОЗИТОРА", "ПИСЬМЕННИКА", "ПОЕТА", "ДИРИГЕНТА", "ГЕРОЯ", "ЛЕЙТЕНАНТА", "КАПІТАНА", "КАПІТАНА-ЛЕЙТЕНАНТА", "МАЙОРА", "ПІДПОЛКОВНИКА", "ПОЛКОВНИКА", "СЕРЖАНТА", "ЄФРЕЙТОРА", " СТАРШИНИ", " ПРАПОРЩИКА", "ПОЛІТРУКА", "ПОЛІЦІЇ", "МІЛІЦІЇ", "ГВАРДІЇ", "АРМІЇ", "МИТРОПОЛИТА", "ПАТРІАРХА", "ІЄРЕЯ", "ПРОТОІЄРЕЯ", "ЧЕНЦЯ", "СВЯТОГО", "СВЯТИТЕЛЯ"}) 
-            {
-                m_StdOntMisc.Add(new Pullenti.Ner.Core.Termin(s));
-                t = new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.StdPartOfName, Lang = Pullenti.Morph.MorphLang.UA };
-                if (s == "СВЯТОГО" || s == "СВЯТИТЕЛЯ") 
-                {
-                    t.AddAbridge("СВ.");
-                    t.AddAbridge("СВЯТ.");
-                }
-                else 
-                {
-                    t.AddAllAbridges(0, 0, 2);
-                    t.AddAllAbridges(2, 5, 0);
-                    t.AddAbridge("ГЛ." + s);
-                    t.AddAbridge("ГЛАВ." + s);
-                }
-                m_Ontology.Add(t);
-            }
-            t = new Pullenti.Ner.Core.Termin("ЛЕНИНСКИЕ ГОРЫ") { Tag = StreetItemType.Fix };
-            m_Ontology.Add(t);
-            foreach (string s in new string[] {"КРАСНЫЙ", "СОВЕТСТКИЙ", "ЛЕНИНСКИЙ"}) 
-            {
-                m_StdAdj.Add(new Pullenti.Ner.Core.Termin(s));
-            }
-            foreach (string s in new string[] {"НЕТ", "НЕ УКАЗАНА", "НЕ ЗАДАНА", "ОТСУТСТВУЕТ"}) 
-            {
-                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.Absent });
-            }
-            m_MiscNouns = new Pullenti.Ner.Core.TerminCollection();
-            foreach (string s in new string[] {"ВАЛ", "ПОЛЕ", "СПУСК", "ВЗВОЗ", "РЯД", "СЛОБОДА", "РОЩА", "ПРУД", "СЪЕЗД", "КОЛЬЦО", "УЗВІЗ", "УЗВІЗ", "ГАЙ", "СТАВОК", "ЗЇЗД", "КІЛЬЦЕ"}) 
-            {
-                m_MiscNouns.Add(new Pullenti.Ner.Core.Termin(s));
-            }
-        }
-        public static Pullenti.Ner.Token CheckStdName(Pullenti.Ner.Token t)
-        {
-            if (t == null) 
-                return null;
-            if (m_StdAdj.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No) != null) 
-                return t;
-            Pullenti.Ner.Core.TerminToken tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
-            if (tok == null) 
-                return null;
-            if (((StreetItemType)tok.Termin.Tag) == StreetItemType.StdName) 
-                return tok.EndToken;
-            return null;
-        }
-        public static bool CheckKeyword(Pullenti.Ner.Token t)
-        {
-            if (t == null) 
-                return false;
-            Pullenti.Ner.Core.TerminToken tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
-            if (tok == null) 
-                return false;
-            return ((StreetItemType)tok.Termin.Tag) == StreetItemType.Noun;
-        }
-        public static bool CheckOnto(Pullenti.Ner.Token t)
-        {
-            if (t == null) 
-                return false;
-            Pullenti.Ner.Core.TerminToken tok = m_OntologyEx.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
-            if (tok == null) 
-                return false;
-            return true;
-        }
-        internal static Pullenti.Ner.Core.TerminCollection m_Ontology;
-        internal static Pullenti.Ner.Core.TerminCollection m_OntologyEx;
-        static Pullenti.Ner.Core.TerminCollection m_StdOntMisc;
-        static Pullenti.Ner.Core.TerminCollection m_StdAdj;
-        static Pullenti.Ner.Core.TerminCollection m_MiscNouns;
-        static Pullenti.Ner.Core.Termin m_Prospect;
-        static Pullenti.Ner.Core.Termin m_Metro;
-        static Pullenti.Ner.Core.Termin m_Road;
-        static Pullenti.Ner.Core.Termin m_Block;
-        static string[] m_RegTails = new string[] {"ГОРОДОК", "РАЙОН", "МАССИВ", "МАСИВ", "КОМПЛЕКС", "ЗОНА", "КВАРТАЛ", "ОТДЕЛЕНИЕ", "ПАРК", "МЕСТНОСТЬ", "РАЗЪЕЗД", "УРОЧИЩЕ", "САД", "МЕСТОРОЖДЕНИЕ"};
-        public static bool _isRegion(string txt)
-        {
-            txt = txt.ToUpper();
-            foreach (string v in m_RegTails) 
-            {
-                if (Pullenti.Morph.LanguageHelper.EndsWith(txt, v)) 
-                    return true;
-            }
-            return false;
-        }
-        static string[] m_SpecTails = new string[] {"БУДКА", "КАЗАРМА"};
-        public static bool _isSpec(string txt)
-        {
-            txt = txt.ToUpper();
-            foreach (string v in m_SpecTails) 
-            {
-                if (Pullenti.Morph.LanguageHelper.EndsWith(txt, v)) 
-                    return true;
-            }
-            return false;
-        }
-        public static List<StreetItemToken> TryParseList(Pullenti.Ner.Token t, int maxCount = 10, Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad = null)
-        {
-            if (t == null) 
-                return null;
-            if (ad == null) 
-                ad = Pullenti.Ner.Geo.GeoAnalyzer.GetData(t);
-            if (ad == null) 
-                return null;
-            if (ad.SLevel > 2) 
-                return null;
-            ad.SLevel++;
-            List<StreetItemToken> res = _tryParseList(t, maxCount, ad);
-            ad.SLevel--;
-            return res;
-        }
-        static List<StreetItemToken> _tryParseList(Pullenti.Ner.Token t, int maxCount, Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad)
-        {
-            List<StreetItemToken> res = null;
-            StreetItemToken sit = TryParse(t, null, false, ad);
-            if (sit != null) 
-            {
-                res = new List<StreetItemToken>();
-                res.Add(sit);
-                t = sit.EndToken.Next;
-            }
-            else 
-            {
-                res = TryParseSpec(t, null);
-                if (res == null) 
-                    return null;
-                sit = res[res.Count - 1];
-                t = sit.EndToken.Next;
-                StreetItemToken sit2 = TryParse(t, null, false, null);
-                if (sit2 != null && sit2.Typ == StreetItemType.Noun) 
-                {
-                }
-                else if (AddressItemToken.CheckHouseAfter(t, false, true)) 
-                {
-                }
-                else 
-                    return null;
-            }
-            for (; t != null; t = (t == null ? null : t.Next)) 
-            {
-                if (maxCount > 0 && res.Count >= maxCount) 
-                    break;
-                if (t.IsNewlineBefore) 
-                {
-                    if (t.NewlinesBeforeCount > 1) 
-                        break;
-                    if (((t.WhitespacesAfterCount < 15) && sit != null && sit.Typ == StreetItemType.Noun) && t.Chars.IsCapitalUpper) 
-                    {
-                    }
-                    else 
-                    {
-                        bool ok = false;
-                        if (res.Count == 1 && res[0].Typ == StreetItemType.Name) 
-                        {
-                            StreetItemToken sit1 = TryParse(sit.EndToken.Next, sit, false, ad);
-                            if (sit1 != null && sit1.Typ == StreetItemType.Noun) 
-                            {
-                                StreetItemToken sit2 = TryParse(sit1.EndToken.Next, sit1, false, ad);
-                                if (sit2 == null) 
-                                    ok = true;
-                            }
-                        }
-                        else if (res.Count == 2 && res[0].Typ == StreetItemType.Noun && res[1].Typ == StreetItemType.StdAdjective) 
-                        {
-                            StreetItemToken sit1 = TryParse(sit.EndToken.Next, sit, false, ad);
-                            if (sit1 != null && ((sit1.Typ == StreetItemType.StdName || sit1.Typ == StreetItemType.Name))) 
-                            {
-                                if (AddressItemToken.CheckHouseAfter(sit1.EndToken.Next, false, false)) 
-                                    ok = true;
-                            }
-                        }
-                        if (!ok) 
-                            break;
-                    }
-                }
-                if (t.IsHiphen && sit != null && ((sit.Typ == StreetItemType.Name || sit.Typ == StreetItemType.StdName || (sit.Typ == StreetItemType.StdAdjective)))) 
-                {
-                    StreetItemToken sit1 = TryParse(t.Next, sit, false, ad);
-                    if (sit1 == null) 
-                    {
-                        Pullenti.Ner.NumberToken num = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t.Next);
-                        if (num != null) 
-                        {
-                            sit = new StreetItemToken(t, num.EndToken) { Typ = StreetItemType.Number, Value = num.Value, NumberHasPrefix = true };
-                            res.Add(sit);
-                            t = sit.EndToken;
-                            continue;
-                        }
-                        break;
-                    }
-                    if (sit1.Typ == StreetItemType.Number) 
-                    {
-                        Pullenti.Ner.Token tt = sit1.EndToken.Next;
-                        if (tt != null && tt.IsComma) 
-                            tt = tt.Next;
-                        bool ok = false;
-                        AddressItemToken ait = AddressItemToken.TryParsePureItem(tt, null, null);
-                        if (ait != null) 
-                        {
-                            if (ait.Typ == AddressItemType.House) 
-                                ok = true;
-                        }
-                        if (!ok) 
-                        {
-                            if (res.Count == 2 && res[0].Typ == StreetItemType.Noun) 
-                            {
-                                if (res[0].Termin.CanonicText == "МИКРОРАЙОН") 
-                                    ok = true;
-                            }
-                        }
-                        if (!ok && t.IsHiphen) 
-                            ok = true;
-                        if (ok) 
-                        {
-                            sit = sit1;
-                            res.Add(sit);
-                            t = sit.EndToken;
-                            sit.NumberHasPrefix = true;
-                            continue;
-                        }
-                    }
-                    if (sit1.Typ != StreetItemType.Name && sit1.Typ != StreetItemType.Name) 
-                    {
-                        if (sit1.Typ == StreetItemType.Noun && sit1.NounCanBeName) 
-                        {
-                        }
-                        else if (sit1.Typ == StreetItemType.StdAdjective) 
-                        {
-                        }
-                        else 
-                            break;
-                    }
-                    if (t.IsWhitespaceBefore && t.IsWhitespaceAfter) 
-                        break;
-                    if (res[0].BeginToken.Previous != null) 
-                    {
-                        AddressItemToken aaa = AddressItemToken.TryParsePureItem(res[0].BeginToken.Previous, null, null);
-                        if (aaa != null && aaa.Typ == AddressItemType.Detail && aaa.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross) 
-                            break;
-                    }
-                    sit = sit1;
-                    res.Add(sit);
-                    t = sit.EndToken;
-                    continue;
-                }
-                else if (t.IsHiphen && sit != null && sit.Typ == StreetItemType.Number) 
-                {
-                    StreetItemToken sit1 = TryParse(t.Next, null, false, ad);
-                    if (sit1 != null && (((sit1.Typ == StreetItemType.StdAdjective || sit1.Typ == StreetItemType.StdName || sit1.Typ == StreetItemType.Name) || sit1.Typ == StreetItemType.Noun))) 
-                    {
-                        sit.NumberHasPrefix = true;
-                        sit = sit1;
-                        res.Add(sit);
-                        t = sit.EndToken;
-                        continue;
-                    }
-                }
-                if (t.IsChar('.') && sit != null && sit.Typ == StreetItemType.Noun) 
-                {
-                    if (t.WhitespacesAfterCount > 1) 
-                        break;
-                    sit = TryParse(t.Next, null, false, ad);
-                    if (sit == null) 
-                        break;
-                    if (sit.Typ == StreetItemType.Number || sit.Typ == StreetItemType.StdAdjective) 
-                    {
-                        StreetItemToken sit1 = TryParse(sit.EndToken.Next, null, false, ad);
-                        if (sit1 != null && ((sit1.Typ == StreetItemType.StdAdjective || sit1.Typ == StreetItemType.StdName || sit1.Typ == StreetItemType.Name))) 
-                        {
-                        }
-                        else if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sit)) 
-                            break;
-                        else 
-                        {
-                            AddressItemToken ai = AddressItemToken.TryParsePureItem(t.Next, null, null);
-                            if (ai != null && ai.Typ != AddressItemType.Number) 
-                                break;
-                        }
-                    }
-                    else if (sit.Typ != StreetItemType.Name && sit.Typ != StreetItemType.StdName && sit.Typ != StreetItemType.Age) 
-                        break;
-                    if (t.Previous.GetMorphClassInDictionary().IsNoun) 
-                    {
-                        if (!sit.IsInDictionary) 
-                        {
-                            Pullenti.Ner.Token tt = sit.EndToken.Next;
-                            bool hasHouse = false;
-                            for (; tt != null; tt = tt.Next) 
-                            {
-                                if (tt.IsNewlineBefore) 
-                                    break;
-                                if (tt.IsComma) 
-                                    continue;
-                                AddressItemToken ai = AddressItemToken.TryParsePureItem(tt, null, null);
-                                if (ai != null && ((ai.Typ == AddressItemType.House || ai.Typ == AddressItemType.Building || ai.Typ == AddressItemType.Corpus))) 
-                                {
-                                    hasHouse = true;
-                                    break;
-                                }
-                                if (tt is Pullenti.Ner.NumberToken) 
-                                {
-                                    hasHouse = true;
-                                    break;
-                                }
-                                StreetItemToken vv = TryParse(tt, null, false, ad);
-                                if (vv == null || vv.Typ == StreetItemType.Noun) 
-                                    break;
-                                tt = vv.EndToken;
-                            }
-                            if (!hasHouse) 
-                                break;
-                        }
-                        if (t.Previous.Previous != null) 
-                        {
-                            Pullenti.Ner.Core.NounPhraseToken npt11 = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(t.Previous.Previous);
-                            if (npt11 != null && npt11.EndToken == t.Previous) 
-                                break;
-                        }
-                    }
-                    res.Add(sit);
-                }
-                else 
-                {
-                    sit = TryParse(t, res[res.Count - 1], false, ad);
-                    if (sit == null) 
-                    {
-                        List<StreetItemToken> spli = TryParseSpec(t, res[res.Count - 1]);
-                        if (spli != null && spli.Count > 0) 
-                        {
-                            res.AddRange(spli);
-                            t = spli[spli.Count - 1].EndToken;
-                            continue;
-                        }
-                        if (((t is Pullenti.Ner.TextToken) && ((res.Count == 2 || res.Count == 3)) && res[0].Typ == StreetItemType.Noun) && res[1].Typ == StreetItemType.Number && ((((t as Pullenti.Ner.TextToken).Term == "ГОДА" || (t as Pullenti.Ner.TextToken).Term == "МАЯ" || (t as Pullenti.Ner.TextToken).Term == "МАРТА") || (t as Pullenti.Ner.TextToken).Term == "СЪЕЗДА"))) 
-                        {
-                            res.Add((sit = new StreetItemToken(t, t) { Typ = StreetItemType.StdName, Value = (t as Pullenti.Ner.TextToken).Term }));
-                            continue;
-                        }
-                        sit = res[res.Count - 1];
-                        if (t == null) 
-                            break;
-                        if (sit.Typ == StreetItemType.Noun && ((sit.Termin.CanonicText == "МИКРОРАЙОН" || sit.Termin.CanonicText == "МІКРОРАЙОН")) && (t.WhitespacesBeforeCount < 2)) 
-                        {
-                            Pullenti.Ner.Token tt1 = t;
-                            if (tt1.IsHiphen && tt1.Next != null) 
-                                tt1 = tt1.Next;
-                            if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt1, true) && tt1.Next != null) 
-                                tt1 = tt1.Next;
-                            Pullenti.Ner.Token tt2 = tt1.Next;
-                            bool br = false;
-                            if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt2, true)) 
-                            {
-                                tt2 = tt2.Next;
-                                br = true;
-                            }
-                            if (((tt1 is Pullenti.Ner.TextToken) && tt1.LengthChar == 1 && tt1.Chars.IsLetter) && ((AddressItemToken.CheckHouseAfter(tt2, false, true) || tt2 == null))) 
-                            {
-                                sit = new StreetItemToken(t, (br ? tt1.Next : tt1)) { Typ = StreetItemType.Name, Value = (tt1 as Pullenti.Ner.TextToken).Term };
-                                char ch1 = AddressItemToken.CorrectChar(sit.Value[0]);
-                                if (ch1 != 0 && ch1 != sit.Value[0]) 
-                                    sit.AltValue = string.Format("{0}", ch1);
-                                res.Add(sit);
-                                break;
-                            }
-                        }
-                        if (t.IsComma && (((sit.Typ == StreetItemType.Name || sit.Typ == StreetItemType.StdName || sit.Typ == StreetItemType.StdPartOfName) || sit.Typ == StreetItemType.StdAdjective || ((sit.Typ == StreetItemType.Number && res.Count > 1 && (((res[res.Count - 2].Typ == StreetItemType.Name || res[res.Count - 2].Typ == StreetItemType.StdName || res[res.Count - 2].Typ == StreetItemType.StdAdjective) || res[res.Count - 2].Typ == StreetItemType.StdPartOfName))))))) 
-                        {
-                            StreetItemToken sit2 = TryParse(t.Next, null, false, ad);
-                            if (sit2 != null && sit2.Typ == StreetItemType.Noun) 
-                            {
-                                Pullenti.Ner.Token ttt = sit2.EndToken.Next;
-                                if (ttt != null && ttt.IsComma) 
-                                    ttt = ttt.Next;
-                                AddressItemToken add = AddressItemToken.TryParsePureItem(ttt, null, null);
-                                if (add != null && ((add.Typ == AddressItemType.House || add.Typ == AddressItemType.Corpus || add.Typ == AddressItemType.Building))) 
-                                {
-                                    res.Add(sit2);
-                                    t = sit2.EndToken;
-                                    continue;
-                                }
-                            }
-                        }
-                        else if (t.IsComma && sit.Typ == StreetItemType.Noun && sit.Termin.CanonicText.Contains("КВАРТАЛ")) 
-                        {
-                            Pullenti.Ner.Geo.Internal.NumToken num = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Street);
-                            if (num != null && num.IsCadasterNumber) 
-                                continue;
-                        }
-                        if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false)) 
-                        {
-                            StreetItemToken sit1 = res[res.Count - 1];
-                            if (sit1.Typ == StreetItemType.Noun && ((sit1.NounIsDoubtCoef == 0 || (((t.Next is Pullenti.Ner.TextToken) && !t.Next.Chars.IsAllLower))))) 
-                            {
-                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                                if (br != null && (br.LengthChar < 50)) 
-                                {
-                                    StreetItemToken sit2 = TryParse(t.Next, null, false, ad);
-                                    if (sit2 != null && sit2.EndToken.Next == br.EndToken) 
-                                    {
-                                        if (sit2.Value == null && sit2.Typ == StreetItemType.Name) 
-                                            sit2.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(sit2.BeginToken, sit2.EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                                        sit2.BeginToken = t;
-                                        sit2.IsInBrackets = true;
-                                        t = (sit2.EndToken = br.EndToken);
-                                        res.Add(sit2);
-                                        continue;
-                                    }
-                                    res.Add(new StreetItemToken(t, br.EndToken) { Typ = StreetItemType.Name, Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, br.EndToken, Pullenti.Ner.Core.GetTextAttr.No), IsInBrackets = true });
-                                    t = br.EndToken;
-                                    continue;
-                                }
-                            }
-                        }
-                        if (t.IsHiphen && (t.Next is Pullenti.Ner.NumberToken) && (t.Next as Pullenti.Ner.NumberToken).IntValue != null) 
-                        {
-                            sit = res[res.Count - 1];
-                            if (sit.Typ == StreetItemType.Noun && (((sit.Termin.CanonicText == "КВАРТАЛ" || sit.Termin.CanonicText == "МИКРОРАЙОН" || sit.Termin.CanonicText == "ГОРОДОК") || sit.Termin.CanonicText == "МІКРОРАЙОН"))) 
-                            {
-                                sit = new StreetItemToken(t, t.Next) { Typ = StreetItemType.Number, Value = (t.Next as Pullenti.Ner.NumberToken).Value, NumberType = (t.Next as Pullenti.Ner.NumberToken).Typ, NumberHasPrefix = true };
-                                res.Add(sit);
-                                t = t.Next;
-                                continue;
-                            }
-                        }
-                        if ((((t.IsChar(':') || t.IsHiphen)) && res.Count == 1 && res[0].Typ == StreetItemType.Noun) && (t.WhitespacesAfterCount < 3)) 
-                            continue;
-                        if ((t.IsComma && res.Count == 1 && res[0].Typ == StreetItemType.Noun) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-                        {
-                            sit = TryParse(t.Next, null, false, null);
-                            if (sit != null && ((sit.Typ == StreetItemType.Name || sit.Typ == StreetItemType.StdName || sit.Typ == StreetItemType.StdAdjective))) 
-                            {
-                                res.Add(sit);
-                                t = sit.EndToken;
-                                continue;
-                            }
-                        }
-                        if ((t.IsChar('(') && t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) && t.Next.Next != null && t.Next.Next.IsChar(')')) 
-                        {
-                            sit = TryParse(t.Next.Next.Next, null, false, null);
-                            if (sit != null && sit.Typ == StreetItemType.Noun) 
-                            {
-                                res[res.Count - 1].Area = new AddressItemToken(AddressItemType.Region, t, t.Next.Next) { Referent = t.Next.GetReferent() };
-                                res.Add(sit);
-                                t = sit.EndToken;
-                                continue;
-                            }
-                        }
-                        break;
-                    }
-                    res.Add(sit);
-                    if (sit.Typ == StreetItemType.Name) 
-                    {
-                        int cou = 0;
-                        int jj;
-                        for (jj = res.Count - 1; jj >= 0; jj--) 
-                        {
-                            if (res[jj].Typ == StreetItemType.Name) 
-                                cou++;
-                            else 
-                                break;
-                        }
-                        if (cou > 4) 
-                        {
-                            if (jj < 0) 
-                                return null;
-                            res.RemoveRange(jj, res.Count - jj);
-                            break;
-                        }
-                        if (res.Count > 1 && res[0].Typ == StreetItemType.Noun && res[0].IsRoad) 
-                        {
-                            Pullenti.Ner.Token tt = sit.EndToken.Next;
-                            if (tt != null) 
-                            {
-                                if (tt.IsValue("Ш", null) || tt.IsValue("ШОССЕ", null) || tt.IsValue("ШОС", null)) 
-                                {
-                                    sit = sit.Clone();
-                                    res[res.Count - 1] = sit;
-                                    sit.EndToken = tt;
-                                    if (tt.Next != null && tt.Next.IsChar('.') && tt.LengthChar <= 3) 
-                                        sit.EndToken = sit.EndToken.Next;
-                                }
-                            }
-                        }
-                    }
-                }
-                t = sit.EndToken;
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == StreetItemType.Name && ((res[i + 1].AltTyp == StreetItemType.StdPartOfName || res[i + 1].Typ == StreetItemType.StdPartOfName))) 
-                {
-                    StreetItemToken r = res[i].Clone();
-                    if (r.Value == null) 
-                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(r, Pullenti.Ner.Core.GetTextAttr.No);
-                    r.Misc = res[i + 1].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i + 1], Pullenti.Ner.Core.GetTextAttr.No);
-                    r.EndToken = res[i + 1].EndToken;
-                    res[i] = r;
-                    res.RemoveAt(i + 1);
-                }
-                else if (res[i + 1].Typ == StreetItemType.Name && ((res[i].AltTyp == StreetItemType.StdPartOfName || res[i].Typ == StreetItemType.StdPartOfName))) 
-                {
-                    StreetItemToken r = res[i + 1].Clone();
-                    if (r.Value == null) 
-                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(r, Pullenti.Ner.Core.GetTextAttr.No);
-                    r.Misc = res[i].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i], Pullenti.Ner.Core.GetTextAttr.No);
-                    r.BeginToken = res[i].BeginToken;
-                    res[i] = r;
-                    res.RemoveAt(i + 1);
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == StreetItemType.Name && res[i + 1].Typ == StreetItemType.Name && (res[i].WhitespacesAfterCount < 3)) 
-                {
-                    bool isProp = false;
-                    bool isPers = false;
-                    if (res[i].BeginToken.Morph.Class.IsNoun) 
-                    {
-                        Pullenti.Ner.ReferentToken rt = res[i].Kit.ProcessReferent("PERSON", res[i].BeginToken, null);
-                        if (rt != null) 
-                        {
-                            if (rt.Referent.TypeName == "PERSONPROPERTY") 
-                                isProp = true;
-                            else if (rt.EndToken == res[i + 1].EndToken) 
-                                isPers = true;
-                        }
-                    }
-                    if ((i == 0 && ((!isProp && !isPers)) && ((i + 2) < res.Count)) && res[i + 2].Typ == StreetItemType.Noun && !res[i].BeginToken.Morph.Class.IsAdjective) 
-                    {
-                        if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.CheckGeoObjectBefore(res[0].BeginToken, false) && res[0].EndToken.Next == res[1].BeginToken && (res[0].WhitespacesAfterCount < 2)) 
-                        {
-                        }
-                        else 
-                        {
-                            res.RemoveAt(i);
-                            i--;
-                            continue;
-                        }
-                    }
-                    if (res[i].Morph.Class.IsAdjective && res[i + 1].Morph.Class.IsAdjective && !isPers) 
-                    {
-                        if (res[i].EndToken.Next.IsHiphen) 
-                        {
-                        }
-                        else if (i == 1 && res[0].Typ == StreetItemType.Noun && res.Count == 3) 
-                        {
-                        }
-                        else if (i == 0 && res.Count == 3 && res[2].Typ == StreetItemType.Noun) 
-                        {
-                        }
-                        else 
-                            continue;
-                    }
-                    if (res[i].Chars.Value != res[i + 1].Chars.Value) 
-                    {
-                        Pullenti.Ner.ReferentToken rt = res[0].Kit.ProcessReferent("ORGANIZATION", res[i + 1].BeginToken, null);
-                        if (rt != null) 
-                        {
-                            res.RemoveRange(i + 1, res.Count - i - 1);
-                            continue;
-                        }
-                    }
-                    StreetItemToken r = res[i].Clone();
-                    if (r.Value == null) 
-                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i], Pullenti.Ner.Core.GetTextAttr.No);
-                    Pullenti.Ner.Token tt1 = res[i + 1].EndToken;
-                    Pullenti.Morph.MorphClass mc1 = res[i].BeginToken.GetMorphClassInDictionary();
-                    Pullenti.Morph.MorphClass mc2 = tt1.GetMorphClassInDictionary();
-                    if ((tt1.IsValue("БОР", null) || tt1.IsValue("САД", null) || tt1.IsValue("ПАРК", null)) || tt1.Previous.IsHiphen) 
-                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i + 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                    else if (((mc1.IsProperName && !mc2.IsProperName)) || ((!mc1.IsProperSurname && mc2.IsProperSurname))) 
-                    {
-                        if (r.Misc == null) 
-                            r.Misc = r.Value;
-                        r.Value = res[i + 1].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i + 1], Pullenti.Ner.Core.GetTextAttr.No);
-                    }
-                    else if (((mc2.IsProperName && !mc1.IsProperName)) || ((!mc2.IsProperSurname && mc1.IsProperSurname))) 
-                    {
-                        if (r.Misc == null) 
-                            r.Misc = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i + 1], Pullenti.Ner.Core.GetTextAttr.No);
-                    }
-                    else 
-                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i + 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                    if (r.Value.Contains("-")) 
-                        r.Value = r.Value.Replace('-', ' ');
-                    r.OrtoTerr = res[i + 1].OrtoTerr;
-                    r.EndToken = res[i + 1].EndToken;
-                    r.ExistStreet = null;
-                    r.IsInDictionary = res[i + 1].IsInDictionary || res[i].IsInDictionary;
-                    res[i] = r;
-                    res.RemoveAt(i + 1);
-                    i--;
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == StreetItemType.StdAdjective && res[i].EndToken.IsChar('.') && res[i + 1]._isSurname()) 
-                {
-                    StreetItemToken r = res[i + 1].Clone();
-                    r.Value = (res[i + 1].BeginToken as Pullenti.Ner.TextToken).Term;
-                    r.AltValue = Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i + 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                    r.BeginToken = res[i].BeginToken;
-                    r.StdAdjVersion = res[i];
-                    res[i + 1] = r;
-                    res.RemoveAt(i);
-                    break;
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if ((res[i + 1].Typ == StreetItemType.StdAdjective && res[i + 1].EndToken.IsChar('.') && res[i + 1].BeginToken.LengthChar == 1) && !res[i].BeginToken.Chars.IsAllLower) 
-                {
-                    if (res[i]._isSurname()) 
-                    {
-                        if (i == (res.Count - 2) || res[i + 2].Typ != StreetItemType.Noun) 
-                        {
-                            StreetItemToken r = res[i].Clone();
-                            if (r.Value == null) 
-                                r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(r, Pullenti.Ner.Core.GetTextAttr.No);
-                            r.EndToken = res[i + 1].EndToken;
-                            r.StdAdjVersion = res[i + 1];
-                            res[i] = r;
-                            res.RemoveAt(i + 1);
-                            break;
-                        }
-                    }
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == StreetItemType.Name || res[i].Typ == StreetItemType.StdName || res[i].Typ == StreetItemType.StdAdjective) 
-                {
-                    if (res[i + 1].Typ == StreetItemType.Noun && !res[i + 1].IsAbridge && res[i + 1].Termin.CanonicText != "УЛИЦА") 
-                    {
-                        List<StreetItemToken> res0 = new List<StreetItemToken>(res);
-                        res0.RemoveRange(0, i + 1);
-                        AddressItemToken rtt = StreetDefineHelper.TryParseStreet(res0, false, false, false, null);
-                        if (rtt != null) 
-                            continue;
-                        int i0 = -1;
-                        if (i == 1 && res[0].Typ == StreetItemType.Noun && res.Count == 3) 
-                            i0 = 0;
-                        else if (i == 0 && res.Count == 3 && res[2].Typ == StreetItemType.Noun) 
-                            i0 = 2;
-                        if (i0 < 0) 
-                            continue;
-                        if (res[i0].Termin == res[i + 1].Termin) 
-                            continue;
-                        StreetItemToken r = res[i].Clone();
-                        r.AltValue = res[i].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                        if (res[i].Typ == StreetItemType.StdAdjective) 
-                        {
-                            List<string> adjs = Pullenti.Ner.Geo.Internal.MiscLocationHelper.GetStdAdjFull(res[i].BeginToken, res[i + 1].Morph.Gender, res[i + 1].Morph.Number, true);
-                            if (adjs != null && adjs.Count > 0) 
-                                r.AltValue = adjs[0];
-                        }
-                        r.Value = string.Format("{0} {1}", r.AltValue, res[i + 1].Termin.CanonicText);
-                        r.Typ = StreetItemType.StdName;
-                        r.EndToken = res[i + 1].EndToken;
-                        res[i] = r;
-                        StreetItemToken rr = res[i0].Clone();
-                        rr.AltTermin = res[i + 1].Termin;
-                        res[i0] = rr;
-                        res.RemoveAt(i + 1);
-                        i--;
-                    }
-                }
-            }
-            if ((res.Count >= 3 && res[0].Typ == StreetItemType.Noun && res[0].Termin.CanonicText == "КВАРТАЛ") && ((res[1].Typ == StreetItemType.Name || res[1].Typ == StreetItemType.StdName)) && res[2].Typ == StreetItemType.Noun) 
-            {
-                if (res.Count == 3 || res[3].Typ == StreetItemType.Number) 
-                {
-                    List<StreetItemToken> res0 = new List<StreetItemToken>(res);
-                    res0.RemoveRange(0, 2);
-                    AddressItemToken rtt = StreetDefineHelper.TryParseStreet(res0, false, false, false, null);
-                    if (rtt == null || res0[0].Chars.IsCapitalUpper) 
-                    {
-                        StreetItemToken r = res[1].Clone();
-                        r.Value = string.Format("{0} {1}", Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[1], Pullenti.Ner.Core.GetTextAttr.No), res[2].Termin.CanonicText);
-                        r.EndToken = res[2].EndToken;
-                        res[1] = r;
-                        res.RemoveAt(2);
-                    }
-                }
-            }
-            if ((res.Count >= 3 && res[0].Typ == StreetItemType.Noun && res[0].Termin.CanonicText == "КВАРТАЛ") && ((res[2].Typ == StreetItemType.Name || res[2].Typ == StreetItemType.StdName)) && res[1].Typ == StreetItemType.Noun) 
-            {
-                if (res.Count == 3 || res[3].Typ == StreetItemType.Number) 
-                {
-                    StreetItemToken r = res[1].Clone();
-                    r.Value = string.Format("{0} {1}", Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[2], Pullenti.Ner.Core.GetTextAttr.No), res[1].Termin.CanonicText);
-                    r.EndToken = res[2].EndToken;
-                    r.Typ = StreetItemType.Name;
-                    res[1] = r;
-                    res.RemoveAt(2);
-                }
-            }
-            if ((res.Count >= 3 && res[0].Typ == StreetItemType.Number && !res[0].IsNumberKm) && res[1].Typ == StreetItemType.Noun) 
-            {
-                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0]) && res[2].Typ != StreetItemType.StdName && res[2].Typ != StreetItemType.Fix) 
-                {
-                    Pullenti.Ner.NumberToken nt = res[0].BeginToken as Pullenti.Ner.NumberToken;
-                    if (nt != null && nt.Typ == Pullenti.Ner.NumberSpellingType.Digit && nt.Morph.Class.IsUndefined) 
-                        return null;
-                }
-            }
-            int ii0 = -1;
-            int ii1 = -1;
-            if (res.Count > 0 && res[0].Typ == StreetItemType.Noun && res[0].IsRoad) 
-            {
-                ii0 = (ii1 = 0);
-                if (((ii0 + 1) < res.Count) && res[ii0 + 1].Typ == StreetItemType.Number && res[ii0 + 1].IsNumberKm) 
-                    ii0++;
-            }
-            else if ((res.Count > 1 && res[0].Typ == StreetItemType.Number && res[0].IsNumberKm) && res[1].Typ == StreetItemType.Noun && res[1].IsRoad) 
-                ii0 = (ii1 = 1);
-            if (ii0 >= 0) 
-            {
-                if (res.Count == (ii0 + 1)) 
-                {
-                    Pullenti.Ner.Token tt = res[ii0].EndToken.Next;
-                    StreetItemToken num = _tryAttachRoadNum(tt);
-                    if (num != null) 
-                    {
-                        res.Add(num);
-                        tt = num.EndToken.Next;
-                        res[0].IsAbridge = false;
-                    }
-                    if (tt != null && (tt.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
-                    {
-                        Pullenti.Ner.Geo.GeoReferent g1 = tt.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
-                        tt = tt.Next;
-                        if (tt != null && tt.IsHiphen) 
-                            tt = tt.Next;
-                        Pullenti.Ner.Geo.GeoReferent g2 = (tt == null ? null : tt.GetReferent() as Pullenti.Ner.Geo.GeoReferent);
-                        if (g2 != null) 
-                        {
-                            if (g1.IsCity && g2.IsCity) 
-                            {
-                                StreetItemToken nam = new StreetItemToken(res[0].EndToken.Next, tt) { Typ = StreetItemType.Name };
-                                nam.Value = string.Format("{0} - {1}", g1.ToStringEx(true, tt.Kit.BaseLanguage, 0), g2.ToStringEx(true, tt.Kit.BaseLanguage, 0)).ToUpper();
-                                nam.AltValue = string.Format("{0} - {1}", g2.ToStringEx(true, tt.Kit.BaseLanguage, 0), g1.ToStringEx(true, tt.Kit.BaseLanguage, 0)).ToUpper();
-                                res.Add(nam);
-                            }
-                        }
-                    }
-                    else if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt, false)) 
-                    {
-                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tt, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br != null) 
-                        {
-                            StreetItemToken nam = new StreetItemToken(tt, br.EndToken) { Typ = StreetItemType.Name, IsInBrackets = true };
-                            nam.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt.Next, br.EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                            res.Add(nam);
-                        }
-                    }
-                }
-                else if ((res.Count == (ii0 + 2) && res[ii0 + 1].Typ == StreetItemType.Name && res[ii0 + 1].EndToken.Next != null) && res[ii0 + 1].EndToken.Next.IsHiphen) 
-                {
-                    Pullenti.Ner.Token tt = res[ii0 + 1].EndToken.Next.Next;
-                    Pullenti.Ner.Geo.GeoReferent g2 = (tt == null ? null : tt.GetReferent() as Pullenti.Ner.Geo.GeoReferent);
-                    Pullenti.Ner.Token te = null;
-                    string name2 = null;
-                    if (g2 == null && tt != null) 
-                    {
-                        Pullenti.Ner.ReferentToken rt = tt.Kit.ProcessReferent("GEO", tt, null);
-                        if (rt != null) 
-                        {
-                            te = rt.EndToken;
-                            name2 = rt.Referent.ToStringEx(true, te.Kit.BaseLanguage, 0);
-                        }
-                        else 
-                        {
-                            List<Pullenti.Ner.Geo.Internal.CityItemToken> cits2 = Pullenti.Ner.Geo.Internal.CityItemToken.TryParseList(tt, 2, null);
-                            if (cits2 != null) 
-                            {
-                                if (cits2.Count == 1 && ((cits2[0].Typ == Pullenti.Ner.Geo.Internal.CityItemToken.ItemType.ProperName || cits2[0].Typ == Pullenti.Ner.Geo.Internal.CityItemToken.ItemType.City))) 
-                                {
-                                    if (cits2[0].OntoItem != null) 
-                                        name2 = cits2[0].OntoItem.CanonicText;
-                                    else 
-                                        name2 = cits2[0].Value;
-                                    te = cits2[0].EndToken;
-                                }
-                            }
-                        }
-                    }
-                    else if (g2 != null) 
-                    {
-                        te = tt;
-                        name2 = g2.ToStringEx(true, te.Kit.BaseLanguage, 0);
-                    }
-                    if (((g2 != null && g2.IsCity)) || ((g2 == null && name2 != null))) 
-                    {
-                        StreetItemToken r = res[ii0 + 1].Clone();
-                        r.AltValue = string.Format("{0} - {1}", name2, res[ii0 + 1].Value ?? res[ii0 + 1].GetSourceText()).ToUpper();
-                        r.Value = string.Format("{0} - {1}", res[ii0 + 1].Value ?? res[ii0 + 1].GetSourceText(), name2).ToUpper();
-                        r.EndToken = te;
-                        res[ii0 + 1] = r;
-                    }
-                }
-                StreetItemToken nn = _tryAttachRoadNum(res[res.Count - 1].EndToken.Next);
-                if (nn != null) 
-                {
-                    res.Add(nn);
-                    res[ii1].IsAbridge = false;
-                }
-                if (res.Count > (ii0 + 1) && res[ii0 + 1].Typ == StreetItemType.Name && res[ii1].Termin.CanonicText == "АВТОДОРОГА") 
-                {
-                    if (res[ii0 + 1].BeginToken.IsValue("ФЕДЕРАЛЬНЫЙ", null)) 
-                        return null;
-                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(res[ii0 + 1].BeginToken);
-                    if (npt != null && npt.Adjectives.Count > 0) 
-                    {
-                        if (npt.EndToken.IsValue("ЗНАЧЕНИЕ", null)) 
-                            return null;
-                    }
-                }
-            }
-            while (res.Count > 1) 
-            {
-                StreetItemToken it = res[res.Count - 1];
-                if (it.BeginToken == it.EndToken && it.LengthChar == 1 && it.IsValue("В", null)) 
-                {
-                    if (it.EndToken.Next is Pullenti.Ner.ReferentToken) 
-                    {
-                        res.Remove(it);
-                        continue;
-                    }
-                }
-                if (res.Count == 4) 
-                {
-                    if ((res[0].Typ == StreetItemType.Noun && res[1].Typ == StreetItemType.Number && res[2].Typ == StreetItemType.Noun) && res[3].Typ == StreetItemType.Number) 
-                        break;
-                }
-                if (res.Count == 5) 
-                {
-                    if (((res[0].Typ == StreetItemType.Noun && res[0].Termin.CanonicText == "УЛИЦА" && res[1].Typ == StreetItemType.Noun) && res[2].Typ == StreetItemType.Number && res[3].Typ == StreetItemType.Noun) && res[4].Typ == StreetItemType.Number) 
-                        break;
-                }
-                StreetItemToken it0 = (res.Count > 1 ? res[res.Count - 2] : null);
-                if (it.Typ == StreetItemType.Number && !it.NumberHasPrefix && !it.IsNumberKm) 
-                {
-                    if (it.BeginToken is Pullenti.Ner.NumberToken) 
-                    {
-                        if (res.Count == 2 && res[0].Typ == StreetItemType.Noun) 
-                            break;
-                        if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamGarAddress(res[0])) 
-                            break;
-                        if (!it.BeginToken.Morph.Class.IsAdjective || it.BeginToken.Morph.Class.IsNoun) 
-                        {
-                            if (AddressItemToken.CheckHouseAfter(it.EndToken.Next, false, true)) 
-                                it.NumberHasPrefix = true;
-                            else if (it0 != null && it0.Typ == StreetItemType.Noun && (((it0.Termin.CanonicText == "МИКРОРАЙОН" || it0.Termin.CanonicText == "МІКРОРАЙОН" || it0.Termin.CanonicText == "КВАРТАЛ") || it0.Termin.CanonicText == "ГОРОДОК"))) 
-                            {
-                                AddressItemToken ait = AddressItemToken.TryParsePureItem(it.BeginToken, null, null);
-                                if (ait != null && ait.Typ == AddressItemType.Number && ait.EndChar > it.EndChar) 
-                                {
-                                    it.NumberType = Pullenti.Ner.NumberSpellingType.Undefined;
-                                    it.Value = ait.Value;
-                                    it.EndToken = ait.EndToken;
-                                    it.Typ = StreetItemType.Name;
-                                }
-                            }
-                            else if (it0 != null && it0.Termin != null && it0.Termin.CanonicText == "ПОЧТОВОЕ ОТДЕЛЕНИЕ") 
-                                it.NumberHasPrefix = true;
-                            else if (it0 != null && it0.BeginToken.IsValue("ЛИНИЯ", null)) 
-                                it.NumberHasPrefix = true;
-                            else if (res.Count == 2 && res[0].Typ == StreetItemType.Noun && (res[0].WhitespacesAfterCount < 2)) 
-                            {
-                            }
-                            else if (it.BeginToken.Morph.Class.IsAdjective && (it.BeginToken as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Words && it.BeginToken.Chars.IsCapitalUpper) 
-                                it.NumberHasPrefix = true;
-                            else if (it.BeginToken.Previous.IsHiphen) 
-                                it.NumberHasPrefix = true;
-                            else if (((res.Count > 1 && res[res.Count - 2].Typ == StreetItemType.Name && res[res.Count - 2].BeginToken == res[res.Count - 2].EndToken) && it.BeginToken.Previous.GetMorphClassInDictionary().IsProperName && (it.BeginToken is Pullenti.Ner.NumberToken)) && (it.BeginToken as Pullenti.Ner.NumberToken).IntValue != null && ((it.BeginToken as Pullenti.Ner.NumberToken).IntValue.Value < 3)) 
-                                it.NumberHasPrefix = true;
-                            else 
-                            {
-                                res.RemoveAt(res.Count - 1);
-                                continue;
-                            }
-                        }
-                        else 
-                            it.NumberHasPrefix = true;
-                    }
-                }
-                break;
-            }
-            if (res.Count == 0) 
-                return null;
-            for (int i = 0; i < res.Count; i++) 
-            {
-                if (res[i].NextItem != null) 
-                {
-                    if (res[i].Typ == StreetItemType.Number && i > 0 && res[i - 1].Typ == StreetItemType.Name) 
-                    {
-                    }
-                    else 
-                        res.Insert(i + 1, res[i].NextItem);
-                }
-            }
-            for (int i = 0; i < res.Count; i++) 
-            {
-                if ((res[i].Typ == StreetItemType.Noun && res[i].Chars.IsCapitalUpper && (((res[i].Termin.CanonicText == "НАБЕРЕЖНАЯ" || res[i].Termin.CanonicText == "МИКРОРАЙОН" || res[i].Termin.CanonicText == "НАБЕРЕЖНА") || res[i].Termin.CanonicText == "МІКРОРАЙОН" || res[i].Termin.CanonicText == "ГОРОДОК"))) && res[i].BeginToken.IsValue(res[i].Termin.CanonicText, null)) 
-                {
-                    bool ok = false;
-                    if (i > 0 && ((res[i - 1].Typ == StreetItemType.Noun || res[i - 1].Typ == StreetItemType.StdAdjective))) 
-                        ok = true;
-                    else if (i > 1 && ((res[i - 1].Typ == StreetItemType.StdAdjective || res[i - 1].Typ == StreetItemType.Number)) && res[i - 2].Typ == StreetItemType.Noun) 
-                        ok = true;
-                    if (ok) 
-                    {
-                        StreetItemToken r = res[i].Clone();
-                        r.Typ = StreetItemType.Name;
-                        res[i] = r;
-                    }
-                }
-            }
-            StreetItemToken last = res[res.Count - 1];
-            for (int kk = 0; kk < 2; kk++) 
-            {
-                Pullenti.Ner.Token ttt = last.EndToken.Next;
-                if (((last.Typ == StreetItemType.Name && ttt != null && ttt.LengthChar == 1) && ttt.Chars.IsAllUpper && (ttt.WhitespacesBeforeCount < 2)) && ttt.Next != null && ttt.Next.IsChar('.')) 
-                {
-                    if (AddressItemToken.TryParsePureItem(ttt, null, null) != null) 
-                        break;
-                    last = last.Clone();
-                    last.EndToken = ttt.Next;
-                    res[res.Count - 1] = last;
-                }
-            }
-            if (res.Count > 1) 
-            {
-                if (res[res.Count - 1].Org != null) 
-                {
-                    if (res.Count == 2 && res[0].Typ == StreetItemType.Noun) 
-                    {
-                    }
-                    else 
-                        res.RemoveAt(res.Count - 1);
-                }
-            }
-            if (res.Count == 2 && res[0].Typ == StreetItemType.Noun && res[1].Typ == StreetItemType.Noun) 
-            {
-                if (!res[1].Chars.IsAllLower && !res[1].IsAbridge && res[1].BeginToken == res[1].EndToken) 
-                {
-                    res[1] = res[1].Clone();
-                    res[1].Typ = StreetItemType.Name;
-                    res[1].Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[1], Pullenti.Ner.Core.GetTextAttr.No);
-                }
-            }
-            if (res.Count == 0) 
-                return null;
-            return res;
-        }
         public StreetItemToken(Pullenti.Ner.Token begin, Pullenti.Ner.Token end) : base(begin, end, null)
         {
         }
@@ -1618,6 +287,14 @@ namespace Pullenti.Ner.Address.Internal
                         res.OrtoTerr = ait.Clone();
                         res.OrtoTerr.EndToken = ait.EndToken.Next;
                         res.EndToken = res.OrtoTerr.EndToken;
+                        if (res.Typ == StreetItemType.Number && res.EndToken.Next != null) 
+                        {
+                            if (res.EndToken.Next.IsValue("КИЛОМЕТР", null) && res.Value != null) 
+                            {
+                                res.IsNumberKm = true;
+                                res.EndToken = res.EndToken.Next;
+                            }
+                        }
                     }
                     else 
                     {
@@ -2166,7 +843,7 @@ namespace Pullenti.Ner.Address.Internal
                     }
                 }
             }
-            if (t.IsValue("ЧАСТЬ", null)) 
+            if ((t.IsValue("ЧАСТЬ", null) || t.IsValue("НАЧАЛО", null) || t.IsValue("СЕРЕДИНА", null)) || t.IsValue("КОНЕЦ", null)) 
                 return null;
             if (t.IsValue("УГОЛ", null)) 
             {
@@ -3164,7 +1841,7 @@ namespace Pullenti.Ner.Address.Internal
                         else 
                             ok1 = true;
                     }
-                    else if (prev != null && ((prev.Typ == StreetItemType.Noun || ((prev.Typ == StreetItemType.StdAdjective && t.Previous.IsHiphen)) || ((prev.Typ == StreetItemType.Number && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(prev)))))) 
+                    else if (prev != null && (((prev.Typ == StreetItemType.Noun || prev.Typ == StreetItemType.StdPartOfName || ((prev.Typ == StreetItemType.StdAdjective && t.Previous.IsHiphen))) || ((prev.Typ == StreetItemType.Number && ((Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(prev) || Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamQuiry(prev)))))))) 
                     {
                         if (AddressItemToken.CheckHouseAfter(tt.Next, false, false)) 
                         {
@@ -3769,6 +2446,16 @@ namespace Pullenti.Ner.Address.Internal
             }
             if (prev != null && prev.Typ == StreetItemType.Noun) 
             {
+                if (t is Pullenti.Ner.NumberToken) 
+                {
+                    Pullenti.Ner.Geo.Internal.NameToken nam = Pullenti.Ner.Geo.Internal.NameToken.TryParse(t, Pullenti.Ner.Geo.Internal.GeoTokenType.Street, 0, false);
+                    if (nam != null && nam.Number == null && nam.Pref == null) 
+                    {
+                        res = new List<StreetItemToken>();
+                        res.Add((sit = new StreetItemToken(nam.BeginToken, nam.EndToken) { Typ = StreetItemType.StdName, Value = nam.Name }));
+                        return res;
+                    }
+                }
                 Pullenti.Ner.Geo.Internal.NumToken num = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t, Pullenti.Ner.Geo.Internal.GeoTokenType.Street);
                 if (num != null) 
                 {
@@ -3987,6 +2674,1337 @@ namespace Pullenti.Ner.Address.Internal
             StreetItemToken res = new StreetItemToken(t, tt) { Typ = StreetItemType.Name };
             res.Value = string.Format("{0}{1}", t.GetSourceText().ToUpper(), (tt as Pullenti.Ner.NumberToken).Value);
             return res;
+        }
+        public static List<StreetItemToken> TryParseList(Pullenti.Ner.Token t, int maxCount = 10, Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad = null)
+        {
+            if (t == null) 
+                return null;
+            if (ad == null) 
+                ad = Pullenti.Ner.Geo.GeoAnalyzer.GetData(t);
+            if (ad == null) 
+                return null;
+            if (ad.SLevel > 2) 
+                return null;
+            ad.SLevel++;
+            List<StreetItemToken> res = _tryParseList(t, maxCount, ad);
+            ad.SLevel--;
+            return res;
+        }
+        static List<StreetItemToken> _tryParseList(Pullenti.Ner.Token t, int maxCount, Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad)
+        {
+            List<StreetItemToken> res = null;
+            StreetItemToken sit = TryParse(t, null, false, ad);
+            if (sit != null) 
+            {
+                res = new List<StreetItemToken>();
+                res.Add(sit);
+                t = sit.EndToken.Next;
+            }
+            else 
+            {
+                res = TryParseSpec(t, null);
+                if (res == null) 
+                    return null;
+                sit = res[res.Count - 1];
+                t = sit.EndToken.Next;
+                StreetItemToken sit2 = TryParse(t, null, false, null);
+                if (sit2 != null && sit2.Typ == StreetItemType.Noun) 
+                {
+                }
+                else if (AddressItemToken.CheckHouseAfter(t, false, true)) 
+                {
+                }
+                else 
+                    return null;
+            }
+            for (; t != null; t = (t == null ? null : t.Next)) 
+            {
+                if (maxCount > 0 && res.Count >= maxCount) 
+                    break;
+                if (t.IsNewlineBefore) 
+                {
+                    if (t.NewlinesBeforeCount > 1) 
+                        break;
+                    if (((t.WhitespacesAfterCount < 15) && sit != null && sit.Typ == StreetItemType.Noun) && t.Chars.IsCapitalUpper) 
+                    {
+                    }
+                    else 
+                    {
+                        bool ok = false;
+                        if (res.Count == 1 && res[0].Typ == StreetItemType.Name) 
+                        {
+                            StreetItemToken sit1 = TryParse(sit.EndToken.Next, sit, false, ad);
+                            if (sit1 != null && sit1.Typ == StreetItemType.Noun) 
+                            {
+                                StreetItemToken sit2 = TryParse(sit1.EndToken.Next, sit1, false, ad);
+                                if (sit2 == null) 
+                                    ok = true;
+                            }
+                        }
+                        else if (res.Count == 2 && res[0].Typ == StreetItemType.Noun && res[1].Typ == StreetItemType.StdAdjective) 
+                        {
+                            StreetItemToken sit1 = TryParse(sit.EndToken.Next, sit, false, ad);
+                            if (sit1 != null && ((sit1.Typ == StreetItemType.StdName || sit1.Typ == StreetItemType.Name))) 
+                            {
+                                if (AddressItemToken.CheckHouseAfter(sit1.EndToken.Next, false, false)) 
+                                    ok = true;
+                            }
+                        }
+                        if (!ok) 
+                            break;
+                    }
+                }
+                if (t.IsHiphen && sit != null && ((sit.Typ == StreetItemType.Name || sit.Typ == StreetItemType.StdName || (sit.Typ == StreetItemType.StdAdjective)))) 
+                {
+                    StreetItemToken sit1 = TryParse(t.Next, sit, false, ad);
+                    if (sit1 == null) 
+                    {
+                        Pullenti.Ner.NumberToken num = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t.Next);
+                        if (num != null) 
+                        {
+                            sit = new StreetItemToken(t, num.EndToken) { Typ = StreetItemType.Number, Value = num.Value, NumberHasPrefix = true };
+                            res.Add(sit);
+                            t = sit.EndToken;
+                            continue;
+                        }
+                        break;
+                    }
+                    if (sit1.Typ == StreetItemType.Number) 
+                    {
+                        Pullenti.Ner.Token tt = sit1.EndToken.Next;
+                        if (tt != null && tt.IsComma) 
+                            tt = tt.Next;
+                        bool ok = false;
+                        AddressItemToken ait = AddressItemToken.TryParsePureItem(tt, null, null);
+                        if (ait != null) 
+                        {
+                            if (ait.Typ == AddressItemType.House) 
+                                ok = true;
+                        }
+                        if (!ok) 
+                        {
+                            if (res.Count == 2 && res[0].Typ == StreetItemType.Noun) 
+                            {
+                                if (res[0].Termin.CanonicText == "МИКРОРАЙОН") 
+                                    ok = true;
+                            }
+                        }
+                        if (!ok && t.IsHiphen) 
+                            ok = true;
+                        if (ok) 
+                        {
+                            sit = sit1;
+                            res.Add(sit);
+                            t = sit.EndToken;
+                            sit.NumberHasPrefix = true;
+                            continue;
+                        }
+                    }
+                    if (sit1.Typ != StreetItemType.Name && sit1.Typ != StreetItemType.Name) 
+                    {
+                        if (sit1.Typ == StreetItemType.Noun && sit1.NounCanBeName) 
+                        {
+                        }
+                        else if (sit1.Typ == StreetItemType.StdAdjective) 
+                        {
+                        }
+                        else 
+                            break;
+                    }
+                    if (t.IsWhitespaceBefore && t.IsWhitespaceAfter) 
+                        break;
+                    if (res[0].BeginToken.Previous != null) 
+                    {
+                        AddressItemToken aaa = AddressItemToken.TryParsePureItem(res[0].BeginToken.Previous, null, null);
+                        if (aaa != null && aaa.Typ == AddressItemType.Detail && aaa.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross) 
+                            break;
+                    }
+                    sit = sit1;
+                    res.Add(sit);
+                    t = sit.EndToken;
+                    continue;
+                }
+                else if (t.IsHiphen && sit != null && sit.Typ == StreetItemType.Number) 
+                {
+                    StreetItemToken sit1 = TryParse(t.Next, null, false, ad);
+                    if (sit1 != null && (((sit1.Typ == StreetItemType.StdAdjective || sit1.Typ == StreetItemType.StdName || sit1.Typ == StreetItemType.Name) || sit1.Typ == StreetItemType.Noun))) 
+                    {
+                        sit.NumberHasPrefix = true;
+                        sit = sit1;
+                        res.Add(sit);
+                        t = sit.EndToken;
+                        continue;
+                    }
+                }
+                if (t.IsChar('.') && sit != null && sit.Typ == StreetItemType.Noun) 
+                {
+                    if (t.WhitespacesAfterCount > 1) 
+                        break;
+                    sit = TryParse(t.Next, null, false, ad);
+                    if (sit == null) 
+                        break;
+                    if (sit.Typ == StreetItemType.Number || sit.Typ == StreetItemType.StdAdjective) 
+                    {
+                        StreetItemToken sit1 = TryParse(sit.EndToken.Next, null, false, ad);
+                        if (sit1 != null && ((sit1.Typ == StreetItemType.StdAdjective || sit1.Typ == StreetItemType.StdName || sit1.Typ == StreetItemType.Name))) 
+                        {
+                        }
+                        else if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sit)) 
+                            break;
+                        else 
+                        {
+                            AddressItemToken ai = AddressItemToken.TryParsePureItem(t.Next, null, null);
+                            if (ai != null && ai.Typ != AddressItemType.Number) 
+                                break;
+                        }
+                    }
+                    else if (sit.Typ != StreetItemType.Name && sit.Typ != StreetItemType.StdName && sit.Typ != StreetItemType.Age) 
+                        break;
+                    if (t.Previous.GetMorphClassInDictionary().IsNoun) 
+                    {
+                        if (!sit.IsInDictionary) 
+                        {
+                            Pullenti.Ner.Token tt = sit.EndToken.Next;
+                            bool hasHouse = false;
+                            for (; tt != null; tt = tt.Next) 
+                            {
+                                if (tt.IsNewlineBefore) 
+                                    break;
+                                if (tt.IsComma) 
+                                    continue;
+                                AddressItemToken ai = AddressItemToken.TryParsePureItem(tt, null, null);
+                                if (ai != null && ((ai.Typ == AddressItemType.House || ai.Typ == AddressItemType.Building || ai.Typ == AddressItemType.Corpus))) 
+                                {
+                                    hasHouse = true;
+                                    break;
+                                }
+                                if (tt is Pullenti.Ner.NumberToken) 
+                                {
+                                    hasHouse = true;
+                                    break;
+                                }
+                                StreetItemToken vv = TryParse(tt, null, false, ad);
+                                if (vv == null || vv.Typ == StreetItemType.Noun) 
+                                    break;
+                                tt = vv.EndToken;
+                            }
+                            if (!hasHouse) 
+                                break;
+                        }
+                        if (t.Previous.Previous != null) 
+                        {
+                            Pullenti.Ner.Core.NounPhraseToken npt11 = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(t.Previous.Previous);
+                            if (npt11 != null && npt11.EndToken == t.Previous) 
+                                break;
+                        }
+                    }
+                    res.Add(sit);
+                }
+                else 
+                {
+                    sit = TryParse(t, res[res.Count - 1], false, ad);
+                    if (sit == null) 
+                    {
+                        List<StreetItemToken> spli = TryParseSpec(t, res[res.Count - 1]);
+                        if (spli != null && spli.Count > 0) 
+                        {
+                            res.AddRange(spli);
+                            t = spli[spli.Count - 1].EndToken;
+                            continue;
+                        }
+                        if (((t is Pullenti.Ner.TextToken) && ((res.Count == 2 || res.Count == 3)) && res[0].Typ == StreetItemType.Noun) && res[1].Typ == StreetItemType.Number && ((((t as Pullenti.Ner.TextToken).Term == "ГОДА" || (t as Pullenti.Ner.TextToken).Term == "МАЯ" || (t as Pullenti.Ner.TextToken).Term == "МАРТА") || (t as Pullenti.Ner.TextToken).Term == "СЪЕЗДА"))) 
+                        {
+                            res.Add((sit = new StreetItemToken(t, t) { Typ = StreetItemType.StdName, Value = (t as Pullenti.Ner.TextToken).Term }));
+                            continue;
+                        }
+                        sit = res[res.Count - 1];
+                        if (t == null) 
+                            break;
+                        if (sit.Typ == StreetItemType.Noun && ((sit.Termin.CanonicText == "МИКРОРАЙОН" || sit.Termin.CanonicText == "МІКРОРАЙОН")) && (t.WhitespacesBeforeCount < 2)) 
+                        {
+                            Pullenti.Ner.Token tt1 = t;
+                            if (tt1.IsHiphen && tt1.Next != null) 
+                                tt1 = tt1.Next;
+                            if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt1, true) && tt1.Next != null) 
+                                tt1 = tt1.Next;
+                            Pullenti.Ner.Token tt2 = tt1.Next;
+                            bool br = false;
+                            if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt2, true)) 
+                            {
+                                tt2 = tt2.Next;
+                                br = true;
+                            }
+                            if (((tt1 is Pullenti.Ner.TextToken) && tt1.LengthChar == 1 && tt1.Chars.IsLetter) && ((AddressItemToken.CheckHouseAfter(tt2, false, true) || tt2 == null))) 
+                            {
+                                sit = new StreetItemToken(t, (br ? tt1.Next : tt1)) { Typ = StreetItemType.Name, Value = (tt1 as Pullenti.Ner.TextToken).Term };
+                                char ch1 = AddressItemToken.CorrectChar(sit.Value[0]);
+                                if (ch1 != 0 && ch1 != sit.Value[0]) 
+                                    sit.AltValue = string.Format("{0}", ch1);
+                                res.Add(sit);
+                                break;
+                            }
+                        }
+                        if (t.IsComma && (((sit.Typ == StreetItemType.Name || sit.Typ == StreetItemType.StdName || sit.Typ == StreetItemType.StdPartOfName) || sit.Typ == StreetItemType.StdAdjective || ((sit.Typ == StreetItemType.Number && res.Count > 1 && (((res[res.Count - 2].Typ == StreetItemType.Name || res[res.Count - 2].Typ == StreetItemType.StdName || res[res.Count - 2].Typ == StreetItemType.StdAdjective) || res[res.Count - 2].Typ == StreetItemType.StdPartOfName))))))) 
+                        {
+                            StreetItemToken sit2 = TryParse(t.Next, null, false, ad);
+                            if (sit2 != null && sit2.Typ == StreetItemType.Noun) 
+                            {
+                                Pullenti.Ner.Token ttt = sit2.EndToken.Next;
+                                if (ttt != null && ttt.IsComma) 
+                                    ttt = ttt.Next;
+                                AddressItemToken add = AddressItemToken.TryParsePureItem(ttt, null, null);
+                                if (add != null && ((add.Typ == AddressItemType.House || add.Typ == AddressItemType.Corpus || add.Typ == AddressItemType.Building))) 
+                                {
+                                    res.Add(sit2);
+                                    t = sit2.EndToken;
+                                    continue;
+                                }
+                            }
+                        }
+                        else if (t.IsComma && sit.Typ == StreetItemType.Noun && sit.Termin.CanonicText.Contains("КВАРТАЛ")) 
+                        {
+                            Pullenti.Ner.Geo.Internal.NumToken num = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Street);
+                            if (num != null && num.IsCadasterNumber) 
+                                continue;
+                        }
+                        if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false)) 
+                        {
+                            StreetItemToken sit1 = res[res.Count - 1];
+                            if (sit1.Typ == StreetItemType.Noun && ((sit1.NounIsDoubtCoef == 0 || (((t.Next is Pullenti.Ner.TextToken) && !t.Next.Chars.IsAllLower))))) 
+                            {
+                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                                if (br != null && (br.LengthChar < 50)) 
+                                {
+                                    StreetItemToken sit2 = TryParse(t.Next, null, false, ad);
+                                    if (sit2 != null && sit2.EndToken.Next == br.EndToken) 
+                                    {
+                                        if (sit2.Value == null && sit2.Typ == StreetItemType.Name) 
+                                            sit2.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(sit2.BeginToken, sit2.EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                                        sit2.BeginToken = t;
+                                        sit2.IsInBrackets = true;
+                                        t = (sit2.EndToken = br.EndToken);
+                                        res.Add(sit2);
+                                        continue;
+                                    }
+                                    res.Add(new StreetItemToken(t, br.EndToken) { Typ = StreetItemType.Name, Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, br.EndToken, Pullenti.Ner.Core.GetTextAttr.No), IsInBrackets = true });
+                                    t = br.EndToken;
+                                    continue;
+                                }
+                            }
+                        }
+                        if (t.IsHiphen && (t.Next is Pullenti.Ner.NumberToken) && (t.Next as Pullenti.Ner.NumberToken).IntValue != null) 
+                        {
+                            sit = res[res.Count - 1];
+                            if (sit.Typ == StreetItemType.Noun && (((sit.Termin.CanonicText == "КВАРТАЛ" || sit.Termin.CanonicText == "МИКРОРАЙОН" || sit.Termin.CanonicText == "ГОРОДОК") || sit.Termin.CanonicText == "МІКРОРАЙОН"))) 
+                            {
+                                sit = new StreetItemToken(t, t.Next) { Typ = StreetItemType.Number, Value = (t.Next as Pullenti.Ner.NumberToken).Value, NumberType = (t.Next as Pullenti.Ner.NumberToken).Typ, NumberHasPrefix = true };
+                                res.Add(sit);
+                                t = t.Next;
+                                continue;
+                            }
+                        }
+                        if ((((t.IsChar(':') || t.IsHiphen)) && res.Count == 1 && res[0].Typ == StreetItemType.Noun) && (t.WhitespacesAfterCount < 3)) 
+                            continue;
+                        if ((t.IsComma && res.Count == 1 && res[0].Typ == StreetItemType.Noun) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                        {
+                            sit = TryParse(t.Next, null, false, null);
+                            if (sit != null && ((sit.Typ == StreetItemType.Name || sit.Typ == StreetItemType.StdName || sit.Typ == StreetItemType.StdAdjective))) 
+                            {
+                                res.Add(sit);
+                                t = sit.EndToken;
+                                continue;
+                            }
+                        }
+                        if ((t.IsChar('(') && t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) && t.Next.Next != null && t.Next.Next.IsChar(')')) 
+                        {
+                            sit = TryParse(t.Next.Next.Next, null, false, null);
+                            if (sit != null && sit.Typ == StreetItemType.Noun) 
+                            {
+                                res[res.Count - 1].Area = new AddressItemToken(AddressItemType.Region, t, t.Next.Next) { Referent = t.Next.GetReferent() };
+                                res.Add(sit);
+                                t = sit.EndToken;
+                                continue;
+                            }
+                        }
+                        break;
+                    }
+                    res.Add(sit);
+                    if (sit.Typ == StreetItemType.Name) 
+                    {
+                        int cou = 0;
+                        int jj;
+                        for (jj = res.Count - 1; jj >= 0; jj--) 
+                        {
+                            if (res[jj].Typ == StreetItemType.Name) 
+                                cou++;
+                            else 
+                                break;
+                        }
+                        if (cou > 4) 
+                        {
+                            if (jj < 0) 
+                                return null;
+                            res.RemoveRange(jj, res.Count - jj);
+                            break;
+                        }
+                        if (res.Count > 1 && res[0].Typ == StreetItemType.Noun && res[0].IsRoad) 
+                        {
+                            Pullenti.Ner.Token tt = sit.EndToken.Next;
+                            if (tt != null) 
+                            {
+                                if (tt.IsValue("Ш", null) || tt.IsValue("ШОССЕ", null) || tt.IsValue("ШОС", null)) 
+                                {
+                                    sit = sit.Clone();
+                                    res[res.Count - 1] = sit;
+                                    sit.EndToken = tt;
+                                    if (tt.Next != null && tt.Next.IsChar('.') && tt.LengthChar <= 3) 
+                                        sit.EndToken = sit.EndToken.Next;
+                                }
+                            }
+                        }
+                    }
+                }
+                t = sit.EndToken;
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == StreetItemType.Name && ((res[i + 1].AltTyp == StreetItemType.StdPartOfName || res[i + 1].Typ == StreetItemType.StdPartOfName))) 
+                {
+                    StreetItemToken r = res[i].Clone();
+                    if (r.Value == null) 
+                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(r, Pullenti.Ner.Core.GetTextAttr.No);
+                    r.Misc = res[i + 1].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i + 1], Pullenti.Ner.Core.GetTextAttr.No);
+                    r.EndToken = res[i + 1].EndToken;
+                    res[i] = r;
+                    res.RemoveAt(i + 1);
+                }
+                else if (res[i + 1].Typ == StreetItemType.Name && ((res[i].AltTyp == StreetItemType.StdPartOfName || res[i].Typ == StreetItemType.StdPartOfName))) 
+                {
+                    StreetItemToken r = res[i + 1].Clone();
+                    if (r.Value == null) 
+                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(r, Pullenti.Ner.Core.GetTextAttr.No);
+                    r.Misc = res[i].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i], Pullenti.Ner.Core.GetTextAttr.No);
+                    r.BeginToken = res[i].BeginToken;
+                    res[i] = r;
+                    res.RemoveAt(i + 1);
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == StreetItemType.Name && res[i + 1].Typ == StreetItemType.Name && (res[i].WhitespacesAfterCount < 3)) 
+                {
+                    bool isProp = false;
+                    bool isPers = false;
+                    if (res[i].BeginToken.Morph.Class.IsNoun) 
+                    {
+                        Pullenti.Ner.ReferentToken rt = res[i].Kit.ProcessReferent("PERSON", res[i].BeginToken, null);
+                        if (rt != null) 
+                        {
+                            if (rt.Referent.TypeName == "PERSONPROPERTY") 
+                                isProp = true;
+                            else if (rt.EndToken == res[i + 1].EndToken) 
+                                isPers = true;
+                        }
+                    }
+                    if ((i == 0 && ((!isProp && !isPers)) && ((i + 2) < res.Count)) && res[i + 2].Typ == StreetItemType.Noun && !res[i].BeginToken.Morph.Class.IsAdjective) 
+                    {
+                        if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.CheckGeoObjectBefore(res[0].BeginToken, false) && res[0].EndToken.Next == res[1].BeginToken && (res[0].WhitespacesAfterCount < 2)) 
+                        {
+                        }
+                        else 
+                        {
+                            res.RemoveAt(i);
+                            i--;
+                            continue;
+                        }
+                    }
+                    if (res[i].Morph.Class.IsAdjective && res[i + 1].Morph.Class.IsAdjective && !isPers) 
+                    {
+                        if (res[i].EndToken.Next.IsHiphen) 
+                        {
+                        }
+                        else if (i == 1 && res[0].Typ == StreetItemType.Noun && res.Count == 3) 
+                        {
+                        }
+                        else if (i == 0 && res.Count == 3 && res[2].Typ == StreetItemType.Noun) 
+                        {
+                        }
+                        else 
+                            continue;
+                    }
+                    if (res[i].Chars.Value != res[i + 1].Chars.Value) 
+                    {
+                        Pullenti.Ner.ReferentToken rt = res[0].Kit.ProcessReferent("ORGANIZATION", res[i + 1].BeginToken, null);
+                        if (rt != null) 
+                        {
+                            res.RemoveRange(i + 1, res.Count - i - 1);
+                            continue;
+                        }
+                    }
+                    StreetItemToken r = res[i].Clone();
+                    if (r.Value == null) 
+                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i], Pullenti.Ner.Core.GetTextAttr.No);
+                    Pullenti.Ner.Token tt1 = res[i + 1].EndToken;
+                    Pullenti.Morph.MorphClass mc1 = res[i].BeginToken.GetMorphClassInDictionary();
+                    Pullenti.Morph.MorphClass mc2 = tt1.GetMorphClassInDictionary();
+                    if ((tt1.IsValue("БОР", null) || tt1.IsValue("САД", null) || tt1.IsValue("ПАРК", null)) || tt1.Previous.IsHiphen) 
+                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i + 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                    else if (((mc1.IsProperName && !mc2.IsProperName)) || ((!mc1.IsProperSurname && mc2.IsProperSurname))) 
+                    {
+                        if (r.Misc == null) 
+                            r.Misc = r.Value;
+                        r.Value = res[i + 1].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i + 1], Pullenti.Ner.Core.GetTextAttr.No);
+                    }
+                    else if (((mc2.IsProperName && !mc1.IsProperName)) || ((!mc2.IsProperSurname && mc1.IsProperSurname))) 
+                    {
+                        if (r.Misc == null) 
+                            r.Misc = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[i + 1], Pullenti.Ner.Core.GetTextAttr.No);
+                    }
+                    else 
+                        r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i + 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                    if (r.Value.Contains("-")) 
+                        r.Value = r.Value.Replace('-', ' ');
+                    r.OrtoTerr = res[i + 1].OrtoTerr;
+                    r.EndToken = res[i + 1].EndToken;
+                    r.ExistStreet = null;
+                    r.IsInDictionary = res[i + 1].IsInDictionary || res[i].IsInDictionary;
+                    res[i] = r;
+                    res.RemoveAt(i + 1);
+                    i--;
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == StreetItemType.StdAdjective && res[i].EndToken.IsChar('.') && res[i + 1]._isSurname()) 
+                {
+                    StreetItemToken r = res[i + 1].Clone();
+                    r.Value = (res[i + 1].BeginToken as Pullenti.Ner.TextToken).Term;
+                    r.AltValue = Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i + 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                    r.BeginToken = res[i].BeginToken;
+                    r.StdAdjVersion = res[i];
+                    res[i + 1] = r;
+                    res.RemoveAt(i);
+                    break;
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if ((res[i + 1].Typ == StreetItemType.StdAdjective && res[i + 1].EndToken.IsChar('.') && res[i + 1].BeginToken.LengthChar == 1) && !res[i].BeginToken.Chars.IsAllLower) 
+                {
+                    if (res[i]._isSurname()) 
+                    {
+                        if (i == (res.Count - 2) || res[i + 2].Typ != StreetItemType.Noun) 
+                        {
+                            StreetItemToken r = res[i].Clone();
+                            if (r.Value == null) 
+                                r.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(r, Pullenti.Ner.Core.GetTextAttr.No);
+                            r.EndToken = res[i + 1].EndToken;
+                            r.StdAdjVersion = res[i + 1];
+                            res[i] = r;
+                            res.RemoveAt(i + 1);
+                            break;
+                        }
+                    }
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == StreetItemType.Name || res[i].Typ == StreetItemType.StdName || res[i].Typ == StreetItemType.StdAdjective) 
+                {
+                    if (res[i + 1].Typ == StreetItemType.Noun && !res[i + 1].IsAbridge && res[i + 1].Termin.CanonicText != "УЛИЦА") 
+                    {
+                        List<StreetItemToken> res0 = new List<StreetItemToken>(res);
+                        res0.RemoveRange(0, i + 1);
+                        AddressItemToken rtt = StreetDefineHelper.TryParseStreet(res0, false, false, false, null, false);
+                        if (rtt != null) 
+                            continue;
+                        int i0 = -1;
+                        if (i == 1 && res[0].Typ == StreetItemType.Noun && res.Count == 3) 
+                            i0 = 0;
+                        else if (i == 0 && res.Count == 3 && res[2].Typ == StreetItemType.Noun) 
+                            i0 = 2;
+                        if (i0 < 0) 
+                            continue;
+                        if (res[i0].Termin == res[i + 1].Termin) 
+                            continue;
+                        StreetItemToken r = res[i].Clone();
+                        r.AltValue = res[i].Value ?? Pullenti.Ner.Core.MiscHelper.GetTextValue(res[i].BeginToken, res[i].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                        if (res[i].Typ == StreetItemType.StdAdjective) 
+                        {
+                            List<string> adjs = Pullenti.Ner.Geo.Internal.MiscLocationHelper.GetStdAdjFull(res[i].BeginToken, res[i + 1].Morph.Gender, res[i + 1].Morph.Number, true);
+                            if (adjs != null && adjs.Count > 0) 
+                                r.AltValue = adjs[0];
+                        }
+                        r.Value = string.Format("{0} {1}", r.AltValue, res[i + 1].Termin.CanonicText);
+                        r.Typ = StreetItemType.StdName;
+                        r.EndToken = res[i + 1].EndToken;
+                        res[i] = r;
+                        StreetItemToken rr = res[i0].Clone();
+                        rr.AltTermin = res[i + 1].Termin;
+                        res[i0] = rr;
+                        res.RemoveAt(i + 1);
+                        i--;
+                    }
+                }
+            }
+            if ((res.Count >= 3 && res[0].Typ == StreetItemType.Noun && res[0].Termin.CanonicText == "КВАРТАЛ") && ((res[1].Typ == StreetItemType.Name || res[1].Typ == StreetItemType.StdName)) && res[2].Typ == StreetItemType.Noun) 
+            {
+                if (res.Count == 3 || res[3].Typ == StreetItemType.Number) 
+                {
+                    List<StreetItemToken> res0 = new List<StreetItemToken>(res);
+                    res0.RemoveRange(0, 2);
+                    AddressItemToken rtt = StreetDefineHelper.TryParseStreet(res0, false, false, false, null, false);
+                    if (rtt == null || res0[0].Chars.IsCapitalUpper) 
+                    {
+                        StreetItemToken r = res[1].Clone();
+                        r.Value = string.Format("{0} {1}", Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[1], Pullenti.Ner.Core.GetTextAttr.No), res[2].Termin.CanonicText);
+                        r.EndToken = res[2].EndToken;
+                        res[1] = r;
+                        res.RemoveAt(2);
+                    }
+                }
+            }
+            if ((res.Count >= 3 && res[0].Typ == StreetItemType.Noun && res[0].Termin.CanonicText == "КВАРТАЛ") && ((res[2].Typ == StreetItemType.Name || res[2].Typ == StreetItemType.StdName)) && res[1].Typ == StreetItemType.Noun) 
+            {
+                if (res.Count == 3 || res[3].Typ == StreetItemType.Number) 
+                {
+                    StreetItemToken r = res[1].Clone();
+                    r.Value = string.Format("{0} {1}", Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[2], Pullenti.Ner.Core.GetTextAttr.No), res[1].Termin.CanonicText);
+                    r.EndToken = res[2].EndToken;
+                    r.Typ = StreetItemType.Name;
+                    res[1] = r;
+                    res.RemoveAt(2);
+                }
+            }
+            if ((res.Count >= 3 && res[0].Typ == StreetItemType.Number && !res[0].IsNumberKm) && res[1].Typ == StreetItemType.Noun) 
+            {
+                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0]) && res[2].Typ != StreetItemType.StdName && res[2].Typ != StreetItemType.Fix) 
+                {
+                    Pullenti.Ner.NumberToken nt = res[0].BeginToken as Pullenti.Ner.NumberToken;
+                    if (nt != null && nt.Typ == Pullenti.Ner.NumberSpellingType.Digit && nt.Morph.Class.IsUndefined) 
+                        return null;
+                }
+            }
+            int ii0 = -1;
+            int ii1 = -1;
+            if (res.Count > 0 && res[0].Typ == StreetItemType.Noun && res[0].IsRoad) 
+            {
+                ii0 = (ii1 = 0);
+                if (((ii0 + 1) < res.Count) && res[ii0 + 1].Typ == StreetItemType.Number && res[ii0 + 1].IsNumberKm) 
+                    ii0++;
+            }
+            else if ((res.Count > 1 && res[0].Typ == StreetItemType.Number && res[0].IsNumberKm) && res[1].Typ == StreetItemType.Noun && res[1].IsRoad) 
+                ii0 = (ii1 = 1);
+            if (ii0 >= 0) 
+            {
+                if (res.Count == (ii0 + 1)) 
+                {
+                    Pullenti.Ner.Token tt = res[ii0].EndToken.Next;
+                    StreetItemToken num = _tryAttachRoadNum(tt);
+                    if (num != null) 
+                    {
+                        res.Add(num);
+                        tt = num.EndToken.Next;
+                        res[0].IsAbridge = false;
+                    }
+                    if (tt != null && (tt.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                    {
+                        Pullenti.Ner.Geo.GeoReferent g1 = tt.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
+                        tt = tt.Next;
+                        if (tt != null && tt.IsHiphen) 
+                            tt = tt.Next;
+                        Pullenti.Ner.Geo.GeoReferent g2 = (tt == null ? null : tt.GetReferent() as Pullenti.Ner.Geo.GeoReferent);
+                        if (g2 != null) 
+                        {
+                            if (g1.IsCity && g2.IsCity) 
+                            {
+                                StreetItemToken nam = new StreetItemToken(res[0].EndToken.Next, tt) { Typ = StreetItemType.Name };
+                                nam.Value = string.Format("{0} - {1}", g1.ToStringEx(true, tt.Kit.BaseLanguage, 0), g2.ToStringEx(true, tt.Kit.BaseLanguage, 0)).ToUpper();
+                                nam.AltValue = string.Format("{0} - {1}", g2.ToStringEx(true, tt.Kit.BaseLanguage, 0), g1.ToStringEx(true, tt.Kit.BaseLanguage, 0)).ToUpper();
+                                res.Add(nam);
+                            }
+                        }
+                    }
+                    else if (Pullenti.Ner.Core.BracketHelper.IsBracket(tt, false)) 
+                    {
+                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tt, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br != null) 
+                        {
+                            StreetItemToken nam = new StreetItemToken(tt, br.EndToken) { Typ = StreetItemType.Name, IsInBrackets = true };
+                            nam.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt.Next, br.EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                            res.Add(nam);
+                        }
+                    }
+                }
+                else if ((res.Count == (ii0 + 2) && res[ii0 + 1].Typ == StreetItemType.Name && res[ii0 + 1].EndToken.Next != null) && res[ii0 + 1].EndToken.Next.IsHiphen) 
+                {
+                    Pullenti.Ner.Token tt = res[ii0 + 1].EndToken.Next.Next;
+                    Pullenti.Ner.Geo.GeoReferent g2 = (tt == null ? null : tt.GetReferent() as Pullenti.Ner.Geo.GeoReferent);
+                    Pullenti.Ner.Token te = null;
+                    string name2 = null;
+                    if (g2 == null && tt != null) 
+                    {
+                        Pullenti.Ner.ReferentToken rt = tt.Kit.ProcessReferent("GEO", tt, null);
+                        if (rt != null) 
+                        {
+                            te = rt.EndToken;
+                            name2 = rt.Referent.ToStringEx(true, te.Kit.BaseLanguage, 0);
+                        }
+                        else 
+                        {
+                            List<Pullenti.Ner.Geo.Internal.CityItemToken> cits2 = Pullenti.Ner.Geo.Internal.CityItemToken.TryParseList(tt, 2, null);
+                            if (cits2 != null) 
+                            {
+                                if (cits2.Count == 1 && ((cits2[0].Typ == Pullenti.Ner.Geo.Internal.CityItemToken.ItemType.ProperName || cits2[0].Typ == Pullenti.Ner.Geo.Internal.CityItemToken.ItemType.City))) 
+                                {
+                                    if (cits2[0].OntoItem != null) 
+                                        name2 = cits2[0].OntoItem.CanonicText;
+                                    else 
+                                        name2 = cits2[0].Value;
+                                    te = cits2[0].EndToken;
+                                }
+                            }
+                        }
+                    }
+                    else if (g2 != null) 
+                    {
+                        te = tt;
+                        name2 = g2.ToStringEx(true, te.Kit.BaseLanguage, 0);
+                    }
+                    if (((g2 != null && g2.IsCity)) || ((g2 == null && name2 != null))) 
+                    {
+                        StreetItemToken r = res[ii0 + 1].Clone();
+                        r.AltValue = string.Format("{0} - {1}", name2, res[ii0 + 1].Value ?? res[ii0 + 1].GetSourceText()).ToUpper();
+                        r.Value = string.Format("{0} - {1}", res[ii0 + 1].Value ?? res[ii0 + 1].GetSourceText(), name2).ToUpper();
+                        r.EndToken = te;
+                        res[ii0 + 1] = r;
+                    }
+                }
+                StreetItemToken nn = _tryAttachRoadNum(res[res.Count - 1].EndToken.Next);
+                if (nn != null) 
+                {
+                    res.Add(nn);
+                    res[ii1].IsAbridge = false;
+                }
+                if (res.Count > (ii0 + 1) && res[ii0 + 1].Typ == StreetItemType.Name && res[ii1].Termin.CanonicText == "АВТОДОРОГА") 
+                {
+                    if (res[ii0 + 1].BeginToken.IsValue("ФЕДЕРАЛЬНЫЙ", null)) 
+                        return null;
+                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(res[ii0 + 1].BeginToken);
+                    if (npt != null && npt.Adjectives.Count > 0) 
+                    {
+                        if (npt.EndToken.IsValue("ЗНАЧЕНИЕ", null)) 
+                            return null;
+                    }
+                }
+            }
+            while (res.Count > 1) 
+            {
+                StreetItemToken it = res[res.Count - 1];
+                if (it.BeginToken == it.EndToken && it.LengthChar == 1 && it.IsValue("В", null)) 
+                {
+                    if (it.EndToken.Next is Pullenti.Ner.ReferentToken) 
+                    {
+                        res.Remove(it);
+                        continue;
+                    }
+                }
+                if (res.Count == 4) 
+                {
+                    if ((res[0].Typ == StreetItemType.Noun && res[1].Typ == StreetItemType.Number && res[2].Typ == StreetItemType.Noun) && res[3].Typ == StreetItemType.Number) 
+                        break;
+                }
+                if (res.Count == 5) 
+                {
+                    if (((res[0].Typ == StreetItemType.Noun && res[0].Termin.CanonicText == "УЛИЦА" && res[1].Typ == StreetItemType.Noun) && res[2].Typ == StreetItemType.Number && res[3].Typ == StreetItemType.Noun) && res[4].Typ == StreetItemType.Number) 
+                        break;
+                }
+                StreetItemToken it0 = (res.Count > 1 ? res[res.Count - 2] : null);
+                if (it.Typ == StreetItemType.Number && !it.NumberHasPrefix && !it.IsNumberKm) 
+                {
+                    if (it.BeginToken is Pullenti.Ner.NumberToken) 
+                    {
+                        if (res.Count == 2 && res[0].Typ == StreetItemType.Noun) 
+                            break;
+                        if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamGarAddress(res[0])) 
+                            break;
+                        if (!it.BeginToken.Morph.Class.IsAdjective || it.BeginToken.Morph.Class.IsNoun) 
+                        {
+                            if (AddressItemToken.CheckHouseAfter(it.EndToken.Next, false, true)) 
+                                it.NumberHasPrefix = true;
+                            else if (it0 != null && it0.Typ == StreetItemType.Noun && (((it0.Termin.CanonicText == "МИКРОРАЙОН" || it0.Termin.CanonicText == "МІКРОРАЙОН" || it0.Termin.CanonicText == "КВАРТАЛ") || it0.Termin.CanonicText == "ГОРОДОК"))) 
+                            {
+                                AddressItemToken ait = AddressItemToken.TryParsePureItem(it.BeginToken, null, null);
+                                if (ait != null && ait.Typ == AddressItemType.Number && ait.EndChar > it.EndChar) 
+                                {
+                                    it.NumberType = Pullenti.Ner.NumberSpellingType.Undefined;
+                                    it.Value = ait.Value;
+                                    it.EndToken = ait.EndToken;
+                                    it.Typ = StreetItemType.Name;
+                                }
+                            }
+                            else if (it0 != null && it0.Termin != null && it0.Termin.CanonicText == "ПОЧТОВОЕ ОТДЕЛЕНИЕ") 
+                                it.NumberHasPrefix = true;
+                            else if (it0 != null && it0.BeginToken.IsValue("ЛИНИЯ", null)) 
+                                it.NumberHasPrefix = true;
+                            else if (res.Count == 2 && res[0].Typ == StreetItemType.Noun && (res[0].WhitespacesAfterCount < 2)) 
+                            {
+                            }
+                            else if (it.BeginToken.Morph.Class.IsAdjective && (it.BeginToken as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Words && it.BeginToken.Chars.IsCapitalUpper) 
+                                it.NumberHasPrefix = true;
+                            else if (it.BeginToken.Previous.IsHiphen) 
+                                it.NumberHasPrefix = true;
+                            else if (((res.Count > 1 && res[res.Count - 2].Typ == StreetItemType.Name && res[res.Count - 2].BeginToken == res[res.Count - 2].EndToken) && it.BeginToken.Previous.GetMorphClassInDictionary().IsProperName && (it.BeginToken is Pullenti.Ner.NumberToken)) && (it.BeginToken as Pullenti.Ner.NumberToken).IntValue != null && ((it.BeginToken as Pullenti.Ner.NumberToken).IntValue.Value < 3)) 
+                                it.NumberHasPrefix = true;
+                            else 
+                            {
+                                res.RemoveAt(res.Count - 1);
+                                continue;
+                            }
+                        }
+                        else 
+                            it.NumberHasPrefix = true;
+                    }
+                }
+                break;
+            }
+            if (res.Count == 0) 
+                return null;
+            for (int i = 0; i < res.Count; i++) 
+            {
+                if (res[i].NextItem != null) 
+                {
+                    if (res[i].Typ == StreetItemType.Number && i > 0 && res[i - 1].Typ == StreetItemType.Name) 
+                    {
+                    }
+                    else 
+                        res.Insert(i + 1, res[i].NextItem);
+                }
+            }
+            for (int i = 0; i < res.Count; i++) 
+            {
+                if ((res[i].Typ == StreetItemType.Noun && res[i].Chars.IsCapitalUpper && (((res[i].Termin.CanonicText == "НАБЕРЕЖНАЯ" || res[i].Termin.CanonicText == "МИКРОРАЙОН" || res[i].Termin.CanonicText == "НАБЕРЕЖНА") || res[i].Termin.CanonicText == "МІКРОРАЙОН" || res[i].Termin.CanonicText == "ГОРОДОК"))) && res[i].BeginToken.IsValue(res[i].Termin.CanonicText, null)) 
+                {
+                    bool ok = false;
+                    if (i > 0 && ((res[i - 1].Typ == StreetItemType.Noun || res[i - 1].Typ == StreetItemType.StdAdjective))) 
+                        ok = true;
+                    else if (i > 1 && ((res[i - 1].Typ == StreetItemType.StdAdjective || res[i - 1].Typ == StreetItemType.Number)) && res[i - 2].Typ == StreetItemType.Noun) 
+                        ok = true;
+                    if (ok) 
+                    {
+                        StreetItemToken r = res[i].Clone();
+                        r.Typ = StreetItemType.Name;
+                        res[i] = r;
+                    }
+                }
+            }
+            StreetItemToken last = res[res.Count - 1];
+            for (int kk = 0; kk < 2; kk++) 
+            {
+                Pullenti.Ner.Token ttt = last.EndToken.Next;
+                if (((last.Typ == StreetItemType.Name && ttt != null && ttt.LengthChar == 1) && ttt.Chars.IsAllUpper && (ttt.WhitespacesBeforeCount < 2)) && ttt.Next != null && ttt.Next.IsChar('.')) 
+                {
+                    if (AddressItemToken.TryParsePureItem(ttt, null, null) != null) 
+                        break;
+                    last = last.Clone();
+                    last.EndToken = ttt.Next;
+                    res[res.Count - 1] = last;
+                }
+            }
+            if (res.Count > 1) 
+            {
+                if (res[res.Count - 1].Org != null) 
+                {
+                    if (res.Count == 2 && res[0].Typ == StreetItemType.Noun) 
+                    {
+                    }
+                    else 
+                        res.RemoveAt(res.Count - 1);
+                }
+            }
+            if (res.Count == 2 && res[0].Typ == StreetItemType.Noun && res[1].Typ == StreetItemType.Noun) 
+            {
+                if (!res[1].Chars.IsAllLower && !res[1].IsAbridge && res[1].BeginToken == res[1].EndToken) 
+                {
+                    res[1] = res[1].Clone();
+                    res[1].Typ = StreetItemType.Name;
+                    res[1].Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(res[1], Pullenti.Ner.Core.GetTextAttr.No);
+                }
+            }
+            if (res.Count == 0) 
+                return null;
+            return res;
+        }
+        public static void Initialize()
+        {
+            if (m_Ontology != null) 
+                return;
+            m_Ontology = new Pullenti.Ner.Core.TerminCollection();
+            m_OntologyEx = new Pullenti.Ner.Core.TerminCollection();
+            m_StdOntMisc = new Pullenti.Ner.Core.TerminCollection();
+            m_StdAdj = new Pullenti.Ner.Core.TerminCollection();
+            Pullenti.Ner.Core.Termin t;
+            t = new Pullenti.Ner.Core.Termin("УЛИЦА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("УЛ.");
+            t.AddAbridge("УЛЮ");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ВУЛИЦЯ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("ВУЛ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("STREET") { Tag = StreetItemType.Noun };
+            t.AddAbridge("ST.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПЛОЩАДЬ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("ПЛ.");
+            t.AddAbridge("ПЛОЩ.");
+            t.AddAbridge("ПЛ-ДЬ");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПЛОЩА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("ПЛ.");
+            t.AddAbridge("ПЛОЩ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МАЙДАН") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("SQUARE") { Tag = StreetItemType.Noun };
+            t.AddAbridge("SQ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПРОЕЗД") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("ПР.");
+            t.AddAbridge("П-Д");
+            t.AddAbridge("ПР-Д");
+            t.AddAbridge("ПР-ЗД");
+            t.AddAbridge("ПД");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПРОЕЗД") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("ПР.");
+            t.AddAbridge("П-Д");
+            t.AddAbridge("ПР-Д");
+            t.AddAbridge("ПР-ЗД");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ЛИНИЯ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("ЛИН.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ЛІНІЯ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Feminie };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("РЯД") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
+            m_Ontology.Add(t);
+            m_Block = (t = new Pullenti.Ner.Core.Termin("БЛОК") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine });
+            t.AddAbridge("БЛ.");
+            t.AddVariant("БЛОК ГАРАЖЕЙ", false);
+            t.AddVariant("ГАРАЖНЫЙ БЛОК", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПАНЕЛЬ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Feminie };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("КУСТ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddVariant("КУСТ ГАЗОВЫХ СКВАЖИН", false);
+            t.AddVariant("КУСТОВАЯ ПЛОЩАДКА СКВАЖИН", false);
+            t.AddVariant("КУСТ СКВАЖИН", false);
+            m_Ontology.Add(t);
+            m_Prospect = (t = new Pullenti.Ner.Core.Termin("ПРОСПЕКТ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine });
+            t.AddAbridge("ПРОС.");
+            t.AddAbridge("ПРКТ");
+            t.AddAbridge("ПРОСП.");
+            t.AddAbridge("ПР-Т");
+            t.AddAbridge("ПР-КТ");
+            t.AddAbridge("П-Т");
+            t.AddAbridge("П-КТ");
+            t.AddAbridge("ПР Т");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПЕРЕУЛОК") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("ПЕР.");
+            t.AddAbridge("ПЕР-К");
+            t.AddAbridge("П-К");
+            t.AddVariant("ПРЕУЛОК", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПРОУЛОК") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("ПРОУЛ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПРОВУЛОК") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("ПРОВ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("LANE") { Tag = StreetItemType.Noun, Tag2 = 0 };
+            t.AddAbridge("LN.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ТУПИК") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("ТУП.");
+            t.AddAbridge("Т.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("БУЛЬВАР") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("БУЛЬВ.");
+            t.AddAbridge("БУЛ.");
+            t.AddAbridge("Б-Р");
+            t.AddAbridge("Б-РЕ");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("BOULEVARD") { Tag = StreetItemType.Noun, Tag2 = 0 };
+            t.AddAbridge("BLVD");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СКВЕР") { Tag = StreetItemType.Noun, Tag2 = 1 };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НАБЕРЕЖНАЯ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("НАБ.");
+            t.AddAbridge("НАБЕР.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НАБЕРЕЖНА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("НАБ.");
+            t.AddAbridge("НАБЕР.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("АЛЛЕЯ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("АЛ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("АЛЕЯ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("АЛ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ALLEY") { Tag = StreetItemType.Noun, Tag2 = 0 };
+            t.AddAbridge("ALY.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("АВЕНЮ") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("АВЕНЬЮ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПРОСЕКА") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("ПРОСЕК", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПЛОЩАДКА") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddAbridge("ПЛ-КА");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПРОСІКА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ТРАКТ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Neuter };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ШОССЕ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Neuter };
+            t.AddAbridge("Ш.");
+            t.AddAbridge("ШОС.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ШОСЕ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Neuter };
+            t.AddAbridge("Ш.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ROAD") { Tag = StreetItemType.Noun, Tag2 = 1 };
+            t.AddAbridge("RD.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МИКРОРАЙОН") { Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("МКР.");
+            t.AddAbridge("МКН.");
+            t.AddAbridge("МИКР-Н");
+            t.AddAbridge("МИКР.");
+            t.AddAbridge("МКР-Н");
+            t.AddAbridge("МКР-ОН");
+            t.AddAbridge("МКРН.");
+            t.AddAbridge("М-Н");
+            t.AddAbridge("М-ОН");
+            t.AddAbridge("М.Р-Н");
+            t.AddAbridge("МИКР-ОН");
+            t.AddVariant("МИКРОН", false);
+            t.AddAbridge("М/Р");
+            t.AddVariant("МІКРОРАЙОН", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("КВАРТАЛ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("КВАРТ.");
+            t.AddAbridge("КВ-Л");
+            t.AddAbridge("КВ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("КАДАСТРОВЫЙ КВАРТАЛ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("КАД.КВАРТ.");
+            t.AddAbridge("КАД.КВ-Л");
+            t.AddAbridge("КАД.КВ.");
+            t.AddAbridge("КАД.КВАРТАЛ");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ТОРФЯНОЙ УЧАСТОК") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddVariant("ТОРФУЧАСТОК", false);
+            t.AddVariant("ТОРФОУЧАСТОК", false);
+            t.AddAbridge("ТОРФ.УЧАСТОК");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МОСТ") { Tag = StreetItemType.Noun, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МІСТ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 2, Gender = Pullenti.Morph.MorphGender.Masculine };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("PLAZA") { Tag = StreetItemType.Noun, Tag2 = 1 };
+            t.AddAbridge("PLZ");
+            m_Ontology.Add(t);
+            m_Metro = (t = new Pullenti.Ner.Core.Termin("СТАНЦИЯ МЕТРО") { CanonicText = "МЕТРО", Tag = StreetItemType.Noun, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie });
+            t.AddVariant("СТАНЦІЯ МЕТРО", false);
+            t.AddAbridge("СТ.МЕТРО");
+            t.AddAbridge("СТ.М.");
+            t.AddAbridge("МЕТРО");
+            m_Ontology.Add(t);
+            m_Road = (t = new Pullenti.Ner.Core.Termin("АВТОДОРОГА") { Tag = StreetItemType.Noun, Acronym = "ФАД", Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie });
+            t.AddVariant("ФЕДЕРАЛЬНАЯ АВТОДОРОГА", false);
+            t.AddVariant("АВТОМОБИЛЬНАЯ ДОРОГА", false);
+            t.AddVariant("АВТОТРАССА", false);
+            t.AddVariant("ФЕДЕРАЛЬНАЯ ТРАССА", false);
+            t.AddVariant("ФЕДЕР ТРАССА", false);
+            t.AddVariant("АВТОМАГИСТРАЛЬ", false);
+            t.AddAbridge("А/Д");
+            t.AddAbridge("ФЕДЕР.ТРАССА");
+            t.AddAbridge("ФЕД.ТРАССА");
+            t.AddVariant("ГОСТРАССА", false);
+            t.AddVariant("ГОС.ТРАССА", false);
+            t.AddVariant("АВТОМАГ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ДОРОГА") { CanonicText = "АВТОДОРОГА", Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("ТРАССА", false);
+            t.AddAbridge("ДОР.");
+            t.AddVariant("ДОР", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МАГИСТРАЛЬ") { Tag = StreetItemType.Noun, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("МГСТР", false);
+            t.AddAbridge("МАГ-ЛЬ");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("АВТОДОРОГА") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 0, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("ФЕДЕРАЛЬНА АВТОДОРОГА", false);
+            t.AddVariant("АВТОМОБІЛЬНА ДОРОГА", false);
+            t.AddVariant("АВТОТРАСА", false);
+            t.AddVariant("ФЕДЕРАЛЬНА ТРАСА", false);
+            t.AddVariant("АВТОМАГІСТРАЛЬ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ДОРОГА") { CanonicText = "АВТОДОРОГА", Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("ТРАСА", false);
+            t.AddVariant("МАГІСТРАЛЬ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МАГІСТРАЛЬ") { Tag = StreetItemType.Noun, Lang = Pullenti.Morph.MorphLang.UA, Tag2 = 1, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("МГСТР", false);
+            t.AddAbridge("МАГ-ЛЬ");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МОСКОВСКАЯ КОЛЬЦЕВАЯ АВТОМОБИЛЬНАЯ ДОРОГА") { Acronym = "МКАД", Tag = StreetItemType.Fix, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("МОСКОВСКАЯ КОЛЬЦЕВАЯ АВТОДОРОГА", false);
+            m_Ontology.Add(t);
+            m_Ontology.Add(new Pullenti.Ner.Core.Termin("САДОВОЕ КОЛЬЦО") { Tag = StreetItemType.Fix });
+            m_Ontology.Add(new Pullenti.Ner.Core.Termin("БУЛЬВАРНОЕ КОЛЬЦО") { Tag = StreetItemType.Fix });
+            m_Ontology.Add(new Pullenti.Ner.Core.Termin("ТРАНСПОРТНОЕ КОЛЬЦО") { Tag = StreetItemType.Fix });
+            t = new Pullenti.Ner.Core.Termin("ПОЧТОВОЕ ОТДЕЛЕНИЕ") { Tag = StreetItemType.Noun, Acronym = "ОПС", Gender = Pullenti.Morph.MorphGender.Neuter };
+            t.AddAbridge("П.О.");
+            t.AddAbridge("ПОЧТ.ОТД.");
+            t.AddAbridge("ПОЧТОВ.ОТД.");
+            t.AddAbridge("ПОЧТОВОЕ ОТД.");
+            t.AddAbridge("П/О");
+            t.AddVariant("ОТДЕЛЕНИЕ ПОЧТОВОЙ СВЯЗИ", false);
+            t.AddVariant("ПОЧТАМТ", false);
+            t.AddVariant("ГЛАВПОЧТАМТ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("БУДКА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("ЖЕЛЕЗНОДОРОЖНАЯ БУДКА", false);
+            t.AddAbridge("Ж/Д БУДКА");
+            t.AddAbridge("ЖЕЛ.ДОР.БУДКА");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("КАЗАРМА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
+            t.AddVariant("ЖЕЛЕЗНОДОРОЖНАЯ КАЗАРМА", false);
+            t.AddAbridge("Ж/Д КАЗАРМА");
+            t.AddAbridge("ЖЕЛ.ДОР.КАЗАРМА");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТОЯНКА") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Feminie };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПУНКТ") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("РАЗЪЕЗД") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
+            t.AddAbridge("РЗД");
+            t.AddAbridge("Ж/Д РАЗЪЕЗД");
+            t.AddVariant("ЖЕЛЕЗНОДОРОЖНЫЙ РАЗЪЕЗД", false);
+            t.AddAbridge("ЖЕЛ.ДОР.РАЗЪЕЗД");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ЗАЕЗД") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПЕРЕЕЗД") { Tag = StreetItemType.Noun, Gender = Pullenti.Morph.MorphGender.Masculine };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("БОЛЬШОЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("БОЛ.");
+            t.AddAbridge("Б.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ВЕЛИКИЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("ВЕЛ.");
+            t.AddAbridge("В.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МАЛЫЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("МАЛ.");
+            t.AddAbridge("М.");
+            t.AddVariant("МАЛИЙ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СРЕДНИЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("СРЕД.");
+            t.AddAbridge("СР.");
+            t.AddAbridge("С.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕРЕДНІЙ") { Tag = StreetItemType.StdAdjective, Lang = Pullenti.Morph.MorphLang.UA };
+            t.AddAbridge("СЕРЕД.");
+            t.AddAbridge("СЕР.");
+            t.AddAbridge("С.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ВЕРХНИЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("ВЕРХН.");
+            t.AddAbridge("ВЕРХ.");
+            t.AddAbridge("ВЕР.");
+            t.AddAbridge("В.");
+            t.AddVariant("ВЕРХНІЙ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НИЖНИЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("НИЖН.");
+            t.AddAbridge("НИЖ.");
+            t.AddAbridge("Н.");
+            t.AddVariant("НИЖНІЙ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТАРЫЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("СТАР.");
+            t.AddAbridge("СТ.");
+            t.AddVariant("СТАРИЙ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НОВЫЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("НОВ.");
+            t.AddAbridge("Н.");
+            t.AddVariant("НОВИЙ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("КРАСНЫЙ") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("КРАСН.");
+            t.AddAbridge("КР.");
+            t.AddAbridge("КРАС.");
+            t.AddVariant("ЧЕРВОНИЙ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НОМЕР") { Tag = StreetItemType.StdAdjective };
+            t.AddAbridge("N");
+            t.AddAbridge("№");
+            t.AddAbridge("НОМ.");
+            m_Ontology.Add(t);
+            foreach (string s in new string[] {"ПРОЕКТИРУЕМЫЙ", "МИРА", "СВОБОДЫ"}) 
+            {
+                string[] pp = s.Split(';');
+                t = new Pullenti.Ner.Core.Termin(pp[0]) { Tag = StreetItemType.StdName, IgnoreTermsOrder = true };
+                for (int kk = 1; kk < pp.Length; kk++) 
+                {
+                    if (pp[kk].IndexOf('.') > 0) 
+                        t.AddAbridge(pp[kk]);
+                    else 
+                        t.AddVariant(pp[kk], false);
+                }
+                m_Ontology.Add(t);
+            }
+            foreach (string s in Pullenti.Ner.Geo.Internal.NameToken.StandardNames) 
+            {
+                string[] pp = s.Split(';');
+                t = new Pullenti.Ner.Core.Termin(pp[0]) { Tag = StreetItemType.StdName, IgnoreTermsOrder = true };
+                for (int kk = 1; kk < pp.Length; kk++) 
+                {
+                    if (pp[kk].IndexOf('.') > 0 || pp[kk].IndexOf('/') > 0 || pp[kk].IndexOf('-') > 0) 
+                        t.AddAbridge(pp[kk]);
+                    else if (t.Acronym == null && (pp[kk].Length < 4)) 
+                        t.Acronym = pp[kk];
+                    else 
+                        t.AddVariant(pp[kk], false);
+                }
+                m_Ontology.Add(t);
+            }
+            foreach (string s in new string[] {"МАРТА", "МАЯ", "ОКТЯБРЯ", "НОЯБРЯ", "БЕРЕЗНЯ", "ТРАВНЯ", "ЖОВТНЯ", "ЛИСТОПАДА", "ДОРОЖКА", "ЛУЧ", "НАДЕЛ", "ПОЛЕ", "СКЛОН"}) 
+            {
+                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.StdName });
+            }
+            foreach (string s in new string[] {"МАРШАЛА", "ГЕНЕРАЛА", "ГЕНЕРАЛ-МАЙОРА", "ГЕНЕРАЛ-ЛЕЙТЕНАНТА", "ГЕНЕРАЛ-ПОЛКОВНИКА", "АДМИРАЛА", "КОНТРАДМИРАЛА", "КОСМОНАВТА", "ЛЕТЧИКА", "ЛЕТЧИКА-ИСПЫТАТЕЛЯ", "ПИЛОТА", "ПОГРАНИЧНИКА", "ПУТЕШЕСТВЕННИКА", "ПАРТИЗАНА", "АТАМАНА", "ВОЕВОДЫ", "ТАНКИСТА", "ОРУЖЕЙНИКА", "ПОЛЯРНИКА", "АВИАКОНСТРУКТОРА", "АРХИТЕКТОРА", "ГЛАВНОГО АРХИТЕКТОРА", "СКУЛЬПТОРА", "ХУДОЖНИКА", "КОНСТРУКТОРА", "ГЛАВНОГО КОНСТРУКТОРА", "АКАДЕМИКА", "ПРОФЕССОРА", "КОМПОЗИТОРА", "ПИСАТЕЛЯ", "ПОЭТА", "ДИРИЖЕРА", "ГЕРОЯ", "БРАТЬЕВ", "ЛЕЙТЕНАНТА", "СТАРШЕГО ЛЕЙТЕНАНТА", "КАПИТАНА", "КАПИТАНА-ЛЕЙТЕНАНТА", "МАЙОРА", "ПОДПОЛКОВНИКА", "ПОЛКОВНИКА", "СЕРЖАНТА", "МЛАДШЕГО СЕРЖАНТА", "СТАРШЕГО СЕРЖАНТА", "ЕФРЕЙТОРА", "СТАРШИНЫ", "ПРАПОРЩИКА", "СТАРШЕГО ПРАПОРЩИКА", "ПОЛИТРУКА", "МИТРОПОЛИТА", "ПАТРИАРХА", "ИЕРЕЯ", "ПРОТОИЕРЕЯ", "МОНАХА", "СВЯТОГО", "СВЯТИТЕЛЯ", "ШЕЙХА", "БАЛЕРИНЫ", "ПЕВИЦЫ", "ХИРУРГА", "НАРОДНОГО АРТИСТА"}) 
+            {
+                m_StdOntMisc.Add(new Pullenti.Ner.Core.Termin(s));
+                t = new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.StdPartOfName };
+                if (s == "СВЯТОГО" || s == "СВЯТИТЕЛЯ") 
+                {
+                    t.AddAbridge("СВ.");
+                    t.AddAbridge("СВЯТ.");
+                }
+                else 
+                {
+                    t.AddAllAbridges(0, 0, 2);
+                    t.AddAllAbridges(2, 5, 0);
+                    if (s == "ПРОФЕССОРА") 
+                        t.AddVariant("ПРОФЕСОРА", false);
+                }
+                m_Ontology.Add(t);
+            }
+            foreach (string s in new string[] {"МАРШАЛА", "ГЕНЕРАЛА", "ГЕНЕРАЛ-МАЙОРА", "ГЕНЕРАЛ-ЛЕЙТЕНАНТА", "ГЕНЕРАЛ-ПОЛКОВНИКА", "АДМІРАЛА", "КОНТРАДМІРАЛА", "КОСМОНАВТА", "ЛЬОТЧИКА", " ПРИКОРДОННИКА", " МАНДРІВНИКА", "ПАРТИЗАНА", "ОТАМАНА", "ТАНКІСТА", "АВІАКОНСТРУКТОРА", "АРХІТЕКТОРА", "СКУЛЬПТОРА", "ХУДОЖНИКА", "КОНСТРУКТОРА", "АКАДЕМІКА", "ПРОФЕСОРА", "КОМПОЗИТОРА", "ПИСЬМЕННИКА", "ПОЕТА", "ДИРИГЕНТА", "ГЕРОЯ", "ЛЕЙТЕНАНТА", "КАПІТАНА", "КАПІТАНА-ЛЕЙТЕНАНТА", "МАЙОРА", "ПІДПОЛКОВНИКА", "ПОЛКОВНИКА", "СЕРЖАНТА", "ЄФРЕЙТОРА", " СТАРШИНИ", " ПРАПОРЩИКА", "ПОЛІТРУКА", "ПОЛІЦІЇ", "МІЛІЦІЇ", "ГВАРДІЇ", "АРМІЇ", "МИТРОПОЛИТА", "ПАТРІАРХА", "ІЄРЕЯ", "ПРОТОІЄРЕЯ", "ЧЕНЦЯ", "СВЯТОГО", "СВЯТИТЕЛЯ"}) 
+            {
+                m_StdOntMisc.Add(new Pullenti.Ner.Core.Termin(s));
+                t = new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.StdPartOfName, Lang = Pullenti.Morph.MorphLang.UA };
+                if (s == "СВЯТОГО" || s == "СВЯТИТЕЛЯ") 
+                {
+                    t.AddAbridge("СВ.");
+                    t.AddAbridge("СВЯТ.");
+                }
+                else 
+                {
+                    t.AddAllAbridges(0, 0, 2);
+                    t.AddAllAbridges(2, 5, 0);
+                    t.AddAbridge("ГЛ." + s);
+                    t.AddAbridge("ГЛАВ." + s);
+                }
+                m_Ontology.Add(t);
+            }
+            t = new Pullenti.Ner.Core.Termin("ЛЕНИНСКИЕ ГОРЫ") { Tag = StreetItemType.Fix };
+            m_Ontology.Add(t);
+            foreach (string s in new string[] {"КРАСНЫЙ", "СОВЕТСТКИЙ", "ЛЕНИНСКИЙ"}) 
+            {
+                m_StdAdj.Add(new Pullenti.Ner.Core.Termin(s));
+            }
+            foreach (string s in new string[] {"НЕТ", "НЕ УКАЗАНА", "НЕ ЗАДАНА", "ОТСУТСТВУЕТ"}) 
+            {
+                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s) { Tag = StreetItemType.Absent });
+            }
+            m_MiscNouns = new Pullenti.Ner.Core.TerminCollection();
+            foreach (string s in new string[] {"ВАЛ", "ПОЛЕ", "СПУСК", "ВЗВОЗ", "РЯД", "СЛОБОДА", "РОЩА", "ПРУД", "СЪЕЗД", "КОЛЬЦО", "УЗВІЗ", "УЗВІЗ", "ГАЙ", "СТАВОК", "ЗЇЗД", "КІЛЬЦЕ"}) 
+            {
+                m_MiscNouns.Add(new Pullenti.Ner.Core.Termin(s));
+            }
+        }
+        public static Pullenti.Ner.Token CheckStdName(Pullenti.Ner.Token t)
+        {
+            if (t == null) 
+                return null;
+            if (m_StdAdj.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No) != null) 
+                return t;
+            Pullenti.Ner.Core.TerminToken tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
+            if (tok == null) 
+                return null;
+            if (((StreetItemType)tok.Termin.Tag) == StreetItemType.StdName) 
+                return tok.EndToken;
+            return null;
+        }
+        public static bool CheckKeyword(Pullenti.Ner.Token t)
+        {
+            if (t == null) 
+                return false;
+            Pullenti.Ner.Core.TerminToken tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
+            if (tok == null) 
+                return false;
+            return ((StreetItemType)tok.Termin.Tag) == StreetItemType.Noun;
+        }
+        public static bool CheckOnto(Pullenti.Ner.Token t)
+        {
+            if (t == null) 
+                return false;
+            Pullenti.Ner.Core.TerminToken tok = m_OntologyEx.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
+            if (tok == null) 
+                return false;
+            return true;
+        }
+        internal static Pullenti.Ner.Core.TerminCollection m_Ontology;
+        internal static Pullenti.Ner.Core.TerminCollection m_OntologyEx;
+        static Pullenti.Ner.Core.TerminCollection m_StdOntMisc;
+        static Pullenti.Ner.Core.TerminCollection m_StdAdj;
+        static Pullenti.Ner.Core.TerminCollection m_MiscNouns;
+        static Pullenti.Ner.Core.Termin m_Prospect;
+        static Pullenti.Ner.Core.Termin m_Metro;
+        static Pullenti.Ner.Core.Termin m_Road;
+        static Pullenti.Ner.Core.Termin m_Block;
+        static string[] m_RegTails = new string[] {"ГОРОДОК", "РАЙОН", "МАССИВ", "МАСИВ", "КОМПЛЕКС", "ЗОНА", "КВАРТАЛ", "ОТДЕЛЕНИЕ", "ПАРК", "МЕСТНОСТЬ", "РАЗЪЕЗД", "УРОЧИЩЕ", "САД", "МЕСТОРОЖДЕНИЕ"};
+        public static bool _isRegion(string txt)
+        {
+            txt = txt.ToUpper();
+            foreach (string v in m_RegTails) 
+            {
+                if (Pullenti.Morph.LanguageHelper.EndsWith(txt, v)) 
+                    return true;
+            }
+            return false;
+        }
+        static string[] m_SpecTails = new string[] {"БУДКА", "КАЗАРМА"};
+        public static bool _isSpec(string txt)
+        {
+            txt = txt.ToUpper();
+            foreach (string v in m_SpecTails) 
+            {
+                if (Pullenti.Morph.LanguageHelper.EndsWith(txt, v)) 
+                    return true;
+            }
+            return false;
         }
     }
 }

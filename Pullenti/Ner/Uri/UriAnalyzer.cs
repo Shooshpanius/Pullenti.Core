@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -150,9 +150,18 @@ namespace Pullenti.Ner.Uri
                             continue;
                         if (ut.Value.Length < 4) 
                             continue;
-                        UriReferent ur = ad.RegisterReferent(new UriReferent() { Scheme = tok.Termin.CanonicText.ToLower(), Value = ut.Value }) as UriReferent;
-                        Pullenti.Ner.ReferentToken rt = new Pullenti.Ner.ReferentToken(ad.RegisterReferent(ur), t, ut.EndToken);
-                        rt.BeginToken = _siteBefore(t.Previous) ?? t;
+                        UriReferent uri = new UriReferent() { Scheme = tok.Termin.CanonicText.ToLower(), Value = ut.Value };
+                        if (ut.Value.StartsWith("t.me/", StringComparison.OrdinalIgnoreCase)) 
+                        {
+                            uri.Scheme = "telegram";
+                            uri.Value = ut.Value.Substring(5);
+                        }
+                        UriReferent ur = ad.RegisterReferent(uri) as UriReferent;
+                        Pullenti.Ner.ReferentToken rt = new Pullenti.Ner.ReferentToken(ur, t, ut.EndToken);
+                        if (uri.Scheme == "telegram") 
+                            _telegramBefore(rt, uri.Value);
+                        else 
+                            rt.BeginToken = _siteBefore(t.Previous) ?? t;
                         if (rt.EndToken.Next != null && rt.EndToken.Next.IsCharOf("/\\")) 
                             rt.EndToken = rt.EndToken.Next;
                         kit.EmbedToken(rt);
@@ -259,14 +268,14 @@ namespace Pullenti.Ner.Uri
                         Pullenti.Ner.Token t0 = tt.Next;
                         while (t0 != null) 
                         {
-                            if (t0.IsCharOf(":|") || t0.IsTableControlChar || t0.IsHiphen) 
+                            if (t0.IsCharOf(":|\\/") || t0.IsTableControlChar || t0.IsHiphen) 
                                 t0 = t0.Next;
                             else 
                                 break;
                         }
                         if (t0 == null) 
                             continue;
-                        Pullenti.Ner.Uri.Internal.UriItemToken ut = Pullenti.Ner.Uri.Internal.UriItemToken.AttachSkype(t0);
+                        Pullenti.Ner.Uri.Internal.UriItemToken ut = Pullenti.Ner.Uri.Internal.UriItemToken.AttachSkype(t0, tok.Termin.CanonicText == "telegram");
                         if (ut == null) 
                             continue;
                         UriReferent ur = ad.RegisterReferent(new UriReferent() { Value = ut.Value.ToLower(), Scheme = (tok.Termin.CanonicText == "SKYPE" ? "skype" : tok.Termin.CanonicText) }) as UriReferent;
@@ -697,6 +706,27 @@ namespace Pullenti.Ner.Uri
                 }
             }
         }
+        static void _telegramBefore(Pullenti.Ner.ReferentToken rt, string val)
+        {
+            if ((rt.BeginToken.Previous != null && rt.BeginToken.Previous.IsChar('(') && rt.EndToken.Next != null) && rt.EndToken.Next.IsChar(')')) 
+            {
+                rt.BeginToken = rt.BeginToken.Previous;
+                rt.EndToken = rt.EndToken.Next;
+            }
+            Pullenti.Ner.Core.Termin te = new Pullenti.Ner.Core.Termin(val);
+            int cou = 10;
+            for (Pullenti.Ner.Token t = rt.BeginToken.Previous; t != null && cou > 0; t = t.Previous,cou--) 
+            {
+                Pullenti.Ner.Core.TerminToken tok = te.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
+                if (tok != null && ((rt.BeginChar - tok.EndChar) < 10)) 
+                {
+                    rt.BeginToken = t;
+                    if (t.Previous != null && t.Previous.IsChar('@')) 
+                        rt.BeginToken = t.Previous;
+                    break;
+                }
+            }
+        }
         static Pullenti.Ner.Token _siteBefore(Pullenti.Ner.Token t)
         {
             if (t != null && t.IsChar(':')) 
@@ -909,11 +939,19 @@ namespace Pullenti.Ner.Uri
                 t = new Pullenti.Ner.Core.Termin("SWIFT", Pullenti.Morph.MorphLang.Unknown, true) { Tag = 3 };
                 t.AddVariant("СВИФТ", true);
                 m_Schemes.Add(t);
+                t = new Pullenti.Ner.Core.Termin("TELEGRAM", Pullenti.Morph.MorphLang.Unknown, true) { CanonicText = "telegram", Tag = 3 };
+                t.AddVariant("ТЕЛЕГРАМ", true);
+                t.AddVariant("T.ME", false);
+                m_Schemes.Add(t);
                 m_Schemes.Add(new Pullenti.Ner.Core.Termin("ICQ", Pullenti.Morph.MorphLang.Unknown, true) { Tag = 4 });
                 m_Schemes.Add(new Pullenti.Ner.Core.Termin("International Mobile Equipment Identity") { CanonicText = "IMEI", Tag = 5, Acronym = "IMEI", AcronymCanBeLower = true });
                 t = new Pullenti.Ner.Core.Termin("основной государственный регистрационный номер") { CanonicText = "ОГРН", Tag = 5, Acronym = "ОГРН", AcronymCanBeLower = true };
                 t.AddVariant("ОГРН ИП", true);
                 t.AddVariant("ОГРНИП", false);
+                m_Schemes.Add(t);
+                t = new Pullenti.Ner.Core.Termin("полис обязательного медицинского страхования") { CanonicText = "ОМС", Tag = 5, Acronym = "ОМС", AcronymCanBeLower = true };
+                t.AddVariant("полис ОМС", false);
+                t.AddVariant("номер ОМС", false);
                 m_Schemes.Add(t);
                 m_Schemes.Add(new Pullenti.Ner.Core.Termin("Индивидуальный идентификационный номер") { CanonicText = "ИИН", Tag = 5, Acronym = "ИИН", AcronymCanBeLower = true });
                 t = new Pullenti.Ner.Core.Termin("Индивидуальный номер налогоплательщика") { CanonicText = "ИНН", Tag = 5, Acronym = "ИНН", AcronymCanBeLower = true };

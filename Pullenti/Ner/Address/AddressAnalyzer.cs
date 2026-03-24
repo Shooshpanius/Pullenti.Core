@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -163,6 +163,12 @@ namespace Pullenti.Ner.Address
                     t = li[0].EndToken;
                     continue;
                 }
+                if ((li.Count == 1 && t == kit.FirstToken && li[0].EndToken.Next == null) && li[0].Typ == Pullenti.Ner.Address.Internal.AddressItemType.Street) 
+                {
+                    Pullenti.Ner.ReferentToken rt = t.Kit.ProcessReferent("PERSON", t, null);
+                    if (rt != null && rt.EndToken.Next == null) 
+                        break;
+                }
                 Pullenti.Ner.Token tt = Pullenti.Ner.Address.Internal.AddressDefineHelper.TryDefine(li, t, ad, false);
                 if (tt != null) 
                     t = tt;
@@ -243,7 +249,7 @@ namespace Pullenti.Ner.Address
             List<Pullenti.Ner.Address.Internal.StreetItemToken> li = Pullenti.Ner.Address.Internal.StreetItemToken.TryParseList(begin, 10, null);
             if (li == null || (li.Count < 2)) 
                 return null;
-            Pullenti.Ner.Address.Internal.AddressItemToken rt = Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(li, true, false, false, null);
+            Pullenti.Ner.Address.Internal.AddressItemToken rt = Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(li, true, false, false, null, false);
             if (rt == null) 
                 return null;
             StreetReferent street = rt.Referent as StreetReferent;
@@ -255,7 +261,7 @@ namespace Pullenti.Ner.Address
                 if (t == null) 
                     break;
                 li = Pullenti.Ner.Address.Internal.StreetItemToken.TryParseList(begin, 10, null);
-                Pullenti.Ner.Address.Internal.AddressItemToken rt1 = Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(li, true, false, false, null);
+                Pullenti.Ner.Address.Internal.AddressItemToken rt1 = Pullenti.Ner.Address.Internal.StreetDefineHelper.TryParseStreet(li, true, false, false, null, false);
                 if (rt1 != null) 
                 {
                     t = (rt.EndToken = rt1.EndToken);

@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -18,17 +18,20 @@ namespace Pullenti.Ner.Decree.Internal
             Pullenti.Ner.Metadata.Feature fi = GlobalMeta.AddFeature(Pullenti.Ner.Decree.DecreeChangeReferent.ATTR_KIND, "Тип", 1, 1);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Append.ToString(), "Дополнить", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Expire.ToString(), "Утратить силу", null, null);
+            fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.ExpireChanges.ToString(), "Откат изменений", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.New.ToString(), "В редакции", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Exchange.ToString(), "Заменить", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Remove.ToString(), "Исключить", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Consider.ToString(), "Считать", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Suspend.ToString(), "Приостановить", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Container.ToString(), "Внести изменение", null, null);
+            fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Confidential.ToString(), "Конфиденциально", null, null);
             fi.AddValue(Pullenti.Ner.Decree.DecreeChangeKind.Error.ToString(), "Ошибка", null, null);
             KindFeature = fi;
             GlobalMeta.AddFeature(Pullenti.Ner.Decree.DecreeChangeReferent.ATTR_CHILD, "Дочернее изменение", 0, 0);
             GlobalMeta.AddFeature(Pullenti.Ner.Decree.DecreeChangeReferent.ATTR_VALUE, "Значение", 0, 1).ShowAsParent = true;
             GlobalMeta.AddFeature(Pullenti.Ner.Decree.DecreeChangeReferent.ATTR_PARAM, "Параметр", 0, 1).ShowAsParent = true;
+            GlobalMeta.AddFeature(Pullenti.Ner.Decree.DecreeChangeReferent.ATTR_LOCVALUE, "Локатор", 0, 1).ShowAsParent = true;
             GlobalMeta.AddFeature(Pullenti.Ner.Decree.DecreeChangeReferent.ATTR_MISC, "Разное", 0, 0);
         }
         public static Pullenti.Ner.Metadata.Feature KindFeature;

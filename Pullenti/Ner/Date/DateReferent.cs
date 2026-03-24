@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -153,10 +153,11 @@ namespace Pullenti.Ner.Date
         /// <param name="now">текущая дата (для относительных дат)</param>
         /// <param name="tense">время (-1 - прошлое, 0 - любое, 1 - будущее) - испрользуется 
         /// при неоднозначных случаях</param>
+        /// <param name="fromto">0 - from, 1 - to (нужно если не задан день или месяц, а только год)</param>
         /// <return>дата-время или null</return>
-        public DateTime? CalculateDate(DateTime now, int tense = 0)
+        public DateTime? CalculateDate(DateTime now, int tense = 0, int fromto = -1)
         {
-            return Pullenti.Ner.Date.Internal.DateRelHelper.CalculateDate(this, now, tense);
+            return Pullenti.Ner.Date.Internal.DateRelHelper.CalculateDate(this, now, tense, fromto);
         }
         /// <summary>
         /// Вычислить диапазон дат (если не диапазон, то from = to)
@@ -429,7 +430,7 @@ namespace Pullenti.Ner.Date
                     if (res is DatePointerType) 
                         return (DatePointerType)res;
                 }
-                catch(Exception ex1229) 
+                catch(Exception ex1244) 
                 {
                 }
                 return DatePointerType.No;
@@ -487,6 +488,10 @@ namespace Pullenti.Ner.Date
             {
                 if (Pointer == DatePointerType.Today) 
                 {
+                    if (fromRange == 1) 
+                        res.Append("с ");
+                    if (fromRange == 2) 
+                        res.Append("по ");
                     res.AppendFormat("сейчас");
                     if (!shortVariant) 
                         Pullenti.Ner.Date.Internal.DateRelHelper.AppendToString(this, res);

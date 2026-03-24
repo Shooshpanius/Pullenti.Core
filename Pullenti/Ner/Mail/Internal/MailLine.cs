@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -131,7 +131,7 @@ namespace Pullenti.Ner.Mail.Internal
         }
         public static MailLine Parse(Pullenti.Ner.Token t0, int lev, int maxCount = 0)
         {
-            if (t0 == null) 
+            if (t0 == null || lev > 2) 
                 return null;
             MailLine res = new MailLine(t0, t0);
             bool pr = true;

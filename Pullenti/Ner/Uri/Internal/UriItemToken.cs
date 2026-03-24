@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -581,14 +581,42 @@ namespace Pullenti.Ner.Uri.Internal
             }
             return new UriItemToken(t0, t1) { Value = txt.ToString() };
         }
-        public static UriItemToken AttachSkype(Pullenti.Ner.Token t0)
+        public static UriItemToken AttachSkype(Pullenti.Ner.Token t0, bool tlg)
         {
-            if (t0.Chars.IsCyrillicLetter) 
+            if (t0.Chars.IsCyrillicLetter && !tlg) 
                 return null;
+            if (tlg && t0.IsChar('@') && t0.Next != null) 
+                t0 = t0.Next;
             UriItemToken res = _AttachUriContent(t0, "._", false);
             if (res == null) 
                 return null;
-            if (res.Value.Length < 5) 
+            if (tlg && ((string.Compare(res.Value, "http", true) == 0 || string.Compare(res.Value, "https", true) == 0))) 
+            {
+                Pullenti.Ner.Token tt = res.EndToken.Next;
+                if (tt != null && tt.IsChar(':')) 
+                {
+                    for (; tt.Next != null; tt = tt.Next) 
+                    {
+                        if (!tt.Next.IsCharOf("\\/")) 
+                            break;
+                    }
+                    return AttachSkype(tt.Next, true);
+                }
+            }
+            if (tlg && string.Compare(res.Value, "t.me", true) == 0) 
+            {
+                Pullenti.Ner.Token tt = res.EndToken.Next;
+                if (tt != null && tt.IsCharOf("\\/")) 
+                {
+                    UriItemToken res1 = _AttachUriContent(tt.Next, "._", false);
+                    if (res1 != null) 
+                    {
+                        res1.BeginToken = t0;
+                        return res1;
+                    }
+                }
+            }
+            if (res.Value.Length < 4) 
                 return null;
             return res;
         }

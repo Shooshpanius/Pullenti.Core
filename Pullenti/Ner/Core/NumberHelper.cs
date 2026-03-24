@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -773,7 +773,7 @@ namespace Pullenti.Ner.Core
             {
                 vars = Pullenti.Morph.MorphologyService.GetAllWordforms(samp, null);
             }
-            catch(Exception ex926) 
+            catch(Exception ex930) 
             {
             }
             if (vars == null || vars.Count == 0) 
@@ -812,6 +812,9 @@ namespace Pullenti.Ner.Core
             if ((((s.Length < 3) && !tt.IsWhitespaceBefore && tt.Previous != null) && tt.Previous.IsHiphen && !tt.Previous.IsWhitespaceBefore) && tt.WhitespacesAfterCount == 1 && s != "А") 
             {
                 if (s.Length == 1 && s != "Й" && !Pullenti.Morph.LanguageHelper.IsCyrillicVowel(s[0])) 
+                {
+                }
+                else if (TryParsePostfixOnly(tt) != null) 
                 {
                 }
                 else 
@@ -1088,6 +1091,29 @@ namespace Pullenti.Ner.Core
                     return new Pullenti.Ner.NumberToken(t, t, "1000", Pullenti.Ner.NumberSpellingType.Words);
                 return null;
             }
+            if ((!t.IsWhitespaceAfter && t.Next.IsChar('/') && !t.Next.IsWhitespaceAfter) && (t.Next.Next is Pullenti.Ner.NumberToken)) 
+            {
+                if (((t as Pullenti.Ner.NumberToken).IntValue < (t.Next.Next as Pullenti.Ner.NumberToken).IntValue) && (t.Next.Next as Pullenti.Ner.NumberToken).IntValue <= 10 && (t.Next.Next as Pullenti.Ner.NumberToken).IntValue > 1) 
+                {
+                    NumberExToken res0 = new NumberExToken(t, t.Next.Next, null, Pullenti.Ner.NumberSpellingType.Digit, NumberExType.Undefined);
+                    res0.RealValue = ((double)(t as Pullenti.Ner.NumberToken).IntValue.Value) / (t.Next.Next as Pullenti.Ner.NumberToken).IntValue.Value;
+                    res0.RealValue = Math.Round(res0.RealValue, 2);
+                    res0.Value = NumberHelper.DoubleToString(res0.RealValue);
+                    return res0;
+                }
+            }
+            if ((((t.WhitespacesAfterCount < 2) && (t.Next is Pullenti.Ner.NumberToken) && !t.Next.IsWhitespaceAfter) && t.Next.Next.IsChar('/') && !t.Next.Next.IsWhitespaceAfter) && (t.Next.Next.Next is Pullenti.Ner.NumberToken)) 
+            {
+                if (((t.Next as Pullenti.Ner.NumberToken).IntValue < (t.Next.Next.Next as Pullenti.Ner.NumberToken).IntValue) && (t.Next.Next.Next as Pullenti.Ner.NumberToken).IntValue <= 10 && (t.Next.Next.Next as Pullenti.Ner.NumberToken).IntValue > 1) 
+                {
+                    NumberExToken res0 = new NumberExToken(t, t.Next.Next.Next, null, Pullenti.Ner.NumberSpellingType.Digit, NumberExType.Undefined);
+                    res0.RealValue = ((double)(t.Next as Pullenti.Ner.NumberToken).IntValue.Value) / (t.Next.Next.Next as Pullenti.Ner.NumberToken).IntValue.Value;
+                    res0.RealValue += (t as Pullenti.Ner.NumberToken).IntValue.Value;
+                    res0.RealValue = Math.Round(res0.RealValue, 2);
+                    res0.Value = NumberHelper.DoubleToString(res0.RealValue);
+                    return res0;
+                }
+            }
             if (t.Next != null && t.Next.IsValue("ЦЕЛЫЙ", "ЦІЛИЙ")) 
             {
                 Pullenti.Ner.Token tt1 = t.Next.Next;
@@ -1323,7 +1349,7 @@ namespace Pullenti.Ner.Core
                             return "две " + MiscHelper.GetTextMorphVarByCaseAndNumberEx(units, null, Pullenti.Morph.MorphNumber.Plural, null);
                     }
                 }
-                catch(Exception ex934) 
+                catch(Exception ex938) 
                 {
                 }
                 return string.Format("{0} {1}", m_1Words[val].ToLower(), MiscHelper.GetTextMorphVarByCaseAndNumberEx(units, Pullenti.Morph.MorphCase.Genitive, Pullenti.Morph.MorphNumber.Undefined, val.ToString()));
@@ -1398,7 +1424,7 @@ namespace Pullenti.Ner.Core
                 return "JPY";
             if (ch == ((char)0x20A9)) 
                 return "KRW";
-            if (ch == ((char)0xFFE5) || ch == 'Ұ' || ch == 'Ұ') 
+            if (ch == ((char)0xFFE5) || ch == 'Ұ') 
                 return "CNY";
             if (ch == ((char)0x20BD)) 
                 return "RUB";

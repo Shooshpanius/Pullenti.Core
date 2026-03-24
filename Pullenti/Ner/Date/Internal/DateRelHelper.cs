@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -264,12 +264,30 @@ namespace Pullenti.Ner.Date.Internal
             res.Sort();
             return res;
         }
-        public static DateTime? CalculateDate(Pullenti.Ner.Date.DateReferent dr, DateTime now, int tense)
+        public static DateTime? CalculateDate(Pullenti.Ner.Date.DateReferent dr, DateTime now, int tense, int fromto)
         {
             if (dr.Pointer == Pullenti.Ner.Date.DatePointerType.Today) 
                 return now;
-            if (!dr.IsRelative && dr.Dt != null) 
-                return dr.Dt;
+            if (!dr.IsRelative) 
+            {
+                int year = dr.Year;
+                if (year < 1) 
+                    return null;
+                int mon = dr.Month;
+                if (mon < 1) 
+                    mon = (fromto == 1 ? 12 : 1);
+                int day = dr.Day;
+                if (day < 1) 
+                    day = (fromto == 1 ? 31 : 1);
+                try 
+                {
+                    return new DateTime(year, mon, day);
+                }
+                catch(Exception ex1124) 
+                {
+                }
+                return null;
+            }
             DateExToken det = new DateExToken(null, null);
             det.ItemsFrom = _createDateEx(dr);
             return det.GetDate(now, tense);

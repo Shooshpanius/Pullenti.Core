@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -1934,6 +1934,15 @@ namespace Pullenti.Ner.Person.Internal
             {
                 if (t.WhitespacesBeforeCount > 15) 
                 {
+                    if (t.IsNewlineAfter && res.Count == 2) 
+                    {
+                        PersonItemToken pit11 = TryAttach(t, attrs, null);
+                        if (pit11 != null && res[1].Firstname != null && pit11.Middlename != null) 
+                        {
+                            res.Add(pit11);
+                            break;
+                        }
+                    }
                     if (t.WhitespacesBeforeCount > 30) 
                         break;
                     if (((attrs & ParseAttr.MustBeItemAlways)) == ParseAttr.No) 
@@ -1949,6 +1958,11 @@ namespace Pullenti.Ner.Person.Internal
                 }
                 else if ((tt.IsChar(',') && (tt.WhitespacesAfterCount < 2) && tt.Next != null) && res.Count == 1) 
                 {
+                    if (res[0].IsInDictionary && res[0].Firstname == null && res[0].Middlename == null) 
+                    {
+                        if (res[0].Lastname == null || !res[0].Lastname.IsInDictionary) 
+                            break;
+                    }
                     zap = true;
                     tt = tt.Next;
                 }

@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -50,6 +50,7 @@ namespace Pullenti.Ner.Address.Internal
         public AddressItemToken OrtoTerr;
         public AddressItemToken AreaTerr;
         public AddressItemToken AltTyp;
+        public AddressItemToken Next;
         public AddressItemToken Clone()
         {
             AddressItemToken res = new AddressItemToken(Typ, BeginToken, EndToken);
@@ -74,6 +75,8 @@ namespace Pullenti.Ner.Address.Internal
                 res.AreaTerr = AreaTerr.Clone();
             if (AltTyp != null) 
                 res.AltTyp = AltTyp.Clone();
+            if (Next != null) 
+                res.Next = Next.Clone();
             return res;
         }
         public bool IsStreetRoad
@@ -152,6 +155,8 @@ namespace Pullenti.Ner.Address.Internal
                 res.AppendFormat(" REFTOKEN: {0}", RefToken.ToString());
             if (RefToken2 != null) 
                 res.AppendFormat(" REFTOKEN2: {0}", RefToken2.ToString());
+            if (Next != null) 
+                res.AppendFormat(" Next: {0}", Next.ToString());
             return res.ToString();
         }
         static AddressItemToken _findAddrTyp(Pullenti.Ner.Token t, int maxChar, int lev = 0)
@@ -332,7 +337,7 @@ namespace Pullenti.Ner.Address.Internal
             }
             if (prev != null && ((t.IsValue("П", null) || t.IsValue("ПОЗ", null) || t.IsValue("ПОЗИЦИЯ", null)))) 
             {
-                if (((Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t) || prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City) || prev.Typ == AddressItemType.Genplan || prev.Typ == AddressItemType.Plot) || prev.Typ == AddressItemType.City) 
+                if ((Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t) || prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City) || prev.Typ == AddressItemType.Genplan || prev.Typ == AddressItemType.Plot) 
                 {
                     Pullenti.Ner.Token tt = t.Next;
                     if (tt != null && tt.IsChar('.')) 
@@ -344,6 +349,11 @@ namespace Pullenti.Ner.Address.Internal
                         next.BeginToken = t;
                         next.IsGenplan = true;
                         next.Typ = AddressItemType.Number;
+                        if (t.LengthChar == 1 && (((prev.Typ == AddressItemType.Number || prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Building) || prev.Typ == AddressItemType.Corpus || prev.Typ == AddressItemType.Flat))) 
+                        {
+                            next.Typ = AddressItemType.Space;
+                            next.IsGenplan = false;
+                        }
                         return next;
                     }
                 }
@@ -389,7 +399,7 @@ namespace Pullenti.Ner.Address.Internal
             List<StreetItemToken> sli = StreetItemToken.TryParseList(t, 10, ad);
             if (sli != null) 
             {
-                AddressItemToken rt = StreetDefineHelper.TryParseStreet(sli, prefixBefore || ((prev != null && prev.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross)), false, prev != null && prev.Typ == AddressItemType.Street, null);
+                AddressItemToken rt = StreetDefineHelper.TryParseStreet(sli, prefixBefore || ((prev != null && prev.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross)), false, prev != null && prev.Typ == AddressItemType.Street, null, false);
                 if (rt == null && sli[0].Typ != StreetItemType.Fix) 
                 {
                     Pullenti.Ner.Geo.Internal.OrgItemToken org = Pullenti.Ner.Geo.Internal.OrgItemToken.TryParse(t, null);
@@ -398,7 +408,7 @@ namespace Pullenti.Ner.Address.Internal
                         StreetItemToken si = new StreetItemToken(t, org.EndToken) { Typ = StreetItemType.Fix, Org = org };
                         sli.Clear();
                         sli.Add(si);
-                        rt = StreetDefineHelper.TryParseStreet(sli, prefixBefore || prev != null, false, false, null);
+                        rt = StreetDefineHelper.TryParseStreet(sli, prefixBefore || prev != null, false, false, null, false);
                     }
                     else if (sli.Count == 1 && sli[0].Typ == StreetItemType.Noun && !sli[0].IsNewlineAfter) 
                     {
@@ -409,7 +419,7 @@ namespace Pullenti.Ner.Address.Internal
                             StreetItemToken si = new StreetItemToken(t, org.EndToken) { Typ = StreetItemType.Fix, Org = org };
                             sli.Clear();
                             sli.Add(si);
-                            rt = StreetDefineHelper.TryParseStreet(sli, prefixBefore || prev != null, false, false, null);
+                            rt = StreetDefineHelper.TryParseStreet(sli, prefixBefore || prev != null, false, false, null, false);
                             if (rt != null && (rt.Referent is Pullenti.Ner.Address.StreetReferent)) 
                             {
                                 Pullenti.Ner.Address.StreetReferent sr = rt.Referent as Pullenti.Ner.Address.StreetReferent;
@@ -427,7 +437,7 @@ namespace Pullenti.Ner.Address.Internal
                                 List<StreetItemToken> sli1 = new List<StreetItemToken>();
                                 sli1.Add(sli[0]);
                                 sli1.Add(st1);
-                                rt = StreetDefineHelper.TryParseStreet(sli1, prefixBefore, false, (prev != null && prev.Typ == AddressItemType.Street), null);
+                                rt = StreetDefineHelper.TryParseStreet(sli1, prefixBefore, false, (prev != null && prev.Typ == AddressItemType.Street), null, false);
                                 if (rt != null) 
                                     rt.EndToken = rt0;
                             }
@@ -437,7 +447,7 @@ namespace Pullenti.Ner.Address.Internal
                 if ((rt == null && prev != null && ((prev.Typ == AddressItemType.City || prev.Typ == AddressItemType.Region))) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0])) 
                 {
                     if (sli.Count == 1 && !sli[0].IsNewlineBefore && (((sli[0].Typ == StreetItemType.Name || sli[0].Typ == StreetItemType.StdName || sli[0].Typ == StreetItemType.StdAdjective) || ((sli[0].Typ == StreetItemType.Number && sli[0].BeginToken.Morph.Class.IsAdjective))))) 
-                        rt = StreetDefineHelper.TryParseStreet(sli, true, false, false, null);
+                        rt = StreetDefineHelper.TryParseStreet(sli, true, false, false, null, false);
                 }
                 if (((rt == null && prev != null && prev.Typ == AddressItemType.Street) && sli.Count == 1 && sli[0].Typ == StreetItemType.Name) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0])) 
                 {
@@ -449,7 +459,7 @@ namespace Pullenti.Ner.Address.Internal
                     else if (AddressItemToken.CheckHouseAfter(sli[0].EndToken.Next, false, false)) 
                         ok1 = true;
                     if (ok1) 
-                        rt = StreetDefineHelper.TryParseStreet(sli, true, false, false, null);
+                        rt = StreetDefineHelper.TryParseStreet(sli, true, false, false, null, false);
                 }
                 if (rt != null) 
                 {
@@ -498,7 +508,7 @@ namespace Pullenti.Ner.Address.Internal
                             List<StreetItemToken> sli2 = StreetItemToken.TryParseList(rt.EndToken.Next.Next, 10, ad);
                             if (sli2 != null && sli2.Count > 0) 
                             {
-                                AddressItemToken rt2 = StreetDefineHelper.TryParseStreet(sli2, prefixBefore, false, true, rt.Referent as Pullenti.Ner.Address.StreetReferent);
+                                AddressItemToken rt2 = StreetDefineHelper.TryParseStreet(sli2, prefixBefore, false, true, rt.Referent as Pullenti.Ner.Address.StreetReferent, false);
                                 if (rt2 != null) 
                                 {
                                     rt.EndToken = rt2.EndToken;
@@ -833,2127 +843,930 @@ namespace Pullenti.Ner.Address.Internal
             Pullenti.Ner.Token rt = AddressDefineHelper.TryDefine(li, ar.FirstToken, null, true);
             return rt as Pullenti.Ner.ReferentToken;
         }
-        public static AddressItemToken TryParsePureItem(Pullenti.Ner.Token t, AddressItemToken prev = null, Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad = null)
+        public static List<AddressItemToken> TryParseList(Pullenti.Ner.Token t, int maxCount = 20)
         {
             if (t == null) 
                 return null;
-            if (t.IsChar(',')) 
-                return null;
-            if (ad == null) 
-                ad = Pullenti.Ner.Geo.GeoAnalyzer.GetData(t);
-            if (ad == null) 
-                return null;
-            int maxLevel = 0;
-            if ((prev != null && (t is Pullenti.Ner.NumberToken) && t.LengthChar == 5) && (t as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit && !t.Morph.Class.IsAdjective) 
+            Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad = Pullenti.Ner.Geo.GeoAnalyzer.GetData(t);
+            if (ad != null) 
             {
-                if (prev.Typ == AddressItemType.Country || prev.Typ == AddressItemType.Region || prev.Typ == AddressItemType.City) 
-                    return new AddressItemToken(AddressItemType.Zip, t, t) { Value = (t as Pullenti.Ner.NumberToken).Value.ToString() };
-            }
-            if ((prev != null && ((prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Corpus || prev.Typ == AddressItemType.Building)) && t.IsValue("БЛОК", null)) && (t.WhitespacesAfterCount < 3)) 
-            {
-                Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Strong);
-                if (nn != null) 
-                    return new AddressItemToken(AddressItemType.Block, t, nn.EndToken) { Value = nn.Value };
-            }
-            if ((prev != null && prev.Typ == AddressItemType.Street && t.LengthChar == 1) && ((t.IsValue("С", null) || t.IsValue("Д", null)))) 
-                maxLevel = 1;
-            else if (SpeedRegime && ((ad.ARegime || ad.AllRegime)) && !(t is Pullenti.Ner.ReferentToken)) 
-            {
-                Pullenti.Ner.Geo.Internal.GeoTokenData d = t.Tag as Pullenti.Ner.Geo.Internal.GeoTokenData;
-                if (d == null) 
+                if (ad.Level > 0) 
                     return null;
-                if (d.Addr == null) 
-                    return null;
-                if (d.Addr.HouseType == Pullenti.Ner.Address.AddressHouseType.Estate && d.NoGeo) 
-                    return null;
-                bool ok = true;
-                for (Pullenti.Ner.Token tt = t; tt != null && tt.BeginChar <= d.Addr.EndChar; tt = tt.Next) 
-                {
-                    if (tt is Pullenti.Ner.ReferentToken) 
-                    {
-                        ok = false;
-                        maxLevel = 1;
-                        break;
-                    }
-                }
-                if (ok) 
-                    return d.Addr;
+                ad.Level++;
             }
-            if (ad.ALevel > (maxLevel + 1)) 
+            List<AddressItemToken> res = TryParseListInt(t, maxCount);
+            if (ad != null) 
+                ad.Level--;
+            if (res != null && res.Count == 0) 
                 return null;
-            if (ad.Level > 1) 
-                return null;
-            ad.Level++;
-            AddressItemToken res = _tryParsePureItem(t, false, prev);
-            if (res == null && Pullenti.Ner.Core.BracketHelper.IsBracket(t, false) && (t.WhitespacesAfterCount < 2)) 
-            {
-                AddressItemToken res1 = _tryParsePureItem(t.Next, false, prev);
-                if (res1 != null && Pullenti.Ner.Core.BracketHelper.IsBracket(res1.EndToken.Next, false)) 
-                {
-                    res = res1;
-                    res.BeginToken = t;
-                    res.EndToken = res1.EndToken.Next;
-                }
-            }
-            if ((res == null && prev != null && t.LengthChar == 1) && t.IsValue("С", null)) 
-            {
-                if (prev.Typ == AddressItemType.Corpus || prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Street) 
-                {
-                    AddressItemToken next = _tryParsePureItem(t.Next, false, null);
-                    if (next != null && next.Typ == AddressItemType.Number) 
-                    {
-                        next.Typ = AddressItemType.Building;
-                        next.BeginToken = t;
-                        res = next;
-                    }
-                }
-            }
-            if (res != null && res.Typ == AddressItemType.Detail) 
-            {
-            }
-            else 
-            {
-                AddressItemToken det = _tryAttachDetail(t, null);
-                if (res == null) 
-                    res = det;
-                else if (det != null && det.EndChar > res.EndChar) 
-                    res = det;
-            }
-            if ((res != null && !string.IsNullOrEmpty(res.Value) && char.IsDigit(res.Value[res.Value.Length - 1])) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res)) 
-            {
-                Pullenti.Ner.Token t1 = res.EndToken.Next;
-                if (((t1 is Pullenti.Ner.TextToken) && (t1.WhitespacesBeforeCount < 3) && t1.Chars.IsLetter) && t1.LengthChar == 1) 
-                {
-                    AddressItemToken res2 = _tryParsePureItem(t1, false, null);
-                    if (res2 == null) 
-                    {
-                        StreetItemToken sit = StreetItemToken.TryParse(t1, null, false, null);
-                        if (sit != null && sit.Typ == StreetItemType.Noun) 
-                        {
-                        }
-                        else if (t1.IsValue2("В", "ГРАНИЦА")) 
-                        {
-                        }
-                        else 
-                        {
-                            string ch = CorrectCharToken(t1);
-                            if (Pullenti.Ner.Geo.Internal.OrgTypToken.TryParse(t1, false, null) != null) 
-                                ch = null;
-                            if (ch != null && ch != "К" && ch != "С") 
-                            {
-                                res.Value = string.Format("{0}{1}", res.Value, ch);
-                                res.EndToken = t1;
-                            }
-                        }
-                    }
-                }
-            }
-            if ((res != null && res.Typ == AddressItemType.Number && res.EndToken.Next != null) && res.EndToken.Next.IsValue("ДОЛЯ", null)) 
-            {
-                res.EndToken = res.EndToken.Next;
-                res.Typ = AddressItemType.Part;
-                res.Value = "1";
-            }
-            if (res == null && t.GetMorphClassInDictionary().IsPreposition) 
-            {
-                AddressItemToken next = TryParsePureItem(t.Next, null, null);
-                if (next != null && next.Typ != AddressItemType.Number && !t.Next.IsValue("СТ", null)) 
-                {
-                    next.BeginToken = t;
-                    res = next;
-                }
-            }
-            if (res != null && ((res.Typ == AddressItemType.Number || res.Typ == AddressItemType.House || res.Typ == AddressItemType.Plot))) 
-            {
-                Pullenti.Ner.Token tt = res.EndToken.Next;
-                if (tt != null && tt.IsHiphen) 
-                    tt = tt.Next;
-                if (tt != null && tt.IsValue("ЛПХ", null)) 
-                    res.EndToken = tt;
-                if (tt != null && tt.IsCharOf("\\/")) 
-                    tt = tt.Next;
-                if ((tt is Pullenti.Ner.TextToken) && (tt as Pullenti.Ner.TextToken).Term.Length == 2) 
-                {
-                    if ((tt as Pullenti.Ner.TextToken).Term[1] == 'П' || (tt as Pullenti.Ner.TextToken).Term[1] == 'С') 
-                    {
-                        AddressItemToken ne = _tryParsePureItem(tt, false, null);
-                        if (ne == null || ne.EndToken == tt) 
-                            res.EndToken = tt;
-                    }
-                }
-            }
-            if (res != null && res.Value != null) 
-                res._corrNum();
-            ad.Level--;
             return res;
         }
-        static AddressItemToken _tryParsePureItem(Pullenti.Ner.Token t, bool prefixBefore, AddressItemToken prev)
+        static List<AddressItemToken> TryParseListInt(Pullenti.Ner.Token t, int maxCount = 20)
         {
             if (t is Pullenti.Ner.NumberToken) 
             {
-                Pullenti.Ner.NumberToken n = t as Pullenti.Ner.NumberToken;
-                if (((n.LengthChar == 6 || ((n.LengthChar == 5 && t.Kit.BaseLanguage.IsUa)))) && n.Typ == Pullenti.Ner.NumberSpellingType.Digit && !n.Morph.Class.IsAdjective) 
-                    return new AddressItemToken(AddressItemType.Zip, t, t) { Value = n.Value.ToString() };
-                if ((!t.IsWhitespaceAfter && t.Next != null && t.Next.IsCharOf(":")) && !t.Next.IsWhitespaceAfter && (t.Next.Next is Pullenti.Ner.NumberToken)) 
+                if ((t as Pullenti.Ner.NumberToken).IntValue == null) 
                     return null;
-                bool ok = false;
-                if ((t.Previous != null && t.Previous.Morph.Class.IsPreposition && t.Next != null) && t.Next.Chars.IsLetter && t.Next.Chars.IsAllLower) 
-                    ok = true;
-                else if (t.Morph.Class.IsAdjective && !t.Morph.Class.IsNoun) 
-                    ok = true;
-                Pullenti.Ner.Core.TerminToken tok0 = m_Ontology.TryParse(t.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                if (tok0 != null && (tok0.Termin.Tag is AddressItemType)) 
+                int v = (t as Pullenti.Ner.NumberToken).IntValue.Value;
+                if ((v < 100000) || v >= 10000000) 
                 {
-                    AddressItemType typ0 = (AddressItemType)tok0.Termin.Tag;
-                    if (tok0.EndToken.Next == null || tok0.EndToken.IsNewlineAfter) 
-                        ok = true;
-                    else if (tok0.EndToken.Next.IsComma && (tok0.EndToken.Next.Next is Pullenti.Ner.NumberToken) && typ0 == AddressItemType.Flat) 
-                        return new AddressItemToken(AddressItemType.House, t, t) { Value = n.Value };
-                    if (t.Previous != null && t.Previous.IsComma && tok0.LengthChar > 1) 
+                    if ((t as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit && !t.Morph.Class.IsAdjective) 
                     {
-                        Pullenti.Ner.Token tt = tok0.EndToken.Next;
-                        if (tt == null || tt.IsComma || tok0.IsNewlineAfter) 
-                            return new AddressItemToken(typ0, t, tok0.EndToken) { Value = n.Value };
-                    }
-                    if (typ0 == AddressItemType.Flat) 
-                    {
-                        if ((t.Next is Pullenti.Ner.TextToken) && t.Next.IsValue("КВ", null)) 
+                        if (t.Next == null || (t.Next is Pullenti.Ner.NumberToken)) 
                         {
-                            if (t.Next.GetSourceText() == "кВ" && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                            if (t.Previous == null || !t.Previous.Morph.Class.IsPreposition) 
                                 return null;
-                            StreetItemToken si = StreetItemToken.TryParse(t.Next, null, false, null);
-                            if (si != null && si.Typ == StreetItemType.Noun && si.EndChar > tok0.EndChar) 
-                                return null;
-                            Pullenti.Ner.Core.NumberExToken suf = Pullenti.Ner.Core.NumberHelper.TryParsePostfixOnly(t.Next);
-                            if (suf != null) 
-                                return null;
-                        }
-                        if ((tok0.EndToken.Next is Pullenti.Ner.NumberToken) && (tok0.EndToken.WhitespacesAfterCount < 3)) 
-                        {
-                            if (prev != null && ((prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City))) 
-                                return new AddressItemToken(AddressItemType.Number, t, t) { Value = n.Value.ToString() };
-                        }
-                    }
-                    if (tok0.EndToken.Next is Pullenti.Ner.NumberToken) 
-                    {
-                    }
-                    else if (tok0.EndToken.Next != null && tok0.EndToken.Next.IsValue("НЕТ", null)) 
-                    {
-                    }
-                    else if ((((typ0 == AddressItemType.Kilometer || typ0 == AddressItemType.Floor || typ0 == AddressItemType.Block) || typ0 == AddressItemType.Potch || typ0 == AddressItemType.Flat) || typ0 == AddressItemType.Plot || typ0 == AddressItemType.Box) || typ0 == AddressItemType.Office) 
-                    {
-                        AddressItemToken next = _tryParsePureItem(tok0.EndToken.Next, false, null);
-                        if (next != null && next.Typ == AddressItemType.Number) 
-                        {
-                        }
-                        else if (tok0.EndToken.IsValue("ПОД", null)) 
-                        {
-                        }
-                        else 
-                        {
-                            next = _tryParsePureItem(tok0.EndToken, false, null);
-                            if (next != null && next.Value != null && next.Value != "0") 
-                            {
-                            }
-                            else 
-                                return new AddressItemToken(typ0, t, tok0.EndToken) { Value = n.Value.ToString() };
                         }
                     }
                 }
             }
-            bool prepos = false;
-            Pullenti.Ner.Core.TerminToken tok = null;
-            if (t != null && t.Morph.Class.IsPreposition) 
-            {
-                if ((((tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No)))) == null) 
-                {
-                    if (t.BeginChar < t.EndChar) 
-                        return null;
-                    if (t.IsValue("В", null) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-                    {
-                        Pullenti.Ner.Token tt = t.Next;
-                        if (tt != null && tt.IsChar('.')) 
-                            tt = tt.Next;
-                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
-                        if (num1 != null) 
-                        {
-                            for (Pullenti.Ner.Token tt0 = t.Previous; tt0 != null; tt0 = tt0.Previous) 
-                            {
-                                if (tt0.IsValue("КВАРТАЛ", null) || tt0.IsValue("КВ", null) || tt0.IsValue("ЛЕСНИЧЕСТВО", null)) 
-                                    return new AddressItemToken(AddressItemType.Plot, t, num1.EndToken) { Value = num1.Value };
-                                if (tt0.IsNewlineBefore) 
-                                    break;
-                            }
-                        }
-                    }
-                    if (!t.IsCharOf("КСкс")) 
-                        t = t.Next;
-                    prepos = true;
-                }
-            }
-            if (t == null) 
+            AddressItemToken it = TryParse(t, false, null, null);
+            if (it == null) 
                 return null;
-            if ((((t is Pullenti.Ner.TextToken) && t.LengthChar == 1 && t.Chars.IsLetter) && !t.IsValue("V", null) && !t.IsValue("I", null)) && !t.IsValue("X", null)) 
+            if (it.Typ == AddressItemType.Number) 
+                return null;
+            if (it.DetailType == Pullenti.Ner.Address.AddressDetailType.Org || ((it.IsHouse && it.Value == "0"))) 
             {
-                if (t.Previous != null && t.Previous.IsComma) 
-                {
-                    if (((t.Next != null && t.Next.IsComma && (t.Next.Next is Pullenti.Ner.NumberToken)) && t.IsValue("Д", null) && prev != null) && prev.Typ == AddressItemType.Street) 
-                    {
-                    }
-                    else if (t.IsNewlineAfter || t.Next.IsComma) 
-                        return new AddressItemToken(AddressItemType.Building, t, t) { BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter, Value = (t as Pullenti.Ner.TextToken).Term };
-                }
-            }
-            if (Pullenti.Ner.Core.BracketHelper.IsBracket(t, true)) 
-            {
-                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                if ((br != null && (t.Next is Pullenti.Ner.TextToken) && t.Next.LengthChar <= 2) && t.Next.Next == br.EndToken && t.Next.LengthChar == 1) 
-                    return new AddressItemToken(AddressItemType.Building, t, br.EndToken) { BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter, Value = (t.Next as Pullenti.Ner.TextToken).Term };
-            }
-            if (t.IsChar('/')) 
-            {
-                AddressItemToken next = TryParsePureItem(t.Next, prev, null);
-                if (next != null && next.EndToken.Next != null && next.EndToken.Next.IsChar('/')) 
-                {
-                    next.BeginToken = t;
-                    next.EndToken = next.EndToken.Next;
-                    return next;
-                }
-                if (next != null && next.EndToken.IsChar('/')) 
-                {
-                    next.BeginToken = t;
-                    return next;
-                }
-            }
-            if (tok == null) 
-                tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
-            Pullenti.Ner.Token t1 = t;
-            AddressItemType typ = AddressItemType.Number;
-            Pullenti.Ner.Address.AddressHouseType houseTyp = Pullenti.Ner.Address.AddressHouseType.Undefined;
-            Pullenti.Ner.Address.AddressBuildingType buildTyp = Pullenti.Ner.Address.AddressBuildingType.Undefined;
-            string spaceDetail = null;
-            bool hasNumPrefix = false;
-            Pullenti.Ner.Core.TerminToken tok00 = tok;
-            if (tok != null) 
-            {
-                if (t.IsValue("УЖЕ", null)) 
+                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
                     return null;
-                if (t.IsValue("ЛИТЕРА", null)) 
+            }
+            if (it.Typ == AddressItemType.Kilometer && (it.BeginToken.Previous is Pullenti.Ner.NumberToken)) 
+            {
+                it = it.Clone();
+                it.BeginToken = it.BeginToken.Previous;
+                it.Value = (it.BeginToken as Pullenti.Ner.NumberToken).Value.ToString();
+                if (it.BeginToken.Previous != null && it.BeginToken.Previous.Morph.Class.IsPreposition) 
+                    it.BeginToken = it.BeginToken.Previous;
+            }
+            if (it.Typ == AddressItemType.Street && it.RefToken != null && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
+                return null;
+            List<AddressItemToken> res = new List<AddressItemToken>();
+            res.Add(it);
+            while (it.AltTyp != null) 
+            {
+                res.Add(it.AltTyp);
+                it = it.AltTyp;
+            }
+            bool pref = it.Typ == AddressItemType.Prefix;
+            for (t = it.EndToken.Next; t != null; t = t.Next) 
+            {
+                if (maxCount > 0 && res.Count >= maxCount) 
+                    break;
+                AddressItemToken last = res[res.Count - 1];
+                if (res.Count > 1) 
                 {
-                    string str = t.GetSourceText();
-                    if (char.IsUpper(str[str.Length - 1]) && char.IsLower(str[str.Length - 2])) 
-                        return new AddressItemToken(AddressItemType.Building, t, t) { BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter, Value = str.Substring(str.Length - 1) };
-                }
-                if (t.IsValue("ПОД", null) && tok.EndToken == t) 
-                {
-                    if (!(t.Next is Pullenti.Ner.NumberToken)) 
-                        return null;
-                }
-                if ((tok.LengthChar == 1 && t.Next != null && t.Next.IsHiphen) && (t.Next.Next is Pullenti.Ner.NumberToken)) 
-                    return null;
-                if (t.IsValue("НОМЕР", null)) 
-                    hasNumPrefix = true;
-                if (tok.Termin.CanonicText == "ТАМ ЖЕ") 
-                {
-                    int cou = 0;
-                    for (Pullenti.Ner.Token tt = t.Previous; tt != null; tt = tt.Previous) 
+                    if (last.IsNewlineBefore && res[res.Count - 2].Typ != AddressItemType.Prefix) 
                     {
-                        if (cou > 1000) 
-                            break;
-                        Pullenti.Ner.Referent r = tt.GetReferent();
-                        if (r == null) 
-                            continue;
-                        if (r is Pullenti.Ner.Address.AddressReferent) 
+                        int i;
+                        for (i = 0; i < (res.Count - 1); i++) 
                         {
-                            Pullenti.Ner.Geo.GeoReferent g = r.GetSlotValue(Pullenti.Ner.Address.AddressReferent.ATTR_GEO) as Pullenti.Ner.Geo.GeoReferent;
-                            if (g != null) 
-                                return new AddressItemToken(AddressItemType.City, t, tok.EndToken) { Referent = g };
+                            if (res[i].Typ == last.Typ) 
+                            {
+                                if (i == (res.Count - 2) && ((last.Typ == AddressItemType.City || last.Typ == AddressItemType.Region))) 
+                                {
+                                    int jj;
+                                    for (jj = 0; jj < i; jj++) 
+                                    {
+                                        if ((res[jj].Typ != AddressItemType.Prefix && res[jj].Typ != AddressItemType.Zip && res[jj].Typ != AddressItemType.Region) && res[jj].Typ != AddressItemType.Country) 
+                                            break;
+                                    }
+                                    if (jj >= i) 
+                                        continue;
+                                }
+                                break;
+                            }
+                        }
+                        if ((i < (res.Count - 1)) || last.Typ == AddressItemType.Zip) 
+                        {
+                            res.Remove(last);
                             break;
                         }
-                        else if (r is Pullenti.Ner.Geo.GeoReferent) 
-                        {
-                            Pullenti.Ner.Geo.GeoReferent g = r as Pullenti.Ner.Geo.GeoReferent;
-                            if (!g.IsState) 
-                                return new AddressItemToken(AddressItemType.City, t, tok.EndToken) { Referent = g };
-                        }
-                    }
-                    return null;
-                }
-                if (tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType) 
-                    return _tryAttachDetail(t, tok);
-                t1 = tok.EndToken.Next;
-                if ((t1 is Pullenti.Ner.TextToken) && (t1 as Pullenti.Ner.TextToken).Term.StartsWith("ОБ")) 
-                {
-                    tok.EndToken = t1;
-                    t1 = t1.Next;
-                    if (t1 != null && t1.IsChar('.')) 
-                    {
-                        tok.EndToken = t1;
-                        t1 = t1.Next;
                     }
                 }
-                bool build = false;
-                if (tok.Termin.CanonicText == "НЕЖИЛОЕ") 
+                if (t.IsTableControlChar) 
+                    break;
+                if (t.IsChar(',') || t.IsChar('|')) 
+                    continue;
+                if (t.IsValue("ДУБЛЬ", null)) 
+                    continue;
+                if (t.IsCharOf("\\/")) 
                 {
-                    for (; t1 != null; t1 = t1.Next) 
+                    if (t.IsNewlineBefore || t.IsNewlineAfter) 
+                        break;
+                    if (t.Previous != null && t.Previous.IsComma) 
+                        continue;
+                    if (last.Typ == AddressItemType.Street && last.IsDoubt) 
+                        break;
+                    res.Add((it = new AddressItemToken(AddressItemType.Detail, t, t) { DetailType = Pullenti.Ner.Address.AddressDetailType.Cross }));
+                    continue;
+                }
+                if (t.IsChar(':') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                    continue;
+                if (t.IsChar(';') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t) && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamGarAddress(t)) 
+                    continue;
+                if (Pullenti.Ner.Core.BracketHelper.IsBracket(t, false) && t.Next != null && t.Next.IsComma) 
+                    continue;
+                if (t.IsChar('.')) 
+                {
+                    if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                        continue;
+                    if (t.IsNewlineAfter) 
                     {
-                        if (t1.IsChar('.')) 
-                            continue;
-                        if (t1.IsValue("ВСТР", null) || t1.IsValue("ВСТРОЕН", null) || t1.IsValue("ВСТРОЕННЫЙ", null)) 
-                            continue;
-                        if (t1.IsValue("ЗДАНИЕ", null)) 
+                        if (last.Typ == AddressItemType.City) 
                         {
-                            build = true;
-                            continue;
-                        }
-                        if (build) 
-                        {
-                            if ((t1.IsComma || t1.IsValue("В", null) || t1.IsValue("ЧАСТЬ", null)) || t1.IsValue("НЕЖИЛОЙ", null)) 
+                            AddressItemToken next = TryParse(t.Next, false, null, null);
+                            if (next != null && next.Typ == AddressItemType.Street) 
                                 continue;
-                        }
-                        Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
-                        if (tok2 == null) 
-                            break;
-                        if (tok2.Termin.CanonicText == "ПОМЕЩЕНИЕ") 
-                        {
-                            t1 = tok2.EndToken.Next;
-                            typ = AddressItemType.Space;
                         }
                         break;
                     }
-                }
-                if (t.IsValue("ЖИЛОЙ", null) && t.Next != null && t.Next.IsComma) 
-                    return null;
-                if ((t1 != null && t1.IsChar('(') && (t1.Next is Pullenti.Ner.TextToken)) && (t1.Next as Pullenti.Ner.TextToken).Term.StartsWith("ОБ")) 
-                {
-                    tok.EndToken = t1.Next;
-                    t1 = t1.Next.Next;
-                    while (t1 != null) 
+                    if (t.Previous != null && t.Previous.IsChar('.')) 
                     {
-                        if (t1.IsCharOf(".)")) 
-                        {
-                            tok.EndToken = t1;
-                            t1 = t1.Next;
-                        }
-                        else 
+                        if (t.Previous.Previous != null && t.Previous.Previous.IsChar('.')) 
                             break;
                     }
+                    continue;
                 }
-                if (tok.Termin.Tag is AddressItemType) 
+                if (t.IsHiphen || t.IsChar('_')) 
                 {
-                    if (tok.Termin.Tag2 is Pullenti.Ner.Address.AddressHouseType) 
-                        houseTyp = (Pullenti.Ner.Address.AddressHouseType)tok.Termin.Tag2;
-                    if (tok.Termin.Tag2 is Pullenti.Ner.Address.AddressBuildingType) 
-                        buildTyp = (Pullenti.Ner.Address.AddressBuildingType)tok.Termin.Tag2;
-                    typ = (AddressItemType)tok.Termin.Tag;
-                    if (typ == AddressItemType.CorpusOrFlat && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamNoFlats(tok)) 
-                        typ = AddressItemType.Corpus;
-                    if (typ == AddressItemType.Plot) 
+                    if (((it.Typ == AddressItemType.Number || it.Typ == AddressItemType.Street)) && (t.Next is Pullenti.Ner.NumberToken)) 
+                        continue;
+                    if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
+                        continue;
+                    if (it.Typ == AddressItemType.City) 
+                        continue;
+                }
+                if (it.Typ == AddressItemType.Detail && it.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross) 
+                {
+                    AddressItemToken str1 = TryParse(t, true, null, null);
+                    if (str1 != null && str1.Typ == AddressItemType.Street) 
                     {
-                        if (t.Previous != null && ((t.Previous.IsValue("СУДЕБНЫЙ", "СУДОВИЙ") || t.Previous.IsValue("ИЗБИРАТЕЛЬНЫЙ", "ВИБОРЧИЙ")))) 
-                            return null;
-                    }
-                    if (t1 != null && t1.IsCharOf("\\/") && m_Ontology.TryParse(t1.Next, Pullenti.Ner.Core.TerminParseAttr.No) != null) 
-                    {
-                        List<AddressItemToken> resList = new List<AddressItemToken>();
-                        resList.Add(new AddressItemToken(typ, t, t1));
-                        Pullenti.Ner.Token tt;
-                        for (tt = t1.Next; tt != null; tt = tt.Next) 
+                        if (str1.EndToken.Next != null && ((str1.EndToken.Next.IsAnd || str1.EndToken.Next.IsHiphen))) 
                         {
-                            Pullenti.Ner.Core.TerminToken tok1 = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
-                            if (tok1 == null) 
-                                break;
-                            if (!(tok1.Termin.Tag is AddressItemType)) 
-                                break;
-                            resList.Add(new AddressItemToken((AddressItemType)tok1.Termin.Tag, tt, tok1.EndToken));
-                            tt = tok1.EndToken;
-                            tt = tt.Next;
-                            if (tt == null || !tt.IsCharOf("\\/")) 
-                                break;
-                        }
-                        if (resList.Count > 1 && tt != null) 
-                        {
-                            for (int i = 0; i < resList.Count; i++) 
+                            AddressItemToken str2 = TryParse(str1.EndToken.Next.Next, true, null, null);
+                            if (str2 == null || str2.Typ != AddressItemType.Street) 
                             {
-                                Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt, Pullenti.Ner.Geo.Internal.GeoTokenType.ToSlash);
-                                if (nn == null) 
-                                    break;
-                                resList[i].EndToken = nn.EndToken;
-                                resList[i].Value = nn.Value;
-                                if (i > 0) 
-                                    resList[i].BeginToken = tt;
-                                if (i == (resList.Count - 1)) 
+                                str2 = StreetDefineHelper.TryParseSecondStreet(str1.BeginToken, str1.EndToken.Next.Next);
+                                if (str2 != null && str2.IsDoubt) 
                                 {
-                                    for (int j = resList.Count - 2; j >= 0; j--) 
-                                    {
-                                        resList[j].AltTyp = resList[j + 1];
-                                    }
-                                    return resList[0];
+                                    str2 = str2.Clone();
+                                    str2.IsDoubt = false;
                                 }
-                                tt = nn.EndToken.Next;
-                                if (tt == null || !tt.IsCharOf("\\/")) 
-                                    break;
-                                tt = tt.Next;
+                            }
+                            if (str2 != null && str2.Typ == AddressItemType.Street) 
+                            {
+                                res.Add(str1);
+                                res.Add(str2);
+                                t = str2.EndToken;
+                                it = str2;
+                                continue;
                             }
                         }
                     }
-                    if (typ == AddressItemType.Floor && (tok.Termin.Tag3 is string)) 
-                        return new AddressItemToken(typ, t, tok.EndToken) { Value = tok.Termin.Tag3 as string };
-                    if (typ == AddressItemType.Floor && (tok.EndToken.Next is Pullenti.Ner.TextToken)) 
+                }
+                bool pre = pref;
+                if (it.Typ == AddressItemType.Kilometer || ((it.Typ == AddressItemType.House && it.Value != null && ((res.Count == 1 || res[res.Count - 2].Typ != AddressItemType.Street))))) 
+                {
+                    if (!t.IsNewlineBefore) 
+                        pre = true;
+                }
+                if (t.IsValue2("НЕ", "УКАЗАН") || t.IsValue2("НЕ", "ЗАДАН")) 
+                {
+                    t = t.Next;
+                    continue;
+                }
+                AddressItemToken it0 = TryParse(t, pre, it, null);
+                if (it0 == null) 
+                {
+                    bool hous = false;
+                    Pullenti.Ner.Token tt = GotoEndOfAddress(t.Previous, out hous);
+                    if (tt != null && tt.EndChar >= t.EndChar && tt.Next != null) 
                     {
-                        if (tok.EndToken.Next.IsHiphen && !tok.EndToken.Next.IsWhitespaceAfter && (tok.EndToken.Next.Next is Pullenti.Ner.NumberToken)) 
-                            return new AddressItemToken(typ, t, tok.EndToken.Next.Next) { Value = "-" + (tok.EndToken.Next.Next as Pullenti.Ner.NumberToken).Value };
-                        if ((tok.EndToken.Next.LengthChar == 1 && tok.EndToken.Next.Chars.IsAllUpper && (tok.EndToken.Next.Next is Pullenti.Ner.NumberToken)) && !tok.EndToken.Next.IsWhitespaceAfter) 
-                            return new AddressItemToken(typ, t, tok.EndToken.Next.Next) { Value = (tok.EndToken.Next as Pullenti.Ner.TextToken).Term + (tok.EndToken.Next.Next as Pullenti.Ner.NumberToken).Value };
+                        if (tt.Next.IsComma) 
+                            tt = tt.Next;
+                        it0 = TryParse(tt.Next, pre, it, null);
+                        if (it0 == null && hous && it.Typ == AddressItemType.Street) 
+                            res.Add(new AddressItemToken(AddressItemType.House, t, tt) { Value = "0" });
                     }
-                    if (typ == AddressItemType.House && houseTyp == Pullenti.Ner.Address.AddressHouseType.Special) 
-                    {
-                        Pullenti.Ner.Token tt2 = tok.EndToken.Next;
-                        if (tt2 != null && tt2.IsHiphen) 
-                            tt2 = tt2.Next;
-                        AddressItemToken res = new AddressItemToken(typ, t, tok.EndToken) { HouseType = houseTyp, Value = tok.Termin.Acronym ?? tok.Termin.CanonicText };
-                        Pullenti.Ner.Geo.Internal.NumToken num2 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt2, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
-                        if (num2 != null && (tt2.WhitespacesBeforeCount < 2)) 
-                        {
-                            res.Value = string.Format("{0}-{1}", res.Value, num2.Value);
-                            res.EndToken = num2.EndToken;
-                        }
-                        return res;
-                    }
-                    if (typ == AddressItemType.Flat && t.IsValue("КВ", null)) 
+                    if (it.Typ == AddressItemType.City) 
                     {
                         StreetItemToken sit = StreetItemToken.TryParse(t, null, false, null);
-                        if (sit != null && sit.EndChar > tok.EndChar) 
-                            return null;
-                    }
-                    if (typ == AddressItemType.Prefix) 
-                    {
-                        for (; t1 != null; t1 = t1.Next) 
+                        if (sit != null && sit.Typ == StreetItemType.Noun && sit.Termin.CanonicText == "УЛИЦА") 
                         {
-                            if (((t1.Morph.Class.IsPreposition || t1.Morph.Class.IsConjunction)) && t1.WhitespacesAfterCount == 1) 
+                            if (AddressItemToken.CheckHouseAfter(sit.EndToken.Next, false, false)) 
+                            {
+                                t = sit.EndToken;
                                 continue;
-                            if (t1.IsChar(':')) 
-                            {
-                                t1 = t1.Next;
-                                break;
                             }
-                            if (t1.IsChar('(')) 
+                        }
+                    }
+                }
+                if (it0 == null && t.GetMorphClassInDictionary().IsPreposition && (t.WhitespacesAfterCount < 3)) 
+                {
+                    it0 = TryParse(t.Next, pre, it, null);
+                    if (it0 != null) 
+                    {
+                        if (it0.Typ == AddressItemType.Number) 
+                            it0 = null;
+                        else if (it0.Typ == AddressItemType.Building && t.Next.IsValue("СТ", null)) 
+                            it0 = null;
+                        else 
+                        {
+                            it0 = it0.Clone();
+                            it0.BeginToken = t;
+                        }
+                    }
+                }
+                if (it0 == null) 
+                {
+                    if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t, true, null, false) && last.Typ == AddressItemType.Street) 
+                        continue;
+                    if (t.IsCharOf("\\/") && last.Typ == AddressItemType.Street) 
+                        continue;
+                }
+                if (((it0 == null && t.IsChar('(') && (t.Next is Pullenti.Ner.ReferentToken)) && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && t.Next.Next != null) && t.Next.Next.IsChar(')')) 
+                {
+                    it0 = TryParse(t.Next, pre, it, null);
+                    if (it0 != null) 
+                    {
+                        it0 = it0.Clone();
+                        it0.BeginToken = t;
+                        it0.EndToken = it0.EndToken.Next;
+                        Pullenti.Ner.Geo.GeoReferent geo0 = t.Next.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
+                        if (geo0.Higher == null) 
+                        {
+                            for (int kk = res.Count - 1; kk >= 0; kk--) 
                             {
-                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                                if (br != null && (br.LengthChar < 50)) 
+                                if (res[kk].Typ == AddressItemType.City && (res[kk].Referent is Pullenti.Ner.Geo.GeoReferent)) 
                                 {
-                                    t1 = br.EndToken;
-                                    continue;
-                                }
-                            }
-                            if (t1 is Pullenti.Ner.TextToken) 
-                            {
-                                if (t1.Chars.IsAllLower || (t1.WhitespacesBeforeCount < 3)) 
-                                {
-                                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(t1);
-                                    if (npt != null && ((npt.Chars.IsAllLower || npt.Morph.Case.IsGenitive))) 
+                                    if (Pullenti.Ner.Geo.Internal.GeoOwnerHelper.CanBeHigher(res[kk].Referent as Pullenti.Ner.Geo.GeoReferent, geo0, null, null) || ((geo0.FindSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_TYPE, "город", true) != null && res[kk].Referent.FindSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_TYPE, "город", true) != null))) 
                                     {
-                                        if (Pullenti.Ner.Geo.Internal.CityItemToken.CheckKeyword(npt.EndToken) == null && Pullenti.Ner.Geo.Internal.TerrItemToken.CheckKeyword(npt.EndToken) == null) 
-                                        {
-                                            t1 = npt.EndToken;
-                                            continue;
-                                        }
+                                        geo0.Higher = res[kk].Referent as Pullenti.Ner.Geo.GeoReferent;
+                                        break;
                                     }
                                 }
                             }
-                            if (t1.IsValue("УКАЗАННЫЙ", null) || t1.IsValue("ЕГРИП", null) || t1.IsValue("ФАКТИЧЕСКИЙ", null)) 
-                                continue;
-                            if (t1.IsComma) 
+                        }
+                    }
+                }
+                if (it0 == null) 
+                {
+                    if (t.NewlinesBeforeCount > 2) 
+                        break;
+                    if (it.Typ == AddressItemType.PostOfficeBox) 
+                        break;
+                    if (t.IsHiphen && t.Next != null && t.Next.IsComma) 
+                        continue;
+                    if (t.IsHiphen && (t.Next is Pullenti.Ner.NumberToken) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                        continue;
+                    if (t.IsValue("НЕТ", null) || t.IsValue("ТЕР", null) || t.IsValue("ТЕРРИТОРИЯ", null)) 
+                        continue;
+                    if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                    {
+                        if ((t.IsValue("РАСПОЛОЖЕННЫЙ", null) || t.IsValue("НЕЖИЛОЙ", null) || t.IsValue("ЗДАНИЕ", null)) || t.IsValue("ЧАСТЬ", null)) 
+                            continue;
+                        if (((t.IsValue("ПЛ", null) || t.IsValue("ПЛОЩАДЬ", null) || t.IsValue("ПЛОЩ", null))) && t.Next != null) 
+                        {
+                            Pullenti.Ner.Core.NumberExToken nn = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix((t.Next is Pullenti.Ner.NumberToken ? t.Next : t.Next.Next));
+                            if (nn != null && nn.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2) 
                             {
-                                if (t1.Next != null && t1.Next.IsValue("УКАЗАННЫЙ", null)) 
-                                    continue;
+                                t = nn.EndToken;
+                                continue;
                             }
+                        }
+                    }
+                    Pullenti.Ner.Token tt1 = StreetItemToken.CheckStdName(t);
+                    if (tt1 != null) 
+                    {
+                        t = tt1;
+                        continue;
+                    }
+                    if (t.Morph.Class.IsPreposition) 
+                    {
+                        it0 = TryParse(t.Next, false, it, null);
+                        if (it0 != null && it0.Typ == AddressItemType.Building && it0.BeginToken.IsValue("СТ", null)) 
+                        {
+                            it0 = null;
                             break;
                         }
-                        if (t1 != null) 
+                        if (it0 != null) 
                         {
-                            Pullenti.Ner.Token t0 = t;
-                            if (((t0.Previous != null && !t0.IsNewlineBefore && t0.Previous.IsChar(')')) && (t0.Previous.Previous is Pullenti.Ner.TextToken) && t0.Previous.Previous.Previous != null) && t0.Previous.Previous.Previous.IsChar('(')) 
+                            if ((it0.Typ == AddressItemType.Detail && it.Typ == AddressItemType.City && it.DetailMeters > 0) && it.DetailType == Pullenti.Ner.Address.AddressDetailType.Undefined) 
                             {
-                                t = t0.Previous.Previous.Previous.Previous;
-                                if (t != null && t.GetMorphClassInDictionary().IsAdjective && !t.IsNewlineAfter) 
-                                    t0 = t;
+                                it.DetailType = it0.DetailType;
+                                t = (it.EndToken = it0.EndToken);
+                                continue;
                             }
-                            if (t0.BeginChar > t1.Previous.BeginChar) 
-                                return null;
-                            AddressItemToken res = new AddressItemToken(AddressItemType.Prefix, t0, t1.Previous);
-                            for (Pullenti.Ner.Token tt = t0.Previous; tt != null; tt = tt.Previous) 
+                            if ((it0.Typ == AddressItemType.House || it0.Typ == AddressItemType.Building || it0.Typ == AddressItemType.Corpus) || it0.Typ == AddressItemType.Street || it0.Typ == AddressItemType.Detail) 
                             {
-                                if (tt.NewlinesAfterCount > 3) 
-                                    break;
-                                if (tt.IsCommaAnd || tt.IsCharOf("().")) 
-                                    continue;
-                                if (!(tt is Pullenti.Ner.TextToken)) 
-                                    break;
-                                if (((tt.IsValue("ПОЧТОВЫЙ", null) || tt.IsValue("ЮРИДИЧЕСКИЙ", null) || tt.IsValue("ЮР", null)) || tt.IsValue("ФАКТИЧЕСКИЙ", null) || tt.IsValue("ФАКТ", null)) || tt.IsValue("ПОЧТ", null) || tt.IsValue("АДРЕС", null)) 
-                                    res.BeginToken = tt;
-                                else 
-                                    break;
+                                res.Add((it = it0));
+                                t = it.EndToken;
+                                continue;
                             }
-                            return res;
-                        }
-                        else 
-                            return null;
-                    }
-                    else if ((typ == AddressItemType.CorpusOrFlat && !tok.IsWhitespaceBefore && !tok.IsWhitespaceAfter) && tok.BeginToken == tok.EndToken && tok.BeginToken.IsValue("К", null)) 
-                    {
-                        if (prev != null && prev.Typ == AddressItemType.Flat) 
-                            typ = AddressItemType.Room;
-                        else 
-                            typ = AddressItemType.Corpus;
-                    }
-                    if (typ == AddressItemType.Detail && t.IsValue("У", null)) 
-                    {
-                        if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.CheckGeoObjectBefore(t, false)) 
-                            return null;
-                    }
-                    if (typ == AddressItemType.Flat && t.IsValue("КВ", null)) 
-                    {
-                        if (t.GetSourceText() == "кВ") 
-                            return null;
-                    }
-                    if (((typ == AddressItemType.Flat || typ == AddressItemType.Space || typ == AddressItemType.Office)) && !(tok.EndToken.Next is Pullenti.Ner.NumberToken)) 
-                    {
-                        Pullenti.Ner.Token tt2 = tok.EndToken.Next;
-                        if (tt2 != null && tt2.IsCharOf("\\/")) 
-                            tt2 = tt2.Next;
-                        AddressItemToken next = _tryParsePureItem(tt2, false, null);
-                        if (next != null && typ != AddressItemType.Office && next.Typ == AddressItemType.Flat) 
-                        {
-                            next.BeginToken = t;
-                            return next;
-                        }
-                        if (next != null && typ == AddressItemType.Flat && next.Typ == AddressItemType.Office) 
-                        {
-                            next.BeginToken = t;
-                            return next;
-                        }
-                        if (next != null && next.Typ == AddressItemType.Building && next.BuildingType == Pullenti.Ner.Address.AddressBuildingType.Liter) 
-                            return new AddressItemToken(typ, t, next.EndToken) { Value = next.Value };
-                        if (next != null && ((next.Typ == AddressItemType.Corpus || next.Typ == AddressItemType.House)) && next.BeginToken.LengthChar == 1) 
-                            return new AddressItemToken(typ, t, next.EndToken) { Value = string.Format("{0}{1}", (next.Typ == AddressItemType.Corpus ? "К" : "Д"), next.Value) };
-                        if (next != null && typ == AddressItemType.Office && ((next.Typ == AddressItemType.Space || next.Typ == AddressItemType.Flat))) 
-                        {
-                            next.Typ = AddressItemType.Office;
-                            next.BeginToken = t;
-                            return next;
-                        }
-                        if (tok.EndToken.Next != null && tok.EndToken.Next.IsChar('(')) 
-                        {
-                            Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(tok.EndToken.Next.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                            if (tok2 != null && tok2.EndToken.Next != null && tok2.EndToken.Next.IsChar(')')) 
-                                t1 = tok2.EndToken.Next.Next;
                         }
                     }
-                    if (typ == AddressItemType.Space && tok.Termin.Tag3 != null) 
+                    if (it.Typ == AddressItemType.House || it.Typ == AddressItemType.Building || it.Typ == AddressItemType.Number) 
                     {
-                        if (prev != null && ((prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City))) 
-                            typ = AddressItemType.House;
-                        else if (prev != null && ((prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Building || prev.Typ == AddressItemType.Corpus))) 
+                        if ((!t.IsWhitespaceBefore && t.LengthChar == 1 && t.Chars.IsLetter) && !t.IsWhitespaceAfter && (t.Next is Pullenti.Ner.NumberToken)) 
                         {
-                        }
-                        else 
-                        {
-                        }
-                        if (tok.Termin.Tag2 != null) 
-                        {
-                            spaceDetail = tok.Termin.CanonicText;
-                            if (spaceDetail.Length > 4 || spaceDetail == "КАФЕ") 
-                                spaceDetail = spaceDetail.ToLower();
-                            Pullenti.Ner.Geo.Internal.OrgItemToken org1 = Pullenti.Ner.Geo.Internal.OrgItemToken.TryParse(t, null);
-                            if (org1 != null && org1.IsBuilding) 
-                                return new AddressItemToken(typ, t, org1.EndToken) { DetailParam = spaceDetail, RefToken2 = org1 };
+                            string ch = CorrectCharToken(t);
+                            if (ch == "К" || ch == "С") 
+                            {
+                                it0 = new AddressItemToken((ch == "К" ? AddressItemType.Corpus : AddressItemType.Building), t, t.Next) { Value = (t.Next as Pullenti.Ner.NumberToken).Value.ToString() };
+                                it = it0;
+                                res.Add(it);
+                                t = it.EndToken;
+                                Pullenti.Ner.Token tt = t.Next;
+                                if (((tt != null && !tt.IsWhitespaceBefore && tt.LengthChar == 1) && tt.Chars.IsLetter && !tt.IsWhitespaceAfter) && (tt.Next is Pullenti.Ner.NumberToken)) 
+                                {
+                                    ch = CorrectCharToken(tt);
+                                    if (ch == "К" || ch == "С") 
+                                    {
+                                        it = new AddressItemToken((ch == "К" ? AddressItemType.Corpus : AddressItemType.Building), tt, tt.Next) { Value = (tt.Next as Pullenti.Ner.NumberToken).Value.ToString() };
+                                        res.Add(it);
+                                        t = it.EndToken;
+                                    }
+                                }
+                                continue;
+                            }
                         }
                     }
-                    if (typ == AddressItemType.Space) 
+                    if (t.Morph.Class.IsPreposition) 
                     {
-                        if (tok.Termin.Tag2 != null) 
+                        if ((((t.IsValue("У", null) || t.IsValue("ВОЗЛЕ", null) || t.IsValue("НАПРОТИВ", null)) || t.IsValue("НА", null) || t.IsValue("В", null)) || t.IsValue("ВО", null) || t.IsValue("ПО", null)) || t.IsValue("ОКОЛО", null)) 
                         {
-                            spaceDetail = tok.Termin.CanonicText;
-                            if (spaceDetail.Length > 4 || spaceDetail == "КАФЕ") 
-                                spaceDetail = spaceDetail.ToLower();
-                            Pullenti.Ner.Geo.Internal.OrgItemToken org1 = Pullenti.Ner.Geo.Internal.OrgItemToken.TryParse(t, null);
-                            if (org1 != null && org1.IsBuilding) 
-                                return new AddressItemToken(typ, t, org1.EndToken) { DetailParam = spaceDetail, RefToken2 = org1 };
+                            if (it0 != null && it0.Typ == AddressItemType.Number) 
+                                break;
+                            continue;
                         }
-                        AddressItemToken next = _tryParsePureItem(tok.EndToken.Next, false, null);
-                        if (next == null && tok.EndToken.Next != null && tok.EndToken.Next.IsHiphen) 
-                            next = _tryParsePureItem(tok.EndToken.Next.Next, false, null);
-                        if (next != null && ((next.Typ == AddressItemType.Space || next.Typ == AddressItemType.Room || next.Typ == AddressItemType.Office))) 
-                        {
-                            next.BeginToken = t;
-                            if (next.DetailParam == null) 
-                                next.DetailParam = spaceDetail;
-                            return next;
-                        }
-                        Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(tok.EndToken.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                        if (tok2 == null && tok.EndToken.Next != null && tok.EndToken.Next.IsHiphen) 
-                            tok2 = m_Ontology.TryParse(tok.EndToken.Next.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                        if ((tok2 != null && tok2.Termin.Tag != null && ((AddressItemType)tok2.Termin.Tag) == AddressItemType.Space) && tok2.Termin.Tag2 != null) 
-                        {
-                            spaceDetail = tok2.Termin.CanonicText;
-                            if (spaceDetail.Length > 4) 
-                                spaceDetail = spaceDetail.ToLower();
-                            tok = tok2;
-                            tok.BeginToken = t;
-                        }
-                        if ((tok.EndToken.Next is Pullenti.Ner.TextToken) && (tok.EndToken.Next as Pullenti.Ner.TextToken).Term == "ЗОИ") 
-                            return new AddressItemToken(typ, t, tok.EndToken.Next) { Value = "3", DetailParam = "МОП" };
                     }
-                    if (typ == AddressItemType.Floor && t1 != null) 
+                    if (t.Morph.Class.IsNoun) 
                     {
-                        AddressItemToken next = _tryParsePureItem(t1, false, null);
-                        if (next != null && next.Typ == typ) 
+                        if ((t.IsValue("ДВОР", null) || t.IsValue("ПОДЪЕЗД", null) || t.IsValue("КРЫША", null)) || t.IsValue("ПОДВАЛ", null)) 
+                            continue;
+                    }
+                    if (t.IsValue("ТЕРРИТОРИЯ", "ТЕРИТОРІЯ")) 
+                        continue;
+                    if (t.IsChar('(') && t.Next != null) 
+                    {
+                        it0 = TryParse(t.Next, pre, null, null);
+                        if (it0 != null && it0.EndToken.Next != null && it0.EndToken.Next.IsChar(')')) 
                         {
-                            next.BeginToken = t;
-                            return next;
+                            it0 = it0.Clone();
+                            it0.BeginToken = t;
+                            it0.EndToken = it0.EndToken.Next;
+                            it = it0;
+                            res.Add(it);
+                            t = it.EndToken;
+                            continue;
                         }
-                        Pullenti.Ner.Token tt2 = t1;
-                        if (tt2 != null && tt2.IsCharOf("\\/")) 
-                            tt2 = tt2.Next;
-                        next = _tryParsePureItem(tt2, prefixBefore, prev);
-                        if (next != null && next.Value == "подвал") 
+                        List<AddressItemToken> li0 = TryParseListInt(t.Next, 3);
+                        if ((li0 != null && li0.Count > 1 && li0[0].Typ != AddressItemType.Detail) && li0[li0.Count - 1].EndToken.Next != null && li0[li0.Count - 1].EndToken.Next.IsChar(')')) 
                         {
-                            tt2 = next.EndToken.Next;
-                            if (tt2 != null && tt2.IsCharOf("\\/")) 
+                            li0[0] = li0[0].Clone();
+                            li0[0].BeginToken = t;
+                            li0[li0.Count - 1] = li0[li0.Count - 1].Clone();
+                            li0[li0.Count - 1].EndToken = li0[li0.Count - 1].EndToken.Next;
+                            res.AddRange(li0);
+                            it = li0[li0.Count - 1];
+                            t = it.EndToken;
+                            continue;
+                        }
+                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br != null && (br.LengthChar < 100)) 
+                        {
+                            if (t.Next.IsValue("БЫВШИЙ", null) || t.Next.IsValue("БЫВШ", null)) 
+                            {
+                                it = new AddressItemToken(AddressItemType.Detail, t, br.EndToken);
+                                res.Add(it);
+                            }
+                            t = br.EndToken;
+                            continue;
+                        }
+                    }
+                    bool checkKv = false;
+                    if (t.IsValue("КВ", null) || t.IsValue("KB", null)) 
+                    {
+                        if (it.Typ == AddressItemType.Number && res.Count > 1 && res[res.Count - 2].Typ == AddressItemType.Street) 
+                            checkKv = true;
+                        else if ((it.Typ == AddressItemType.House || it.Typ == AddressItemType.Building || it.Typ == AddressItemType.Corpus) || it.Typ == AddressItemType.CorpusOrFlat) 
+                        {
+                            for (int jj = res.Count - 2; jj >= 0; jj--) 
+                            {
+                                if (res[jj].Typ == AddressItemType.Street || res[jj].Typ == AddressItemType.City) 
+                                    checkKv = true;
+                            }
+                        }
+                        if (checkKv) 
+                        {
+                            Pullenti.Ner.Token tt2 = t.Next;
+                            if (tt2 != null && tt2.IsChar('.')) 
                                 tt2 = tt2.Next;
-                            AddressItemToken num2 = _tryParsePureItem(tt2, prefixBefore, prev);
-                            if (num2 != null && num2.Typ == AddressItemType.Number && num2.Value != null) 
+                            AddressItemToken it22 = TryParsePureItem(tt2, null, null);
+                            if (it22 != null && it22.Typ == AddressItemType.Number) 
                             {
-                                num2.Typ = typ;
-                                num2.BeginToken = t;
-                                num2.Value = "-" + num2.Value;
-                                return num2;
+                                it22 = it22.Clone();
+                                it22.BeginToken = t;
+                                it22.Typ = AddressItemType.Flat;
+                                res.Add(it22);
+                                t = it22.EndToken;
+                                continue;
                             }
                         }
                     }
-                    if (typ == AddressItemType.Kilometer || typ == AddressItemType.Floor || typ == AddressItemType.Potch) 
+                    if (res[res.Count - 1].Typ == AddressItemType.City) 
                     {
-                        if ((tok.EndToken.Next is Pullenti.Ner.NumberToken) || Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tok.EndToken.Next) != null) 
+                        if (((t.IsHiphen || t.IsChar('_') || t.IsValue("НЕТ", null))) && t.Next != null && t.Next.IsComma) 
                         {
+                            AddressItemToken att = TryParsePureItem(t.Next.Next, null, null);
+                            if (att != null) 
+                            {
+                                if (att.Typ == AddressItemType.House || att.Typ == AddressItemType.Building || att.Typ == AddressItemType.Corpus) 
+                                {
+                                    it = new AddressItemToken(AddressItemType.Street, t, t);
+                                    res.Add(it);
+                                    continue;
+                                }
+                            }
                         }
+                    }
+                    if (t.LengthChar == 2 && (t is Pullenti.Ner.TextToken) && t.Chars.IsAllUpper) 
+                    {
+                        string term = (t as Pullenti.Ner.TextToken).Term;
+                        if (!string.IsNullOrEmpty(term) && term[0] == 'Р') 
+                            continue;
+                    }
+                    break;
+                }
+                if (t.WhitespacesBeforeCount > 15) 
+                {
+                    if (it0.Typ == AddressItemType.Street && last.Typ == AddressItemType.City) 
+                    {
+                    }
+                    else 
+                        break;
+                }
+                if (t.IsNewlineBefore && it0.Typ == AddressItemType.Street && it0.RefToken != null) 
+                {
+                    if (!it0.RefTokenIsGsk) 
+                        break;
+                }
+                if (it0.Typ == AddressItemType.Street && t.IsValue("КВ", null)) 
+                {
+                    if (it != null) 
+                    {
+                        if (it.Typ == AddressItemType.House || it.Typ == AddressItemType.Building || it.Typ == AddressItemType.Corpus) 
+                        {
+                            AddressItemToken it2 = TryParsePureItem(t, null, null);
+                            if (it2 != null && it2.Typ == AddressItemType.Flat) 
+                                it0 = it2;
+                        }
+                    }
+                }
+                if (it0.Typ == AddressItemType.Prefix) 
+                {
+                    if (it.Typ == AddressItemType.City) 
+                    {
+                        AddressItemToken it1 = TryParse(it0.EndToken.Next, false, null, null);
+                        if (it1 != null && it1.Typ == AddressItemType.Street) 
+                            it0 = it1;
                         else 
-                            return new AddressItemToken(typ, t, tok.EndToken);
-                    }
-                    if ((typ == AddressItemType.House || typ == AddressItemType.Building || typ == AddressItemType.Corpus) || typ == AddressItemType.Plot || typ == AddressItemType.Box) 
-                    {
-                        for (Pullenti.Ner.Token tt2 = t1; tt2 != null; tt2 = tt2.Next) 
-                        {
-                            if (tt2.IsComma) 
-                                continue;
-                            if (tt2.IsValue("РАСПОЛОЖЕННЫЙ", null) || tt2.IsValue("НАХОДЯЩИЙСЯ", null) || tt2.IsValue("ПРИЛЕГАЮЩИЙ", null)) 
-                                continue;
-                            if (tt2.IsValue("ПОДВАЛ", null)) 
-                            {
-                                t1 = tt2.Next;
-                                continue;
-                            }
-                            if (tt2.Morph.Class.IsPreposition) 
-                                continue;
-                            Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(tt2, Pullenti.Ner.Core.TerminParseAttr.No);
-                            if (tok2 != null && (tok2.Termin.Tag is AddressItemType)) 
-                            {
-                                AddressItemType typ2 = (AddressItemType)tok2.Termin.Tag;
-                                if (typ2 != typ && ((typ2 == AddressItemType.Plot || ((typ2 == AddressItemType.House && typ == AddressItemType.Plot))))) 
-                                {
-                                    if (t.BeginChar > tt2.Previous.BeginChar) 
-                                        return null;
-                                    return new AddressItemToken(typ, t, tt2.Previous) { Value = "0", HouseType = houseTyp };
-                                }
-                                if (typ == AddressItemType.Box && typ2 == AddressItemType.Space && tok2.Termin.CanonicText == "ПОДВАЛ") 
-                                {
-                                    tt2 = tok2.EndToken;
-                                    t1 = tt2.Next;
-                                    continue;
-                                }
-                                if (typ == AddressItemType.Corpus && typ2 == AddressItemType.House && (tok2.Termin.Tag2 is Pullenti.Ner.Address.AddressHouseType)) 
-                                {
-                                    Pullenti.Ner.Address.AddressHouseType ht = (Pullenti.Ner.Address.AddressHouseType)tok2.Termin.Tag2;
-                                    if (ht == Pullenti.Ner.Address.AddressHouseType.Estate || ht == Pullenti.Ner.Address.AddressHouseType.HouseEstate) 
-                                    {
-                                        tt2 = tok2.EndToken;
-                                        t1 = tt2.Next;
-                                        continue;
-                                    }
-                                }
-                            }
-                            if (tt2 is Pullenti.Ner.TextToken) 
-                            {
-                                if ((tt2 as Pullenti.Ner.TextToken).Term.StartsWith("ДОП")) 
-                                {
-                                    t1 = tt2.Next;
-                                    if (t1 != null && t1.IsChar('.')) 
-                                    {
-                                        tt2 = tt2.Next;
-                                        t1 = t1.Next;
-                                    }
-                                    continue;
-                                }
-                            }
                             break;
-                        }
-                        if (typ == AddressItemType.Corpus) 
-                        {
-                            if (t1 != null) 
-                            {
-                                if (t1.IsValue("СЕКТОР", null) || t1.IsValue("МАССИВ", null)) 
-                                    t1 = t1.Next;
-                                else if (t1.IsValue("СЕКТ", null) || t1.IsValue("МАС", null)) 
-                                {
-                                    t1 = t1.Next;
-                                    if (t1 != null && t1.IsChar('.')) 
-                                        t1 = t1.Next;
-                                }
-                                else 
-                                {
-                                    AddressItemToken next = TryParsePureItem(t1, null, null);
-                                    if (next != null && ((next.Typ == AddressItemType.Corpus || next.Typ == AddressItemType.Flat || next.Typ == AddressItemType.CorpusOrFlat))) 
-                                    {
-                                        next.Typ = AddressItemType.Corpus;
-                                        next.BeginToken = t;
-                                        return next;
-                                    }
-                                    if (next != null && next.BuildingType == Pullenti.Ner.Address.AddressBuildingType.Liter) 
-                                    {
-                                        next.BeginToken = t;
-                                        return next;
-                                    }
-                                }
-                            }
-                        }
                     }
-                    if (typ == AddressItemType.House && t1 != null && t1.Chars.IsLetter) 
+                    else 
+                        break;
+                }
+                if (it0.Typ == AddressItemType.Number) 
+                {
+                    if (string.IsNullOrEmpty(it0.Value)) 
+                        break;
+                    if (!char.IsDigit(it0.Value[0])) 
+                        break;
+                    if (it0.IsNewlineBefore && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it0) && res[res.Count - 1].Typ != AddressItemType.Street) 
+                        break;
+                    if (it0.BeginToken.IsValue("НОМЕР", null)) 
                     {
-                        AddressItemToken next = TryParsePureItem(t1, prev, null);
-                        if (next != null && ((next.Typ == typ || next.Typ == AddressItemType.Plot))) 
-                        {
-                            next.BeginToken = t;
-                            return next;
-                        }
                     }
-                    if (typ == AddressItemType.Flat && (t1 is Pullenti.Ner.TextToken) && ((t1.IsValue("М", null) || t1.IsValue("M", null)))) 
+                    else 
                     {
-                        if (t1.Next is Pullenti.Ner.NumberToken) 
-                            t1 = t1.Next;
-                        else if (t1.Next != null && t1.Next.IsChar('.') && (t1.Next.Next is Pullenti.Ner.NumberToken)) 
-                            t1 = t1.Next.Next;
-                    }
-                    if (typ == AddressItemType.Room && t1 != null) 
-                    {
-                        if (t1.IsCharOf("\\/")) 
+                        int cou = 0;
+                        for (int i = res.Count - 1; i >= 0; i--) 
                         {
-                            AddressItemToken next = _tryParsePureItem(t1.Next, prefixBefore, prev);
-                            if (next != null && ((next.Typ == AddressItemType.Room || next.Typ == AddressItemType.Office))) 
-                            {
-                                next.BeginToken = t;
-                                return next;
-                            }
-                        }
-                        else if (t1.IsValue("К", null) && !t1.IsWhitespaceAfter && (t1.Next is Pullenti.Ner.NumberToken)) 
-                            t1 = t1.Next;
-                    }
-                    if (typ == AddressItemType.Field) 
-                    {
-                        Pullenti.Ner.Core.NumberExToken nt2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t1);
-                        if (nt2 != null && ((nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2 || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Gektar || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Ar))) 
-                            return new AddressItemToken(typ, t, nt2.EndToken) { Value = nt2.ToString() };
-                        AddressItemToken re = new AddressItemToken(typ, t, tok.EndToken);
-                        StringBuilder nnn = new StringBuilder();
-                        for (Pullenti.Ner.Token tt = tok.EndToken.Next; tt != null; tt = tt.Next) 
-                        {
-                            Pullenti.Ner.NumberToken ll = Pullenti.Ner.Core.NumberHelper.TryParseRoman(tt);
-                            if (ll != null && ll.IntValue != null) 
-                            {
-                                if (nnn.Length > 0) 
-                                    nnn.Append("-");
-                                nnn.Append(ll.Value);
-                                re.EndToken = (tt = ll.EndToken);
-                                continue;
-                            }
-                            if (tt.IsHiphen) 
-                                continue;
-                            if (tt.IsWhitespaceBefore) 
+                            if (res[i].Typ == AddressItemType.Number) 
+                                cou++;
+                            else 
                                 break;
-                            if (tt is Pullenti.Ner.NumberToken) 
-                            {
-                                if (nnn.Length > 0) 
-                                    nnn.Append("-");
-                                nnn.Append((tt as Pullenti.Ner.NumberToken).Value);
-                                re.EndToken = tt;
-                                continue;
-                            }
-                            if ((tt is Pullenti.Ner.TextToken) && tt.Chars.IsAllUpper) 
-                            {
-                                if (nnn.Length > 0) 
-                                    nnn.Append("-");
-                                nnn.Append((tt as Pullenti.Ner.TextToken).Term);
-                                re.EndToken = tt;
-                                continue;
-                            }
+                        }
+                        if (cou > 5) 
                             break;
-                        }
-                        if (nnn.Length > 0) 
-                        {
-                            re.Value = nnn.ToString();
-                            return re;
-                        }
-                    }
-                    if (typ == AddressItemType.NoNumber) 
-                        return new AddressItemToken(AddressItemType.NoNumber, t, tok.EndToken) { Value = "0", IsDoubt = false };
-                    if (typ == AddressItemType.House || typ == AddressItemType.Plot) 
-                    {
-                        if (t1 != null && t1.IsValue("ЛПХ", null)) 
-                            t1 = t1.Next;
-                    }
-                    if ((typ != AddressItemType.Number && (t1 is Pullenti.Ner.TextToken) && t1.Chars.IsLetter) && !t1.Chars.IsAllUpper) 
-                    {
-                        AddressItemToken next = TryParsePureItem(t1, null, null);
-                        if ((next != null && next.Typ != AddressItemType.Number && next.Typ != AddressItemType.NoNumber) && next.Value != null) 
-                        {
-                            next.BeginToken = t;
-                            return next;
-                        }
-                    }
-                    if (typ != AddressItemType.Number) 
-                    {
-                        if (t1 == null || ((t1.IsComma && !(t1.Next is Pullenti.Ner.NumberToken))) || ((tok.IsNewlineAfter && !(t1 is Pullenti.Ner.NumberToken)))) 
-                        {
-                            if (((prev != null || Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t))) && !tok.IsNewlineBefore) 
-                                return new AddressItemToken(typ, t, tok.EndToken) { HouseType = houseTyp, BuildingType = buildTyp, Value = (spaceDetail != null || typ == AddressItemType.Plot ? "0" : null), DetailParam = spaceDetail };
-                        }
-                    }
-                    if (typ == AddressItemType.Plot || typ == AddressItemType.Well) 
-                    {
-                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
-                        if (num1 != null) 
-                            return new AddressItemToken(typ, t, num1.EndToken) { Value = num1.Value };
-                    }
-                    if (typ == AddressItemType.Plot) 
-                    {
-                        Pullenti.Ner.Token tt = t1;
-                        if (tt != null) 
-                        {
-                            if (tt.IsValue("У", null) || tt.IsValue("ОКОЛО", null) || tt.IsValue("ПРИ", null)) 
-                                tt = tt.Next;
-                        }
-                        Pullenti.Ner.Core.TerminToken tok1 = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
-                        if (tok1 != null) 
-                        {
-                            if (tok1.Termin.Tag is AddressItemType) 
-                            {
-                                AddressItemType ty1 = (AddressItemType)tok1.Termin.Tag;
-                                if (ty1 == AddressItemType.House || ty1 == AddressItemType.Building || ty1 == AddressItemType.Corpus) 
-                                {
-                                    if (tt.Previous.BeginChar < t.BeginChar) 
-                                        return null;
-                                    return new AddressItemToken(typ, t, tt.Previous) { Value = "0" };
-                                }
-                            }
-                        }
-                    }
-                    if (typ == AddressItemType.Number) 
-                    {
-                        Pullenti.Ner.Core.TerminToken tok1 = m_Ontology.TryParse(tok.EndToken.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                        if (tok1 != null) 
-                        {
-                            if (tok1.Termin.Tag is AddressItemType) 
-                            {
-                                AddressItemType ty1 = (AddressItemType)tok1.Termin.Tag;
-                                if (ty1 != AddressItemType.Number) 
-                                {
-                                    typ = ty1;
-                                    t1 = tok1.EndToken.Next;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (t1 != null && t1.IsComma) 
-            {
-                if (typ == AddressItemType.Flat && (t1.Next is Pullenti.Ner.NumberToken)) 
-                    t1 = t1.Next;
-                else if ((typ == AddressItemType.House && (t1.Next is Pullenti.Ner.NumberToken) && prev != null) && prev.Typ == AddressItemType.Street) 
-                    t1 = t1.Next;
-            }
-            if (t1 != null && t1.IsChar('.') && t1.Next != null) 
-            {
-                t1 = t1.Next;
-                if (t1.IsNewlineBefore && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
-                    return null;
-            }
-            if (t1 != null && t1.IsValue("ЛПХ", null)) 
-            {
-                t1 = t1.Next;
-                if (t1 != null && t1.IsHiphen) 
-                    t1 = t1.Next;
-            }
-            if ((t1 != null && t1 != t && ((t1.IsHiphen || t1.IsCharOf("_:")))) && (t1.Next is Pullenti.Ner.NumberToken)) 
-                t1 = t1.Next;
-            if (t1 != null && t1.IsValue("МОП", null) && (t1.Next is Pullenti.Ner.NumberToken)) 
-                t1 = t1.Next;
-            if (t1 != null && t1.IsValue("НА", null)) 
-            {
-                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t1, Pullenti.Ner.Core.NounPhraseParseAttr.ParsePreposition, 0, null);
-                if (npt != null && npt.EndToken.IsValue("ПЛАН", null)) 
-                    t1 = npt.EndToken.Next;
-            }
-            if (t1 != null && t1.IsChar(':')) 
-            {
-                if (t1.IsNewlineAfter && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
-                {
-                }
-                else 
-                    t1 = t1.Next;
-            }
-            tok = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
-            if (tok != null && (tok.Termin.Tag is AddressItemType) && ((AddressItemType)tok.Termin.Tag) == AddressItemType.Number) 
-                t1 = tok.EndToken.Next;
-            else if (tok != null && (tok.Termin.Tag is AddressItemType) && ((AddressItemType)tok.Termin.Tag) == AddressItemType.NoNumber) 
-            {
-                AddressItemToken re0 = new AddressItemToken(typ, t, tok.EndToken) { Value = "0", HouseType = houseTyp, BuildingType = buildTyp };
-                if (!re0.IsWhitespaceAfter && (re0.EndToken.Next is Pullenti.Ner.NumberToken)) 
-                {
-                    re0.EndToken = re0.EndToken.Next;
-                    re0.Value = (re0.EndToken as Pullenti.Ner.NumberToken).Value.ToString();
-                }
-                return re0;
-            }
-            else if (t1 is Pullenti.Ner.TextToken) 
-            {
-                string term = (t1 as Pullenti.Ner.TextToken).Term;
-                if (((term.Length == 7 && term.StartsWith("ЛИТЕРА"))) || ((term.Length == 6 && term.StartsWith("ЛИТЕР"))) || ((term.Length == 4 && term.StartsWith("ЛИТ")))) 
-                {
-                    string txt = t1.GetSourceText();
-                    if (((char.IsLower(txt[0]) && char.IsUpper(txt[txt.Length - 1]))) || term.Length == 7) 
-                    {
-                        AddressItemToken res1 = new AddressItemToken(AddressItemType.Building, t, t1);
-                        res1.BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter;
-                        res1.Value = term.Substring(term.Length - 1);
-                        return res1;
-                    }
-                }
-                if (term.StartsWith("БЛОК") && term.Length > 4) 
-                {
-                    string txt = t1.GetSourceText();
-                    if (char.IsLower(txt[0]) && char.IsUpper(txt[4])) 
-                    {
-                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Org);
-                        if (num1 != null) 
-                        {
-                            AddressItemToken res1 = new AddressItemToken(AddressItemType.Block, t, num1.EndToken);
-                            res1.Value = term.Substring(4) + num1.Value;
-                            return res1;
-                        }
-                    }
-                }
-                if (typ == AddressItemType.Flat && t1 != null) 
-                {
-                    Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
-                    if (tok2 == null && t1.IsComma) 
-                        tok2 = m_Ontology.TryParse(t1.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                    if (tok2 != null && ((AddressItemType)tok2.Termin.Tag) == AddressItemType.Flat) 
-                        t1 = tok2.EndToken.Next;
-                }
-                if (t1 != null && t1.IsValue2("СТРОИТЕЛЬНЫЙ", "НОМЕР")) 
-                    t1 = t1.Next;
-                Pullenti.Ner.Token ttt = Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(t1);
-                if (ttt != null) 
-                {
-                    t1 = ttt;
-                    hasNumPrefix = true;
-                    if (t1.IsHiphen || t1.IsChar('_')) 
-                        t1 = t1.Next;
-                }
-            }
-            if (typ != AddressItemType.Number && t1 != null) 
-            {
-                if (t1.IsChar('.') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
-                    t1 = t1.Next;
-                if (t1 != null && t1.IsCharOf("\\/") && (t1.Next is Pullenti.Ner.NumberToken)) 
-                    t1 = t1.Next;
-            }
-            if (t != t1 && (t1 is Pullenti.Ner.TextToken)) 
-            {
-                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t1, Pullenti.Ner.Core.NounPhraseParseAttr.ParsePreposition, 0, null);
-                if (npt != null && npt.EndToken.IsValue("ПЛАН", null)) 
-                    t1 = npt.EndToken.Next;
-            }
-            if (t1 == null) 
-            {
-                if (typ == AddressItemType.Genplan) 
-                    return new AddressItemToken(typ, t, tok00.EndToken) { Value = "0" };
-                return null;
-            }
-            if ((t1 == t && t.IsValue("С", null) && (t.Next is Pullenti.Ner.NumberToken)) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-            {
-                typ = AddressItemType.Building;
-                buildTyp = Pullenti.Ner.Address.AddressBuildingType.Building;
-                t1 = t.Next;
-            }
-            StringBuilder num = new StringBuilder();
-            Pullenti.Ner.NumberToken nt = t1 as Pullenti.Ner.NumberToken;
-            AddressItemToken re11;
-            if (nt != null) 
-            {
-                if (typ == AddressItemType.Room || typ == AddressItemType.CorpusOrFlat) 
-                {
-                    Pullenti.Ner.Core.NumberExToken nt2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t1);
-                    if (nt2 != null && nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2) 
-                        return new AddressItemToken(AddressItemType.Room, t, nt2.EndToken) { Value = nt2.ToString() };
-                }
-                if (typ == AddressItemType.Field || typ == AddressItemType.Plot) 
-                {
-                    Pullenti.Ner.Core.NumberExToken nt2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t1);
-                    if (nt2 != null && ((nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2 || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Gektar || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Ar))) 
-                        return new AddressItemToken(typ, t, nt2.EndToken) { Value = nt2.ToString() };
-                }
-                num.Append(nt.Value);
-                if (nt.Typ == Pullenti.Ner.NumberSpellingType.Digit || nt.Typ == Pullenti.Ner.NumberSpellingType.Words) 
-                {
-                    if (((nt.EndToken is Pullenti.Ner.TextToken) && (((nt.EndToken as Pullenti.Ner.TextToken).Term == "Е" || (nt.EndToken as Pullenti.Ner.TextToken).Term == "И")) && nt.EndToken.Previous == nt.BeginToken) && !nt.EndToken.IsWhitespaceBefore) 
-                        num.Append((nt.EndToken as Pullenti.Ner.TextToken).Term);
-                    bool drob = false;
-                    bool hiph = false;
-                    bool lit = false;
-                    Pullenti.Ner.Token et = nt.Next;
-                    if (et != null && (((et.IsCharOf("\\/") || et.IsValue("ДРОБЬ", null) || et.IsValue("КЛ", null)) || ((et.IsChar('.') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(et) && (et.Next is Pullenti.Ner.NumberToken)))))) 
-                    {
-                        AddressItemToken next = TryParsePureItem(et.Next, null, null);
-                        if (next != null && next.Typ != AddressItemType.Number && typ != AddressItemType.Flat) 
-                        {
-                            if (next.Typ == typ && next.Value != null) 
-                            {
-                                next.Value = string.Format("{0}/{1}", num.ToString(), next.Value);
-                                next.BeginToken = t;
-                                return next;
-                            }
-                            if ((et.Next is Pullenti.Ner.NumberToken) && et.Next.IsWhitespaceAfter) 
-                            {
-                                AddressItemToken next2 = TryParsePureItem(et.Next.Next, null, null);
-                                if (next2 != null && next2.Typ != AddressItemType.Number) 
-                                {
-                                    drob = true;
-                                    et = et.Next;
-                                }
-                                else 
-                                    t1 = et;
-                            }
-                            else 
-                                t1 = et;
-                        }
-                        else 
-                        {
-                            drob = true;
-                            et = et.Next;
-                        }
-                        if (drob && et != null && et.IsCharOf("\\/")) 
-                            et = et.Next;
-                    }
-                    else if (et != null && ((et.IsHiphen || et.IsChar('_')))) 
-                    {
-                        hiph = true;
-                        et = et.Next;
-                    }
-                    else if ((et != null && et.IsChar('.') && (et.Next is Pullenti.Ner.NumberToken)) && !et.IsWhitespaceAfter) 
-                    {
-                        hiph = true;
-                        et = et.Next;
-                    }
-                    if (et is Pullenti.Ner.NumberToken) 
-                    {
-                        if (drob) 
-                        {
-                            AddressItemToken next = TryParsePureItem(et, null, null);
-                            if (next != null && next.Typ == AddressItemType.Number) 
-                            {
-                                num.AppendFormat("/{0}", next.Value);
-                                t1 = next.EndToken;
-                                et = t1.Next;
-                                drob = false;
-                            }
-                            else 
-                            {
-                                num.AppendFormat("/{0}", (et as Pullenti.Ner.NumberToken).Value);
-                                drob = false;
-                                t1 = et;
-                                et = et.Next;
-                                if (et != null && et.IsCharOf("\\/") && (et.Next is Pullenti.Ner.NumberToken)) 
-                                {
-                                    t1 = et.Next;
-                                    num.AppendFormat("/{0}", (t1 as Pullenti.Ner.NumberToken).Value);
-                                    et = t1.Next;
-                                }
-                            }
-                        }
-                        else if ((hiph && !t1.IsWhitespaceAfter && (et is Pullenti.Ner.NumberToken)) && !et.IsWhitespaceBefore) 
-                        {
-                            AddressItemToken numm = TryParsePureItem(et, null, null);
-                            if (numm != null && numm.Typ == AddressItemType.Number) 
-                            {
-                                bool merge = false;
-                                if ((typ == AddressItemType.Flat || typ == AddressItemType.Plot || typ == AddressItemType.Space) || typ == AddressItemType.Office) 
-                                {
-                                    if (!hasNumPrefix) 
-                                        merge = true;
-                                }
-                                else if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamNoFlats(et)) 
-                                    merge = true;
-                                else if (typ == AddressItemType.House || typ == AddressItemType.Building || typ == AddressItemType.Corpus) 
-                                {
-                                    Pullenti.Ner.Token ttt = numm.EndToken.Next;
-                                    if (ttt != null && ttt.IsComma) 
-                                        ttt = ttt.Next;
-                                    AddressItemToken numm2 = TryParsePureItem(ttt, null, null);
-                                    if (numm2 != null) 
-                                    {
-                                        if ((numm2.Typ == AddressItemType.Flat || numm2.Typ == AddressItemType.Building || ((numm2.Typ == AddressItemType.CorpusOrFlat && numm2.Value != null))) || numm2.Typ == AddressItemType.Corpus) 
-                                            merge = true;
-                                    }
-                                }
-                                if (merge) 
-                                {
-                                    num.AppendFormat("/{0}", numm.Value);
-                                    t1 = numm.EndToken;
-                                    et = t1.Next;
-                                    hiph = false;
-                                }
-                            }
-                        }
-                    }
-                    else if (et != null && ((et.IsHiphen || et.IsChar('_') || et.IsValue("НЕТ", null))) && drob) 
-                        t1 = et;
-                    Pullenti.Ner.Token ett = et;
-                    if ((ett != null && ett.IsCharOf(",.") && (ett.WhitespacesAfterCount < 2)) && (ett.Next is Pullenti.Ner.TextToken)) 
-                    {
-                        if (Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next, false)) 
-                            ett = ett.Next;
-                        else if (ett.Next.LengthChar == 1 && ett.Next.Chars.IsLetter && ((ett.Next.Next == null || ett.Next.Next.IsComma))) 
-                        {
-                            string ch = CorrectCharToken(ett.Next);
-                            if (ch != null) 
-                            {
-                                num.Append(ch);
-                                ett = ett.Next;
-                                t1 = ett;
-                            }
-                        }
-                    }
-                    if ((Pullenti.Ner.Core.BracketHelper.IsBracket(ett, false) && (ett.Next is Pullenti.Ner.TextToken) && ett.Next.LengthChar == 1) && ett.Next.IsLetters && Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next.Next, false)) 
-                    {
-                        string ch = CorrectCharToken(ett.Next);
-                        if (ch != null) 
-                        {
-                            num.Append(ch);
-                            t1 = ett.Next.Next;
-                        }
-                        else 
-                        {
-                            Pullenti.Ner.NumberToken ntt = Pullenti.Ner.Core.NumberHelper.TryParseRoman(ett.Next);
-                            if (ntt != null) 
-                            {
-                                num.AppendFormat("/{0}", ntt.Value);
-                                t1 = ett.Next.Next;
-                            }
-                        }
-                    }
-                    else if (((Pullenti.Ner.Core.BracketHelper.IsBracket(ett, false) && Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next, false) && (ett.Next.Next is Pullenti.Ner.TextToken)) && ett.Next.Next.LengthChar == 1 && ett.Next.Next.IsLetters) && Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next.Next.Next, false)) 
-                    {
-                        string ch = CorrectCharToken(ett.Next.Next);
-                        if (ch != null) 
-                        {
-                            num.Append(ch);
-                            t1 = ett.Next.Next.Next;
-                            while (t1.Next != null && Pullenti.Ner.Core.BracketHelper.IsBracket(t1.Next, false)) 
-                            {
-                                t1 = t1.Next;
-                            }
-                        }
-                    }
-                    else if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(ett, true, false) && (ett.WhitespacesBeforeCount < 2)) 
-                    {
-                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(ett, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br != null && (br.BeginToken.Next is Pullenti.Ner.TextToken) && br.BeginToken.Next.Next == br.EndToken) 
-                        {
-                            string s = CorrectCharToken(br.BeginToken.Next);
-                            if (s != null) 
-                            {
-                                num.Append(s);
-                                t1 = br.EndToken;
-                            }
-                        }
-                    }
-                    else if ((et is Pullenti.Ner.TextToken) && (((et as Pullenti.Ner.TextToken).LengthChar == 1 || ((et.LengthChar == 2 && et.Chars.IsAllUpper && !et.IsWhitespaceBefore)))) && et.Chars.IsLetter) 
-                    {
-                        StreetItemToken ttt = StreetItemToken.TryParse(et, null, false, null);
-                        string s = CorrectCharToken(et);
-                        if (ttt != null && ((ttt.Typ == StreetItemType.StdName || ttt.Typ == StreetItemType.Noun || ttt.Typ == StreetItemType.Fix))) 
-                        {
-                            if (!et.IsWhitespaceBefore && et.Next != null && et.Next.IsCharOf("\\/")) 
-                            {
-                            }
-                            else 
-                                s = null;
-                        }
-                        else if (Pullenti.Ner.Geo.Internal.TerrItemToken.CheckKeyword(et) != null) 
-                            s = null;
-                        if (et.IsWhitespaceBefore) 
-                        {
-                            AddressItemToken next = TryParsePureItem(et, null, null);
-                            if (next != null && next.Value != null) 
-                                s = null;
-                            else if (et.Previous != null && et.Previous.IsHiphen && et.Previous.IsWhitespaceBefore) 
-                                s = null;
-                        }
-                        if (s != null) 
-                        {
-                            if (((s == "К" || s == "С")) && (et.Next is Pullenti.Ner.NumberToken) && !et.IsWhitespaceAfter) 
-                            {
-                            }
-                            else if ((s == "Б" && et.Next != null && et.Next.IsCharOf("/\\")) && (et.Next.Next is Pullenti.Ner.TextToken) && et.Next.Next.IsValue("Н", null)) 
-                                t1 = (et = et.Next.Next);
-                            else 
-                            {
-                                bool ok = false;
-                                if (drob || hiph || lit) 
-                                    ok = true;
-                                else if (!et.IsWhitespaceBefore || ((et.WhitespacesBeforeCount == 1 && ((Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(et) || et.Chars.IsAllUpper || ((et.IsNewlineAfter || ((et.Next != null && et.Next.IsComma))))))))) 
-                                {
-                                    ok = true;
-                                    if (et.Next is Pullenti.Ner.NumberToken) 
-                                    {
-                                        if (!et.IsWhitespaceBefore && ((et.IsWhitespaceAfter || (et.Next is Pullenti.Ner.NumberToken)))) 
-                                        {
-                                        }
-                                        else 
-                                            ok = false;
-                                    }
-                                    if (s == "К") 
-                                    {
-                                        AddressItemToken tmp = new AddressItemToken(typ, t, et.Previous);
-                                        AddressItemToken next = TryParsePureItem(et, tmp, null);
-                                        if (next != null && next.Value != null) 
-                                            ok = false;
-                                    }
-                                    if (s == "И") 
-                                    {
-                                        AddressItemToken next = TryParsePureItem(et.Next, prev, null);
-                                        if (next != null && next.Typ == typ) 
-                                            ok = false;
-                                    }
-                                }
-                                else if (((et.Next == null || et.Next.IsComma)) && (((et.WhitespacesBeforeCount < 2) || Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(et)))) 
-                                    ok = true;
-                                else if (et.IsWhitespaceBefore && et.Chars.IsAllLower && et.IsValue("В", "У")) 
-                                {
-                                }
-                                else 
-                                {
-                                    AddressItemToken aitNext = TryParsePureItem(et.Next, null, null);
-                                    if (aitNext != null) 
-                                    {
-                                        if ((aitNext.Typ == AddressItemType.Corpus || aitNext.Typ == AddressItemType.Flat || aitNext.Typ == AddressItemType.Building) || aitNext.Typ == AddressItemType.Office || aitNext.Typ == AddressItemType.Room) 
-                                            ok = true;
-                                    }
-                                }
-                                if (ok) 
-                                {
-                                    num.Append(s);
-                                    t1 = et;
-                                    if (et.Next != null && et.Next.IsCharOf("\\/") && et.Next.Next != null) 
-                                    {
-                                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(et.Next.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Strong);
-                                        if (nn != null) 
-                                        {
-                                            num.AppendFormat("/{0}", nn.Value);
-                                            t1 = (et = nn.EndToken);
-                                        }
-                                        else if (et.Next.Next is Pullenti.Ner.NumberToken) 
-                                        {
-                                            num.AppendFormat("/{0}", (et.Next.Next as Pullenti.Ner.NumberToken).Value);
-                                            t1 = (et = et.Next.Next);
-                                        }
-                                        else if (et.Next.Next.IsHiphen || et.Next.Next.IsChar('_') || et.Next.Next.IsValue("НЕТ", null)) 
-                                            t1 = (et = et.Next.Next);
-                                    }
-                                    if ((et.Next is Pullenti.Ner.NumberToken) && !et.IsWhitespaceAfter) 
-                                    {
-                                        t1 = (et = et.Next);
-                                        num.Append((t1 as Pullenti.Ner.NumberToken).Value);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else if ((et is Pullenti.Ner.TextToken) && !et.IsWhitespaceBefore) 
-                    {
-                        string val = (et as Pullenti.Ner.TextToken).Term;
-                        if (val == "КМ" && typ == AddressItemType.House) 
-                        {
-                            t1 = et;
-                            num.Append("КМ");
-                        }
-                        else if (val == "БН") 
-                            t1 = et;
-                        else if (((val.Length == 2 && val[1] == 'Б' && et.Next != null) && et.Next.IsCharOf("\\/") && et.Next.Next != null) && et.Next.Next.IsValue("Н", null)) 
-                        {
-                            num.Append(val[0]);
-                            t1 = (et = et.Next.Next);
-                        }
-                    }
-                    if (!drob && t1.Next != null && t1.Next.IsCharOf("\\/")) 
-                    {
-                        AddressItemToken next = _tryParsePureItem(t1.Next.Next, false, null);
-                        if (next != null && next.Typ == AddressItemType.Number) 
-                        {
-                            num.AppendFormat("/{0}", next.Value);
-                            t1 = next.EndToken;
-                        }
-                    }
-                }
-            }
-            else if ((((re11 = _tryAttachVCH(t1, typ)))) != null) 
-            {
-                re11.BeginToken = t;
-                re11.HouseType = houseTyp;
-                re11.BuildingType = buildTyp;
-                return re11;
-            }
-            else if (((t1 is Pullenti.Ner.TextToken) && t1.LengthChar == 2 && t1.IsLetters) && !t1.IsWhitespaceBefore && (t1.Previous is Pullenti.Ner.NumberToken)) 
-            {
-                string src = t1.GetSourceText();
-                if ((src != null && src.Length == 2 && ((src[0] == 'к' || src[0] == 'k'))) && char.IsUpper(src[1])) 
-                {
-                    char ch = CorrectChar(src[1]);
-                    if (ch != ((char)0)) 
-                        return new AddressItemToken(AddressItemType.Corpus, t1, t1) { Value = string.Format("{0}", ch) };
-                }
-            }
-            else if ((t1 is Pullenti.Ner.TextToken) && t1.LengthChar == 1 && t1.IsLetters) 
-            {
-                if (t.IsValue("САРАЙ", null)) 
-                    return null;
-                string ch = CorrectCharToken(t1);
-                if (ch == "З" && buildTyp != Pullenti.Ner.Address.AddressBuildingType.Liter) 
-                    ch = "3";
-                if (ch != null) 
-                {
-                    if (typ == AddressItemType.Number) 
-                        return null;
-                    if (ch == "К" || ch == "С") 
-                    {
-                        if (!t1.IsWhitespaceAfter && (t1.Next is Pullenti.Ner.NumberToken)) 
-                        {
-                            if ((buildTyp != Pullenti.Ner.Address.AddressBuildingType.Liter && typ != AddressItemType.House && typ != AddressItemType.Space) && typ != AddressItemType.Carplace && typ != AddressItemType.Box) 
-                                return null;
-                        }
-                    }
-                    if (ch == "С") 
-                    {
-                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
-                        if (num1 != null && ((num1.HasPrefix || num1.IsCadasterNumber))) 
-                            return new AddressItemToken(typ, t, num1.EndToken) { Value = num1.Value };
-                    }
-                    if (ch == "Д" && typ == AddressItemType.Plot) 
-                    {
-                        AddressItemToken rrr = TryParsePureItem(t1, null, null);
-                        if (rrr != null) 
-                        {
-                            rrr.Typ = AddressItemType.Plot;
-                            rrr.BeginToken = t;
-                            return rrr;
-                        }
-                    }
-                    if (ch == "С" && t1.IsWhitespaceAfter) 
-                    {
-                        AddressItemToken next = TryParsePureItem(t1.Next, null, null);
-                        if (next != null && next.Typ == AddressItemType.Number) 
-                        {
-                            AddressItemToken res1 = new AddressItemToken(typ, t, next.EndToken) { Value = next.Value, Morph = t.Morph, HouseType = houseTyp, BuildingType = buildTyp };
-                            return res1;
-                        }
-                    }
-                    if (prev != null && ((prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Number || prev.Typ == AddressItemType.Flat)) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
-                    {
-                        if (typ == AddressItemType.CorpusOrFlat && prev.Typ == AddressItemType.House) 
-                            typ = AddressItemType.Corpus;
-                    }
-                    else 
-                    {
-                        if (t1.Chars.IsAllLower && ((t1.Morph.Class.IsPreposition || t1.Morph.Class.IsConjunction))) 
-                        {
-                            if ((t1.WhitespacesAfterCount < 2) && t1.Next.Chars.IsLetter) 
-                            {
-                                if (typ == AddressItemType.House || typ == AddressItemType.Plot || typ == AddressItemType.Box) 
-                                    return new AddressItemToken(typ, t, t1.Previous) { Value = "0" };
-                                return null;
-                            }
-                        }
-                        if ((t.Chars.IsAllUpper && t.LengthChar == 1 && t.Next.IsChar('.')) && ch != "3") 
-                            return null;
-                    }
-                    num.Append(ch);
-                    if ((t1.Next != null && ((t1.Next.IsHiphen || t1.Next.IsChar('_'))) && !t1.IsWhitespaceAfter) && (t1.Next.Next is Pullenti.Ner.NumberToken) && !t1.Next.IsWhitespaceAfter) 
-                    {
-                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
-                        if (nn != null) 
-                        {
-                            num.Append(nn.Value);
-                            t1 = nn.EndToken;
-                        }
-                        else 
-                        {
-                            num.Append((t1.Next.Next as Pullenti.Ner.NumberToken).Value);
-                            t1 = t1.Next.Next;
-                        }
-                    }
-                    else if ((t1.Next is Pullenti.Ner.NumberToken) && !t1.IsWhitespaceAfter) 
-                    {
-                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
-                        if (nn != null) 
-                        {
-                            num.Append(nn.Value);
-                            t1 = nn.EndToken;
-                        }
-                        else 
-                        {
-                            num.Append((t1.Next as Pullenti.Ner.NumberToken).Value);
-                            t1 = t1.Next;
-                        }
-                    }
-                    if (num.Length == 1 && ((typ == AddressItemType.Office || typ == AddressItemType.Room))) 
-                    {
-                        if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-                        {
-                            if (t.IsValue("КОМ", null) && !t.Next.IsChar('.')) 
-                                return null;
-                        }
-                    }
-                }
-                if ((((typ == AddressItemType.Box || typ == AddressItemType.Space || typ == AddressItemType.Part) || typ == AddressItemType.Carplace || typ == AddressItemType.Well)) && num.Length == 0) 
-                {
-                    Pullenti.Ner.NumberToken rom = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t1);
-                    if (rom != null) 
-                        return new AddressItemToken(typ, t, rom.EndToken) { Value = rom.Value.ToString() };
-                }
-            }
-            else if (((Pullenti.Ner.Core.BracketHelper.IsBracket(t1, false) && (t1.Next is Pullenti.Ner.TextToken) && t1.Next.LengthChar == 1) && t1.Next.IsLetters && Pullenti.Ner.Core.BracketHelper.IsBracket(t1.Next.Next, false)) && !t1.IsWhitespaceAfter && !t1.Next.IsWhitespaceAfter) 
-            {
-                string ch = CorrectCharToken(t1.Next);
-                if (ch == null) 
-                    return null;
-                num.Append(ch);
-                t1 = t1.Next.Next;
-            }
-            else if ((t1 is Pullenti.Ner.TextToken) && ((((t1.LengthChar == 1 && ((t1.IsHiphen || t1.IsChar('_'))))) || t1.IsValue("НЕТ", null) || t1.IsValue("БН", null))) && (((typ == AddressItemType.Corpus || typ == AddressItemType.CorpusOrFlat || typ == AddressItemType.Building) || typ == AddressItemType.House || typ == AddressItemType.Flat))) 
-            {
-                while (t1.Next != null && ((t1.Next.IsHiphen || t1.Next.IsChar('_'))) && !t1.IsWhitespaceAfter) 
-                {
-                    t1 = t1.Next;
-                }
-                string val = null;
-                if (!t1.IsWhitespaceAfter && (t1.Next is Pullenti.Ner.NumberToken)) 
-                {
-                    t1 = t1.Next;
-                    val = (t1 as Pullenti.Ner.NumberToken).Value.ToString();
-                }
-                if (t1.IsValue("БН", null)) 
-                    val = "0";
-                else if (t1.IsValue("НЕТ", null)) 
-                    val = "НЕТ";
-                return new AddressItemToken(typ, t, t1) { Value = val };
-            }
-            else 
-            {
-                if (((typ == AddressItemType.Floor || typ == AddressItemType.Kilometer || typ == AddressItemType.Potch)) && (t.Previous is Pullenti.Ner.NumberToken)) 
-                    return new AddressItemToken(typ, t, t1.Previous);
-                if ((t1 is Pullenti.Ner.ReferentToken) && (t1.GetReferent() is Pullenti.Ner.Date.DateReferent)) 
-                {
-                    AddressItemToken nn = TryParsePureItem((t1 as Pullenti.Ner.ReferentToken).BeginToken, null, null);
-                    if (nn != null && nn.EndChar == t1.EndChar && nn.Typ == AddressItemType.Number) 
-                    {
-                        nn.BeginToken = t;
-                        nn.EndToken = t1;
-                        nn.Typ = typ;
-                        return nn;
-                    }
-                }
-                if ((t1 is Pullenti.Ner.TextToken) && ((typ == AddressItemType.House || typ == AddressItemType.Building || typ == AddressItemType.Corpus))) 
-                {
-                    string ter = (t1 as Pullenti.Ner.TextToken).Term;
-                    if (ter == "АБ" || ter == "АБВ" || ter == "МГУ") 
-                        return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
-                    string ccc = _corrNumber(ter);
-                    if (ccc != null) 
-                        return new AddressItemToken(typ, t, t1) { Value = ccc, HouseType = houseTyp, BuildingType = buildTyp };
-                    if (t1.Chars.IsAllUpper) 
-                    {
-                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1, Pullenti.Ner.Geo.Internal.GeoTokenType.Strong);
-                        if (nn != null && nn.EndToken != t1) 
-                        {
-                            t1 = nn.EndToken;
-                            ter = nn.Value;
-                        }
-                        if (prev != null && ((prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City))) 
-                            return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
-                        if (typ == AddressItemType.Corpus && (t1.LengthChar < 4)) 
-                            return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
-                        if (typ == AddressItemType.Building && buildTyp == Pullenti.Ner.Address.AddressBuildingType.Liter && (t1.LengthChar < 4)) 
-                            return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
-                    }
-                }
-                if ((typ == AddressItemType.Box || typ == AddressItemType.Space || typ == AddressItemType.Part) || typ == AddressItemType.Carplace || typ == AddressItemType.Well) 
-                {
-                    Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
-                    if (num1 != null) 
-                        return new AddressItemToken(typ, t, num1.EndToken) { Value = num1.Value };
-                }
-                if (typ == AddressItemType.Plot && t1 != null) 
-                {
-                    if ((t1.IsValue("ОКОЛО", null) || t1.IsValue("РЯДОМ", null) || t1.IsValue("НАПРОТИВ", null)) || t1.IsValue("БЛИЗЬКО", null) || t1.IsValue("НАВПАКИ", null)) 
-                        return new AddressItemToken(typ, t, t1) { Value = t1.GetSourceText().ToLower() };
-                    AddressItemToken det = _tryAttachDetail(t1, null);
-                    if (det != null) 
-                    {
-                        if (t1.Previous == null || (t1.Previous.BeginChar < t.BeginChar)) 
-                            return null;
-                        return new AddressItemToken(typ, t, t1.Previous) { Value = "0" };
-                    }
-                }
-                if (((typ != AddressItemType.Number && (t1 is Pullenti.Ner.TextToken) && t1.LengthChar <= 2) && t1.Chars.IsAllUpper && t1.Chars.IsLetter) && ((!t1.IsWhitespaceAfter || typ == AddressItemType.Plot || typ == AddressItemType.Box)) && (t1.Next is Pullenti.Ner.NumberToken)) 
-                {
-                    Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
-                    if (num1 != null) 
-                        return new AddressItemToken(typ, t, num1.EndToken) { Value = (t1 as Pullenti.Ner.TextToken).Term + num1.Value };
-                }
-                if (t1 != null && t1.IsComma && prev != null) 
-                {
-                    AddressItemToken next = TryParsePureItem(t1.Next, null, null);
-                    if (next != null) 
-                    {
-                        if (next.Typ == AddressItemType.Number || next.Typ == typ) 
-                            return new AddressItemToken(typ, t, next.EndToken) { Value = next.Value };
-                        if (prev != null && t1.Previous != null && t.BeginChar <= t1.Previous.BeginChar) 
-                            return new AddressItemToken(typ, t, t1.Previous);
-                    }
-                }
-                if (t1 != null && t1.IsChar('(')) 
-                {
-                    AddressItemToken next = TryParsePureItem(t1.Next, prev, null);
-                    if ((next != null && next.Typ == AddressItemType.Number && next.EndToken.Next != null) && next.EndToken.Next.IsChar(')')) 
-                    {
-                        next.Typ = typ;
-                        next.BeginToken = t;
-                        next.EndToken = next.EndToken.Next;
-                        return next;
-                    }
-                }
-                if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1) || typ != AddressItemType.Number) 
-                {
-                    Pullenti.Ner.NumberToken nt1 = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t1);
-                    if (nt1 != null) 
-                        return new AddressItemToken(typ, t, t1) { Value = nt1.Value };
-                }
-                if (Pullenti.Ner.Core.BracketHelper.IsBracket(t1, false) && (t1.Next is Pullenti.Ner.NumberToken)) 
-                {
-                    AddressItemToken next = _tryParsePureItem(t1.Next, false, prev);
-                    if ((next != null && next.Typ == AddressItemType.Number && next.EndToken.Next != null) && Pullenti.Ner.Core.BracketHelper.IsBracket(next.EndToken.Next, false)) 
-                    {
-                        next.BeginToken = t;
-                        next.Typ = typ;
-                        next.EndToken = next.EndToken.Next;
-                        return next;
-                    }
-                }
-                if (typ == AddressItemType.Genplan) 
-                    return new AddressItemToken(typ, t, tok00.EndToken) { Value = "0" };
-                if (typ == AddressItemType.Number && t.IsValue("ОБЩЕЖИТИЕ", null)) 
-                {
-                    Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
-                    if (num1 != null) 
-                        return new AddressItemToken(AddressItemType.House, t, num1.EndToken) { Value = num1.Value };
-                }
-                if (t.Chars.IsLatinLetter && !t.Kit.BaseLanguage.IsEn) 
-                {
-                    Pullenti.Ner.NumberToken num2 = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t);
-                    if (num2 != null) 
-                        return new AddressItemToken(typ, t, num2.EndToken) { Value = num2.Value };
-                }
-                return null;
-            }
-            if (typ == AddressItemType.Number && prepos) 
-                return null;
-            if (t1 == null) 
-            {
-                t1 = t;
-                while (t1.Next != null) 
-                {
-                    t1 = t1.Next;
-                }
-            }
-            for (Pullenti.Ner.Token tt = t.Next; tt != null && tt.EndChar <= t1.EndChar; tt = tt.Next) 
-            {
-                if (tt.IsNewlineBefore && !(tt is Pullenti.Ner.NumberToken)) 
-                    return null;
-            }
-            if (num.Length == 0) 
-            {
-                if (t1 != null && t1.Chars.IsLatinLetter && ((!t1.Kit.BaseLanguage.IsEn || Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)))) 
-                {
-                    Pullenti.Ner.NumberToken num2 = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t1);
-                    if (num2 != null) 
-                        return new AddressItemToken(typ, t, num2.EndToken) { Value = num2.Value };
-                }
-                return null;
-            }
-            AddressItemToken res0 = new AddressItemToken(typ, t, t1) { Value = num.ToString(), Morph = t.Morph, HouseType = houseTyp, BuildingType = buildTyp, DetailParam = spaceDetail };
-            t1 = t1.Next;
-            if (t1 != null && t1.IsComma) 
-                t1 = t1.Next;
-            if ((t1 is Pullenti.Ner.TextToken) && (t1 as Pullenti.Ner.TextToken).Term.StartsWith("ОБ") && (t1.WhitespacesBeforeCount < 2)) 
-            {
-                res0.EndToken = t1;
-                t1 = t1.Next;
-                if (t1 != null && t1.IsChar('.')) 
-                {
-                    res0.EndToken = t1;
-                    t1 = t1.Next;
-                }
-                if (res0.Typ == AddressItemType.CorpusOrFlat) 
-                    res0.Typ = AddressItemType.Flat;
-            }
-            if ((t1 != null && t1.IsChar('(') && (t1.Next is Pullenti.Ner.TextToken)) && (t1.Next as Pullenti.Ner.TextToken).Term.StartsWith("ОБ")) 
-            {
-                res0.EndToken = t1.Next;
-                t1 = t1.Next.Next;
-                while (t1 != null) 
-                {
-                    if (t1.IsCharOf(".)")) 
-                    {
-                        res0.EndToken = t1;
-                        t1 = t1.Next;
-                    }
-                    else 
-                        break;
-                }
-                if (res0.Typ == AddressItemType.CorpusOrFlat) 
-                    res0.Typ = AddressItemType.Flat;
-            }
-            if ((typ == AddressItemType.Number && t1 != null && (t1.WhitespacesBeforeCount < 3)) && t1.IsWhitespaceBefore) 
-            {
-                Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
-                if (tok2 != null && !t1.Previous.IsComma) 
-                {
-                    AddressItemToken next = _tryParsePureItem(t1, false, null);
-                    if ((next != null && next.EndToken == tok2.EndToken && next.Typ != AddressItemType.Number) && next.BuildingType != Pullenti.Ner.Address.AddressBuildingType.Liter) 
-                    {
-                        if (((next.Typ == AddressItemType.House || next.Typ == AddressItemType.Building || (next.Typ == AddressItemType.Corpus && next.Typ == AddressItemType.Floor)) || next.Typ == AddressItemType.Flat || next.Typ == AddressItemType.Office) || next.Typ == AddressItemType.Plot) 
-                        {
-                            next.Value = res0.Value;
-                            next.BeginToken = t;
-                            return next;
-                        }
-                    }
-                }
-            }
-            if ((((res0.Typ == AddressItemType.Space || res0.Typ == AddressItemType.Flat || res0.Typ == AddressItemType.Office) || res0.Typ == AddressItemType.Room || ((res0.Typ == AddressItemType.Number && hasNumPrefix)))) && res0.Value != null) 
-            {
-                int n0 = 0;
-                int.TryParse(res0.Value ?? "", out n0);
-                for (Pullenti.Ner.Token tt = res0.EndToken.Next; tt != null; tt = tt.Next) 
-                {
-                    if (!tt.IsCommaAnd && !tt.IsHiphen) 
-                        break;
-                    Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
-                    if (nn == null) 
-                        break;
-                    if (nn.Value.Length == 6) 
-                        break;
-                    if (nn.Value.IndexOf('-') > 0) 
-                    {
-                        nn.Value = nn.Value.Substring(0, nn.Value.IndexOf('-'));
-                        nn.EndToken = nn.BeginToken;
-                    }
-                    Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(nn.EndToken.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                    if (tok2 != null) 
-                        break;
-                    int n = 0;
-                    int.TryParse(nn.Value, out n);
-                    if (tt.IsHiphen) 
-                    {
-                        if (n > n0 && n0 > 0 && ((n - n0) < 100)) 
-                        {
-                            for (int k = n0 + 1; k <= n; k++) 
-                            {
-                                res0.Value = string.Format("{0},{1}", res0.Value, k);
-                            }
-                        }
-                        else 
+                        if (it.IsDoubt && t.IsNewlineBefore) 
                             break;
                     }
-                    else 
-                        res0.Value = string.Format("{0},{1}", res0.Value, nn.Value);
-                    res0.EndToken = nn.EndToken;
-                    if (tt.IsAnd) 
-                        break;
-                    tt = nn.EndToken;
-                    n0 = n;
                 }
-            }
-            if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res0)) 
-            {
-                for (Pullenti.Ner.Token tt = res0.EndToken.Next; tt != null; tt = tt.Next) 
+                if (it0.Typ == AddressItemType.CorpusOrFlat && it != null && it.Typ == AddressItemType.Flat) 
+                    it0.Typ = AddressItemType.Room;
+                if ((it0.AltTyp == null && (((it0.Typ == AddressItemType.Floor || it0.Typ == AddressItemType.Potch || it0.Typ == AddressItemType.Block) || it0.Typ == AddressItemType.Kilometer)) && string.IsNullOrEmpty(it0.Value)) && it.Typ == AddressItemType.Number && it.EndToken.Next == it0.BeginToken) 
                 {
-                    if (tt.IsValue("СОГЛАСНО", null) || tt.IsValue("ПО", null) || tt.LengthChar == 1) 
-                        continue;
-                    if (tt.IsValue("ПЛ", null) || tt.IsValue("БТИ", null)) 
-                    {
-                        res0.EndToken = tt;
-                        continue;
-                    }
-                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.ParsePreposition, 0, null);
-                    if (npt == null) 
-                        break;
-                    if ((npt.EndToken.IsValue("ПЛАН", null) || npt.EndToken.IsValue("ПРОЕКТ", null) || npt.EndToken.IsValue("КОПИЯ", null)) || npt.EndToken.IsValue("ПАСПОРТ", null)) 
-                    {
-                        res0.EndToken = (tt = npt.EndToken);
-                        continue;
-                    }
-                    break;
+                    it = it.Clone();
+                    res[res.Count - 1] = it;
+                    it.Typ = it0.Typ;
+                    it.EndToken = it0.EndToken;
                 }
-            }
-            return res0;
-        }
-        void _corrNum()
-        {
-            if (EndToken.IsChar(')')) 
-                return;
-            Pullenti.Ner.Token t1 = EndToken.Next;
-            if (t1 != null && t1.IsHiphen) 
-                t1 = t1.Next;
-            if (t1 == null) 
-                return;
-            if (((t1.IsCharOf("\\/") || t1.IsHiphen)) && t1.Next != null) 
-                t1 = t1.Next;
-            if (Typ == AddressItemType.Space || Typ == AddressItemType.Number) 
-            {
-                Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
-                if (tok2 == null && t1 != null && t1.IsChar('(')) 
+                else if ((it0.AltTyp == null && ((it.Typ == AddressItemType.Floor || it.Typ == AddressItemType.Potch)) && string.IsNullOrEmpty(it.Value)) && it0.Typ == AddressItemType.Number && it.EndToken.Next == it0.BeginToken) 
                 {
-                    tok2 = m_Ontology.TryParse(t1.Next, Pullenti.Ner.Core.TerminParseAttr.No);
-                    if (tok2 != null && tok2.EndToken.Next != null && tok2.EndToken.Next.IsChar(')')) 
-                        tok2.EndToken = tok2.EndToken.Next;
-                    else 
-                        tok2 = null;
-                }
-                if (tok2 != null && tok2.Termin.Tag != null && ((AddressItemType)tok2.Termin.Tag) == AddressItemType.Space) 
-                {
-                    EndToken = tok2.EndToken;
-                    Typ = AddressItemType.Space;
-                    if (tok2.Termin.Tag2 != null && DetailParam == null) 
-                    {
-                        DetailParam = tok2.Termin.CanonicText;
-                        if (DetailParam.Length > 4) 
-                            DetailParam = DetailParam.ToLower();
-                    }
-                    if (tok2.BeginToken != t1 && EndToken.Next != null && EndToken.Next.IsChar(')')) 
-                        EndToken = EndToken.Next;
-                    t1 = EndToken.Next;
-                }
-                if (t1 is Pullenti.Ner.TextToken) 
-                {
-                    string vv = (t1 as Pullenti.Ner.TextToken).Term;
-                    if (vv == "НЧ" || vv == "Н" || vv == "H") 
-                    {
-                        Value += "Н";
-                        EndToken = t1;
-                    }
-                }
-                if (Typ == AddressItemType.Space && Value != null && Value.EndsWith("Н")) 
-                {
-                    DetailParam = "нежилое";
-                    Value = Value.Substring(0, Value.Length - 1);
-                    if (Value.Length == 0) 
-                        Value = "0";
-                }
-            }
-            else if ((Typ == AddressItemType.House || Typ == AddressItemType.Building || Typ == AddressItemType.Corpus) || Typ == AddressItemType.Plot) 
-            {
-                if (t1 is Pullenti.Ner.TextToken) 
-                {
-                    string vv = (t1 as Pullenti.Ner.TextToken).Term;
-                    if (vv == "ОБЩ" || vv == "ГЛФ" || vv == "СХ") 
-                        EndToken = t1;
-                }
-            }
-        }
-        static AddressItemToken _tryAttachVCH(Pullenti.Ner.Token t, AddressItemType ty)
-        {
-            if (t == null) 
-                return null;
-            Pullenti.Ner.Token tt = t;
-            if ((((tt.IsValue("В", null) || tt.IsValue("B", null))) && tt.Next != null && tt.Next.IsCharOf("./\\")) && (tt.Next.Next is Pullenti.Ner.TextToken) && tt.Next.Next.IsValue("Ч", null)) 
-            {
-                tt = tt.Next.Next;
-                if (tt.Next != null && tt.Next.IsChar('.')) 
-                    tt = tt.Next;
-                Pullenti.Ner.Token tt2 = Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tt.Next);
-                if (tt2 != null) 
-                    tt = tt2;
-                if (tt.Next != null && (tt.Next is Pullenti.Ner.NumberToken) && (tt.WhitespacesAfterCount < 2)) 
-                    tt = tt.Next;
-                return new AddressItemToken(ty, t, tt) { Value = "В/Ч" };
-            }
-            if (((tt.IsValue("ВОЙСКОВОЙ", null) || tt.IsValue("ВОИНСКИЙ", null))) && tt.Next != null && tt.Next.IsValue("ЧАСТЬ", null)) 
-            {
-                tt = tt.Next;
-                Pullenti.Ner.Token tt2 = Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tt.Next);
-                if (tt2 != null) 
-                    tt = tt2;
-                if (tt.Next != null && (tt.Next is Pullenti.Ner.NumberToken) && (tt.WhitespacesAfterCount < 2)) 
-                    tt = tt.Next;
-                return new AddressItemToken(ty, t, tt) { Value = "В/Ч" };
-            }
-            if (ty == AddressItemType.Flat || ty == AddressItemType.Space) 
-            {
-                if (tt.WhitespacesBeforeCount > 1) 
-                    return null;
-                if (!(tt is Pullenti.Ner.TextToken)) 
-                    return null;
-                if ((tt as Pullenti.Ner.TextToken).Term.StartsWith("ОБЩ") || (tt as Pullenti.Ner.TextToken).Term.StartsWith("ВЕД") || (tt as Pullenti.Ner.TextToken).Term.StartsWith("МОП")) 
-                {
-                    if (tt.Next != null && tt.Next.IsChar('.')) 
-                        tt = tt.Next;
-                    AddressItemToken re = _tryAttachVCH(tt.Next, ty);
-                    if (re != null) 
-                        return re;
-                    return new AddressItemToken(ty, t, tt) { Value = "0" };
-                }
-                if (tt.Chars.IsAllUpper && tt.LengthChar > 1) 
-                {
-                    if (Pullenti.Ner.Core.NumberHelper.TryParseRoman(tt) == null) 
-                    {
-                        AddressItemToken re = new AddressItemToken(ty, t, tt) { Value = (tt as Pullenti.Ner.TextToken).Term };
-                        if ((tt.WhitespacesAfterCount < 2) && (tt.Next is Pullenti.Ner.TextToken) && tt.Next.Chars.IsAllUpper) 
-                        {
-                            tt = tt.Next;
-                            re.EndToken = tt;
-                            re.Value += (tt as Pullenti.Ner.TextToken).Term;
-                        }
-                        return re;
-                    }
-                }
-            }
-            return null;
-        }
-        static string _outDoubeKm(Pullenti.Ner.NumberToken n1, Pullenti.Ner.NumberToken n2)
-        {
-            if (n1.IntValue == null || n2.IntValue == null) 
-                return string.Format("{0}+{1}", n1.Value, n2.Value);
-            double v = n1.RealValue + ((n2.RealValue / 1000));
-            return Pullenti.Ner.Core.NumberHelper.DoubleToString(Math.Round(v, 3));
-        }
-        static AddressItemToken _tryAttachDetailRange(Pullenti.Ner.Token t)
-        {
-            Pullenti.Ner.Token t1 = t.Next;
-            if (t1 != null && t1.IsChar('.')) 
-                t1 = t1.Next;
-            if (!(t1 is Pullenti.Ner.NumberToken)) 
-                return null;
-            if (t1.Next == null || !t1.Next.IsChar('+') || !(t1.Next.Next is Pullenti.Ner.NumberToken)) 
-                return null;
-            AddressItemToken res = new AddressItemToken(AddressItemType.Detail, t, t1.Next.Next) { DetailType = Pullenti.Ner.Address.AddressDetailType.Range };
-            res.Value = string.Format("км{0}", _outDoubeKm(t1 as Pullenti.Ner.NumberToken, t1.Next.Next as Pullenti.Ner.NumberToken));
-            t1 = t1.Next.Next.Next;
-            if (t1 != null && t1.IsHiphen) 
-                t1 = t1.Next;
-            if (t1 != null && t1.IsValue("КМ", null)) 
-            {
-                t1 = t1.Next;
-                if (t1 != null && t1.IsChar('.')) 
-                    t1 = t1.Next;
-            }
-            if (!(t1 is Pullenti.Ner.NumberToken)) 
-                return null;
-            if (t1.Next == null || !t1.Next.IsChar('+') || !(t1.Next.Next is Pullenti.Ner.NumberToken)) 
-                return null;
-            res.Value = string.Format("{0}-км{1}", res.Value, _outDoubeKm(t1 as Pullenti.Ner.NumberToken, t1.Next.Next as Pullenti.Ner.NumberToken));
-            res.EndToken = t1.Next.Next;
-            return res;
-        }
-        static AddressItemToken _tryAttachDetail(Pullenti.Ner.Token t, Pullenti.Ner.Core.TerminToken tok)
-        {
-            if (t == null || (t is Pullenti.Ner.ReferentToken)) 
-                return null;
-            if (t.IsValue("КМ", null)) 
-            {
-                AddressItemToken ran = _tryAttachDetailRange(t);
-                if (ran != null) 
-                    return ran;
-            }
-            Pullenti.Ner.Token tt = t;
-            if (t.Chars.IsCapitalUpper && !t.Morph.Class.IsPreposition) 
-                return null;
-            if (tok == null) 
-                tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
-            if (tok == null && t.Morph.Class.IsPreposition && t.Next != null) 
-            {
-                tt = t.Next;
-                if (tt is Pullenti.Ner.NumberToken) 
-                {
+                    it = it.Clone();
+                    res[res.Count - 1] = it;
+                    it.Value = it0.Value;
+                    it.EndToken = it0.EndToken;
                 }
                 else 
                 {
-                    if (tt.Chars.IsCapitalUpper && !tt.Morph.Class.IsPreposition) 
-                        return null;
-                    tok = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
-                }
-            }
-            AddressItemToken res = null;
-            bool firstNum = false;
-            if (tok != null && tok.Termin.Tag2 != null && (tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType)) 
-            {
-                res = new AddressItemToken(AddressItemType.Detail, t, tok.EndToken);
-                res.DetailType = (Pullenti.Ner.Address.AddressDetailType)tok.Termin.Tag;
-                res.DetailParam = "часть";
-                return res;
-            }
-            if (tok == null) 
-            {
-                Pullenti.Morph.MorphClass mc = tt.GetMorphClassInDictionary();
-                if (mc.IsVerb) 
-                {
-                    AddressItemToken next = _tryAttachDetail(tt.Next, tok);
-                    if (next != null) 
+                    it = it0;
+                    res.Add(it);
+                    while (it.AltTyp != null) 
                     {
-                        next.BeginToken = t;
-                        return next;
+                        res.Add(it.AltTyp);
+                        it = it.AltTyp;
+                    }
+                    if (it.Next != null) 
+                    {
+                        res.Add(it.Next);
+                        it = it.Next;
                     }
                 }
-                if (tt is Pullenti.Ner.NumberToken) 
+                t = it.EndToken;
+            }
+            if ((res.Count > 1 && res[0].Typ == AddressItemType.Detail && res[0].DetailType == Pullenti.Ner.Address.AddressDetailType.Cross) && res[1].Typ != AddressItemType.Street) 
+                return null;
+            if (res.Count > 0) 
+            {
+                it = res[res.Count - 1];
+                AddressItemToken it0 = (res.Count > 1 ? res[res.Count - 2] : null);
+                if (it.Typ == AddressItemType.Number && it0 != null && it0.RefToken != null) 
                 {
-                    firstNum = true;
-                    Pullenti.Ner.Core.NumberExToken nex = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(tt);
-                    if (nex != null && ((nex.ExTyp == Pullenti.Ner.Core.NumberExType.Meter || nex.ExTyp == Pullenti.Ner.Core.NumberExType.Kilometer))) 
+                    foreach (Pullenti.Ner.Slot s in it0.RefToken.Referent.Slots) 
                     {
-                        res = new AddressItemToken(AddressItemType.Detail, t, nex.EndToken);
-                        Pullenti.Ner.Core.NumberExType tyy = Pullenti.Ner.Core.NumberExType.Meter;
-                        res.DetailMeters = (int)nex.NormalizeValue(ref tyy);
-                        Pullenti.Ner.Token tt2 = res.EndToken.Next;
-                        if (tt2 != null && tt2.IsHiphen) 
-                            tt2 = tt2.Next;
-                        Pullenti.Ner.Core.NumberExToken nex2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(tt2);
-                        if (nex2 != null && nex2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter && nex2.IntValue != null) 
+                        if (s.TypeName == "TYPE") 
                         {
-                            res.EndToken = nex2.EndToken;
-                            res.DetailMeters += nex2.IntValue.Value;
+                            string ss = s.Value as string;
+                            if (ss.Contains("гараж") || ((ss[0] == 'Г' && ss[ss.Length - 1] == 'К'))) 
+                            {
+                                if (it0.RefToken.Referent.FindSlot("NAME", "РОСАТОМ", true) != null) 
+                                    break;
+                                it.Typ = AddressItemType.Box;
+                                break;
+                            }
                         }
                     }
                 }
-                if (res == null) 
-                    return null;
-            }
-            else 
-            {
-                if (!(tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType)) 
-                    return null;
-                if (t.IsValue("У", null)) 
+                if (it.Typ == AddressItemType.Number || it.Typ == AddressItemType.Zip) 
                 {
-                    if (t.Next == null || t.Next.IsCharOf(",.;")) 
-                        return null;
-                }
-                res = new AddressItemToken(AddressItemType.Detail, t, tok.EndToken) { DetailType = (Pullenti.Ner.Address.AddressDetailType)tok.Termin.Tag };
-            }
-            for (tt = res.EndToken.Next; tt != null; tt = tt.Next) 
-            {
-                if (tt is Pullenti.Ner.ReferentToken) 
-                    break;
-                if (!tt.Morph.Class.IsPreposition) 
-                {
-                    if (tt.Chars.IsCapitalUpper || tt.Chars.IsAllUpper) 
-                        break;
-                }
-                tok = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
-                if (tok != null && (tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType)) 
-                {
-                    Pullenti.Ner.Address.AddressDetailType ty = (Pullenti.Ner.Address.AddressDetailType)tok.Termin.Tag;
-                    if (ty != Pullenti.Ner.Address.AddressDetailType.Undefined) 
+                    bool del = false;
+                    if (it.BeginToken.Previous != null && it.BeginToken.Previous.Morph.Class.IsPreposition) 
                     {
-                        if (ty == Pullenti.Ner.Address.AddressDetailType.Near && res.DetailType != Pullenti.Ner.Address.AddressDetailType.Undefined && res.DetailType != ty) 
+                        if (res.Count > 1 && res[res.Count - 2].EndToken.Next == it.BeginToken) 
                         {
                         }
                         else 
-                            res.DetailType = ty;
+                            del = true;
                     }
-                    res.EndToken = (tt = tok.EndToken);
-                    continue;
-                }
-                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                if (npt != null) 
-                    tt = npt.EndToken;
-                if (((tt.IsValue("ОРИЕНТИР", null) || tt.IsValue("НАПРАВЛЕНИЕ", null) || tt.IsValue("ОТ", null)) || tt.IsValue("В", null) || tt.IsValue("УСАДЬБА", null)) || tt.IsValue("ДВОР", null)) 
-                {
-                    res.EndToken = tt;
-                    continue;
-                }
-                if (tt.IsValue("ЗДАНИЕ", null) || tt.IsValue("СТРОЕНИЕ", null) || tt.IsValue("ДОМ", null)) 
-                {
-                    AddressItemToken ait = TryParsePureItem(tt, null, null);
-                    if (ait != null && ait.Value != null) 
-                        break;
-                    if (Pullenti.Ner.Geo.Internal.OrgItemToken.TryParse(tt.Next, null) != null) 
-                        break;
-                    res.EndToken = tt;
-                    continue;
-                }
-                if (npt != null && npt.InternalNoun != null) 
-                {
-                    res.EndToken = (tt = npt.EndToken);
-                    continue;
-                }
-                if (((tt.IsValue("ГРАНИЦА", null) || tt.IsValue("ПРЕДЕЛ", null))) && tt.Next != null) 
-                {
-                    if (tt.Next.IsValue("УЧАСТОК", null)) 
+                    else if (it.Morph.Class.IsNoun && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
+                        del = true;
+                    if ((!del && it.EndToken.WhitespacesAfterCount == 1 && it.WhitespacesBeforeCount > 0) && it.Typ == AddressItemType.Number) 
                     {
-                        tt = tt.Next;
-                        res.EndToken = tt;
-                        continue;
+                        Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(it.EndToken.Next);
+                        if (npt != null) 
+                            del = true;
                     }
-                }
-                Pullenti.Morph.MorphClass mc = tt.GetMorphClassInDictionary();
-                if (mc.IsVerb && !mc.IsNoun) 
-                    continue;
-                if ((tt.IsComma || mc.IsPreposition || tt.IsHiphen) || tt.IsChar(':')) 
-                    continue;
-                if ((tt is Pullenti.Ner.NumberToken) && tt.Next != null) 
-                {
-                    Pullenti.Ner.Core.NumberExToken nex = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(tt);
-                    if (nex != null && ((nex.ExTyp == Pullenti.Ner.Core.NumberExType.Meter || nex.ExTyp == Pullenti.Ner.Core.NumberExType.Kilometer))) 
+                    if (del) 
+                        res.RemoveAt(res.Count - 1);
+                    else if ((it.Typ == AddressItemType.Number && it0 != null && it0.Typ == AddressItemType.Street) && it0.RefToken == null) 
                     {
-                        res.EndToken = (tt = nex.EndToken);
-                        Pullenti.Ner.Core.NumberExType tyy = Pullenti.Ner.Core.NumberExType.Meter;
-                        res.DetailMeters = (int)nex.NormalizeValue(ref tyy);
-                        continue;
+                        if (it.BeginToken.Previous.IsChar(',') || it.IsNewlineAfter) 
+                        {
+                            it = it.Clone();
+                            res[res.Count - 1] = it;
+                            it.Typ = AddressItemType.House;
+                            it.IsDoubt = true;
+                        }
                     }
                 }
-                break;
             }
-            if (firstNum && res.DetailType == Pullenti.Ner.Address.AddressDetailType.Undefined) 
+            if (res.Count == 0) 
                 return null;
-            if (res != null && res.EndToken.Next != null && res.EndToken.Next.Morph.Class.IsPreposition) 
+            if ((res.Count == 1 && res[0].Typ == AddressItemType.Street && res[0].Chars.IsLatinLetter) && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
+                return null;
+            foreach (AddressItemToken r in res) 
             {
-                if (res.EndToken.WhitespacesAfterCount == 1 && res.EndToken.Next.WhitespacesAfterCount == 1) 
-                    res.EndToken = res.EndToken.Next;
+                if (r.Typ == AddressItemType.City || r.Typ == AddressItemType.Street) 
+                {
+                    AddressItemToken ty = _findAddrTyp(r.BeginToken, r.EndChar, 0);
+                    if (ty != null) 
+                    {
+                        if (r.DetailType == Pullenti.Ner.Address.AddressDetailType.Undefined) 
+                            r.DetailType = ty.DetailType;
+                        if (ty.DetailMeters > 0) 
+                            r.DetailMeters = ty.DetailMeters;
+                        if (ty.DetailParam != null) 
+                            r.DetailParam = ty.DetailParam;
+                    }
+                }
             }
-            if (res != null && res.EndToken.Next != null) 
+            for (int i = 0; i < (res.Count - 2); i++) 
             {
-                if (res.EndToken.Next.IsHiphen || res.EndToken.Next.IsChar(':')) 
-                    res.EndToken = res.EndToken.Next;
+                if (res[i].Typ == AddressItemType.Street && res[i + 1].Typ == AddressItemType.Number) 
+                {
+                    if ((res[i + 2].Typ == AddressItemType.Building || res[i + 2].Typ == AddressItemType.Corpus || res[i + 2].Typ == AddressItemType.Office) || res[i + 2].Typ == AddressItemType.Flat) 
+                    {
+                        res[i + 1] = res[i + 1].Clone();
+                        res[i + 1].Typ = AddressItemType.House;
+                    }
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == AddressItemType.Street && res[i + 1].Typ == AddressItemType.City && (res[i].Referent is Pullenti.Ner.Address.StreetReferent)) 
+                {
+                    Pullenti.Ner.Address.StreetReferent sr = res[i].Referent as Pullenti.Ner.Address.StreetReferent;
+                    if (sr.Slots.Count != 2 || sr.Kind != Pullenti.Ner.Address.StreetKind.Area || sr.Typs.Count != 1) 
+                        continue;
+                    if (i == 0 && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
+                    {
+                    }
+                    else if (i > 0 && res[i - 1].Typ == AddressItemType.City) 
+                    {
+                    }
+                    else 
+                        continue;
+                    Pullenti.Ner.Token tt = res[i + 1].BeginToken;
+                    if (tt is Pullenti.Ner.ReferentToken) 
+                        tt = (tt as Pullenti.Ner.ReferentToken).BeginToken;
+                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                    if (npt != null && npt.EndChar == res[i + 1].EndChar) 
+                    {
+                        res[i].EndToken = res[i + 1].EndToken;
+                        sr.AddSlot(Pullenti.Ner.Address.StreetReferent.ATTR_NAME, npt.GetNormalCaseText(null, Pullenti.Morph.MorphNumber.Undefined, Pullenti.Morph.MorphGender.Undefined, false), false, 0);
+                        res.RemoveAt(i + 1);
+                        break;
+                    }
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == AddressItemType.Building && res[i].BeginToken == res[i].EndToken && res[i].BeginToken.LengthChar == 1) 
+                {
+                    if (res[i + 1].Typ == AddressItemType.City) 
+                    {
+                        res.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == AddressItemType.Flat && res[i + 1].Typ == AddressItemType.Street && (res[i + 1].RefToken is Pullenti.Ner.Geo.Internal.OrgItemToken)) 
+                {
+                    string str = res[i + 1].RefToken.ToString().ToUpper();
+                    if (str.Contains("ЛЕСНИЧ")) 
+                    {
+                        res[i + 1].BeginToken = res[i].BeginToken;
+                        res[i + 1].Referent.AddSlot("NUMBER", res[i].Value, false, 0);
+                        res.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if ((res[i].Typ == res[i + 1].Typ && (((res[i].Typ == AddressItemType.Room || res[i].Typ == AddressItemType.Flat || res[i].Typ == AddressItemType.Space) || res[i].Typ == AddressItemType.Office)) && res[i].Value != null) && res[i + 1].Value != null) 
+                {
+                    res[i] = res[i].Clone();
+                    if (res[i].Value != res[i + 1].Value) 
+                        res[i].Value = string.Format("{0},{1}", res[i].Value, res[i + 1].Value);
+                    res[i].EndToken = res[i + 1].EndToken;
+                    res.RemoveAt(i + 1);
+                    i--;
+                }
+                else if ((res[i].Typ == AddressItemType.Space && res[i].Value != null && res[i + 1].Typ == AddressItemType.Building) && res[i + 1].BuildingType == Pullenti.Ner.Address.AddressBuildingType.Liter) 
+                {
+                    res[i] = res[i].Clone();
+                    res[i].Value = string.Format("{0}{1}", res[i].Value, res[i + 1].Value);
+                    res[i].EndToken = res[i + 1].EndToken;
+                    res.RemoveAt(i + 1);
+                    i--;
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if ((res[i].Typ == AddressItemType.Street && (res[i].Referent is Pullenti.Ner.Address.StreetReferent) && res[i + 1].Typ == AddressItemType.Street) && (res[i + 1].RefToken is Pullenti.Ner.Geo.Internal.OrgItemToken)) 
+                {
+                    Pullenti.Ner.Address.StreetReferent ss = res[i].Referent as Pullenti.Ner.Address.StreetReferent;
+                    if (ss.Numbers == null || ss.Names.Count > 0) 
+                        continue;
+                    if (!ss.ToString().Contains("квартал")) 
+                        continue;
+                    string str = res[i + 1].RefToken.ToString().ToUpper();
+                    if (!str.Contains("ЛЕСНИЧ")) 
+                        continue;
+                    res[i + 1].BeginToken = res[i].BeginToken;
+                    res[i + 1].Referent.AddSlot("NUMBER", ss.Numbers, false, 0);
+                    res.RemoveAt(i);
+                    break;
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if ((res[i].Typ == AddressItemType.Street && res[i + 1].Typ == AddressItemType.Kilometer && (res[i].Referent is Pullenti.Ner.Address.StreetReferent)) && (res[i].Referent as Pullenti.Ner.Address.StreetReferent).Numbers == null) 
+                {
+                    res[i] = res[i].Clone();
+                    (res[i].Referent as Pullenti.Ner.Address.StreetReferent).Numbers = res[i + 1].Value + "км";
+                    res[i].EndToken = res[i + 1].EndToken;
+                    res.RemoveAt(i + 1);
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if ((res[i + 1].Typ == AddressItemType.Street && res[i].Typ == AddressItemType.Kilometer && (res[i + 1].Referent is Pullenti.Ner.Address.StreetReferent)) && (res[i + 1].Referent as Pullenti.Ner.Address.StreetReferent).Numbers == null) 
+                {
+                    res[i + 1] = res[i + 1].Clone();
+                    (res[i + 1].Referent as Pullenti.Ner.Address.StreetReferent).Numbers = res[i].Value + "км";
+                    res[i + 1].BeginToken = res[i].BeginToken;
+                    res.RemoveAt(i);
+                    break;
+                }
+            }
+            for (int i = 0; i < (res.Count - 1); i++) 
+            {
+                if (res[i].Typ == AddressItemType.Building && res[i + 1].Typ == AddressItemType.Building && (res[i].BeginToken is Pullenti.Ner.TextToken)) 
+                {
+                    if ((res[i].BeginToken as Pullenti.Ner.TextToken).Term.StartsWith("ЗД")) 
+                    {
+                        res[i] = res[i].Clone();
+                        res[i].Typ = AddressItemType.House;
+                    }
+                }
+            }
+            for (int i = 0; i < res.Count; i++) 
+            {
+                if (res[i].Typ == AddressItemType.Part) 
+                {
+                    if (i > 0 && ((res[i - 1].Typ == AddressItemType.House || res[i - 1].Typ == AddressItemType.Plot))) 
+                        continue;
+                    if (((i + 1) < res.Count) && ((res[i + 1].Typ == AddressItemType.House || res[i + 1].Typ == AddressItemType.Plot))) 
+                        continue;
+                    if (i == 0) 
+                        return null;
+                    res.RemoveRange(i, res.Count - i);
+                    break;
+                }
+                else if ((res[i].Typ == AddressItemType.NoNumber && i == (res.Count - 1) && i > 0) && res[i - 1].Typ == AddressItemType.City) 
+                {
+                    res[i] = res[i].Clone();
+                    res[i].Typ = AddressItemType.House;
+                }
+            }
+            for (int i = 0; i < res.Count; i++) 
+            {
+                if (res[i].AreaTerr != null) 
+                {
+                    Pullenti.Ner.Geo.GeoReferent ter = res[i].AreaTerr.Referent as Pullenti.Ner.Geo.GeoReferent;
+                    if ((ter.IsRegion && i > 0 && res[i - 1].Typ == AddressItemType.City) && ter.Higher == null) 
+                        ter.Higher = res[i - 1].Referent as Pullenti.Ner.Geo.GeoReferent;
+                    res.Insert(i, res[i].AreaTerr);
+                    i++;
+                }
+            }
+            if (res.Count > 0 && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
+            {
+                for (int i = 0; i < (res.Count - 1); i++) 
+                {
+                    for (int j = i + 1; j < res.Count; j++) 
+                    {
+                        if (res[j].IsNewlineBefore) 
+                            break;
+                        if (res[i].Typ == res[j].Typ && (res[i].Referent is Pullenti.Ner.Geo.GeoReferent) && res[j].Referent == res[i].Referent) 
+                        {
+                            res.RemoveAt(j);
+                            j--;
+                        }
+                    }
+                }
+            }
+            for (int i = 1; i < res.Count; i++) 
+            {
+                if (res[i].Typ == AddressItemType.Potch && res[i].Value != null) 
+                {
+                    bool ok = false;
+                    if (res[i - 1].Typ == AddressItemType.Street) 
+                        ok = true;
+                    else if (((i + 1) < res.Count) && res[i + 1].Typ == AddressItemType.Street) 
+                        ok = true;
+                    if (!ok) 
+                        continue;
+                    it = res[i];
+                    AddressItemToken rr = new AddressItemToken(AddressItemType.Street, it.BeginToken, it.EndToken);
+                    Pullenti.Ner.Address.StreetReferent sr = new Pullenti.Ner.Address.StreetReferent();
+                    sr.AddTyp("подъезд");
+                    sr.AddSlot(Pullenti.Ner.Address.StreetReferent.ATTR_NUMBER, it.Value, false, 0);
+                    rr.Referent = sr;
+                    res[i] = rr;
+                }
+            }
+            for (int i = res.Count - 1; i > 0; i--) 
+            {
+                if (res[i].Typ == AddressItemType.Number && res[i].Value != null && res[i].BeginToken.IsValue("НОМЕР", null)) 
+                {
+                    if (res[i - 1].Typ == AddressItemType.Space || res[i - 1].Typ == AddressItemType.Flat) 
+                        res[i].Typ = AddressItemType.Room;
+                    else if ((res[i - 1].Typ == AddressItemType.Floor || res[i - 1].Typ == AddressItemType.House || res[i - 1].Typ == AddressItemType.Corpus) || res[i - 1].Typ == AddressItemType.Building) 
+                        res[i].Typ = AddressItemType.Flat;
+                }
+            }
+            while (res.Count > 0) 
+            {
+                AddressItemToken last = res[res.Count - 1];
+                if (last.DetailType == Pullenti.Ner.Address.AddressDetailType.Org && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
+                {
+                    res.RemoveAt(res.Count - 1);
+                    continue;
+                }
+                if (last.Typ == AddressItemType.Detail && last.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross && last.LengthChar == 1) 
+                {
+                    res.RemoveAt(res.Count - 1);
+                    continue;
+                }
+                if (last.Typ == AddressItemType.City && res.Count > 4) 
+                {
+                    bool ok = false;
+                    for (int ii = 0; ii < 3; ii++) 
+                    {
+                        if (res[ii].Typ == AddressItemType.City) 
+                        {
+                            Pullenti.Ner.Geo.GeoReferent geo1 = last.Referent as Pullenti.Ner.Geo.GeoReferent;
+                            Pullenti.Ner.Geo.GeoReferent geo0 = res[ii].Referent as Pullenti.Ner.Geo.GeoReferent;
+                            if ((geo1 != null && geo0 != null && geo0.Higher == null) && Pullenti.Ner.Geo.Internal.GeoOwnerHelper.CanBeHigher(geo1, geo0, null, null)) 
+                                break;
+                            ok = true;
+                        }
+                    }
+                    if (ok) 
+                    {
+                        res.RemoveAt(res.Count - 1);
+                        continue;
+                    }
+                }
+                if (last.Typ != AddressItemType.Street || !(last.RefToken is Pullenti.Ner.Geo.Internal.OrgItemToken)) 
+                    break;
+                if ((last.RefToken as Pullenti.Ner.Geo.Internal.OrgItemToken).IsGsk || (last.RefToken as Pullenti.Ner.Geo.Internal.OrgItemToken).HasTerrKeyword) 
+                    break;
+                if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(last)) 
+                    break;
+                res.RemoveAt(res.Count - 1);
+            }
+            if (res.Count > 2 && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
+            {
+                for (int i = 1; i < res.Count; i++) 
+                {
+                    if (((res[i - 1].Typ == AddressItemType.Street || res[i - 1].Typ == AddressItemType.City)) && res[i].Typ == AddressItemType.Street) 
+                    {
+                        Pullenti.Ner.Address.StreetReferent sr = res[i].Referent as Pullenti.Ner.Address.StreetReferent;
+                        if (sr == null) 
+                            continue;
+                        if ((sr.Numbers == null || sr.Names.Count > 0 || sr.Typs.Count != 1) || sr.Typs[0] != "улица") 
+                            continue;
+                        if ((i + 1) < res.Count) 
+                            continue;
+                        if (res[i - 1].Typ == AddressItemType.City) 
+                        {
+                            Pullenti.Ner.Geo.GeoReferent geo = res[i - 1].Referent as Pullenti.Ner.Geo.GeoReferent;
+                            if (geo == null) 
+                                continue;
+                            if (geo.Typs.Contains("город")) 
+                                continue;
+                        }
+                        res[i] = res[i].Clone();
+                        res[i].Typ = AddressItemType.House;
+                        res[i].Value = sr.Numbers;
+                        res[i].Referent = null;
+                    }
+                }
+            }
+            for (int i = 0; i < (res.Count - 2); i++) 
+            {
+                if (res[i].Typ == AddressItemType.Region && res[i + 1].Typ == AddressItemType.Number && res[i + 2].Typ == AddressItemType.City) 
+                {
+                    bool ok = false;
+                    for (int j = i + 3; j < res.Count; j++) 
+                    {
+                        if (res[j].Typ == AddressItemType.Street || res[j].Value != null) 
+                            ok = true;
+                    }
+                    if (ok) 
+                    {
+                        res.RemoveAt(i + 1);
+                        break;
+                    }
+                }
             }
             return res;
         }
@@ -3464,914 +2277,2175 @@ namespace Pullenti.Ner.Address.Internal
             }
             return t1;
         }
-        public static List<AddressItemToken> TryParseList(Pullenti.Ner.Token t, int maxCount = 20)
+        public static AddressItemToken TryParsePureItem(Pullenti.Ner.Token t, AddressItemToken prev = null, Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad = null)
         {
             if (t == null) 
                 return null;
-            Pullenti.Ner.Geo.Internal.GeoAnalyzerData ad = Pullenti.Ner.Geo.GeoAnalyzer.GetData(t);
-            if (ad != null) 
-            {
-                if (ad.Level > 0) 
-                    return null;
-                ad.Level++;
-            }
-            List<AddressItemToken> res = TryParseListInt(t, maxCount);
-            if (ad != null) 
-                ad.Level--;
-            if (res != null && res.Count == 0) 
+            if (t.IsChar(',')) 
                 return null;
+            if (ad == null) 
+                ad = Pullenti.Ner.Geo.GeoAnalyzer.GetData(t);
+            if (ad == null) 
+                return null;
+            int maxLevel = 0;
+            if ((prev != null && (t is Pullenti.Ner.NumberToken) && t.LengthChar == 5) && (t as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit && !t.Morph.Class.IsAdjective) 
+            {
+                if (prev.Typ == AddressItemType.Country || prev.Typ == AddressItemType.Region || prev.Typ == AddressItemType.City) 
+                    return new AddressItemToken(AddressItemType.Zip, t, t) { Value = (t as Pullenti.Ner.NumberToken).Value.ToString() };
+            }
+            if ((prev != null && ((prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Corpus || prev.Typ == AddressItemType.Building)) && t.IsValue("БЛОК", null)) && (t.WhitespacesAfterCount < 3)) 
+            {
+                Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Strong);
+                if (nn != null) 
+                    return new AddressItemToken(AddressItemType.Block, t, nn.EndToken) { Value = nn.Value };
+            }
+            if ((prev != null && prev.Typ == AddressItemType.Street && t.LengthChar == 1) && ((t.IsValue("С", null) || t.IsValue("Д", null)))) 
+                maxLevel = 1;
+            else if (SpeedRegime && ((ad.ARegime || ad.AllRegime)) && !(t is Pullenti.Ner.ReferentToken)) 
+            {
+                Pullenti.Ner.Geo.Internal.GeoTokenData d = t.Tag as Pullenti.Ner.Geo.Internal.GeoTokenData;
+                if (d == null) 
+                    return null;
+                if (d.Addr == null) 
+                    return null;
+                if (d.Addr.HouseType == Pullenti.Ner.Address.AddressHouseType.Estate && d.NoGeo) 
+                    return null;
+                bool ok = true;
+                for (Pullenti.Ner.Token tt = t; tt != null && tt.BeginChar <= d.Addr.EndChar; tt = tt.Next) 
+                {
+                    if (tt is Pullenti.Ner.ReferentToken) 
+                    {
+                        ok = false;
+                        maxLevel = 1;
+                        break;
+                    }
+                }
+                if (ok) 
+                    return d.Addr;
+            }
+            if (ad.ALevel > (maxLevel + 1)) 
+                return null;
+            if (ad.Level > 1) 
+                return null;
+            ad.Level++;
+            AddressItemToken res = _tryParsePureItem(t, false, prev);
+            if (res == null && Pullenti.Ner.Core.BracketHelper.IsBracket(t, false) && (t.WhitespacesAfterCount < 2)) 
+            {
+                AddressItemToken res1 = _tryParsePureItem(t.Next, false, prev);
+                if (res1 != null && Pullenti.Ner.Core.BracketHelper.IsBracket(res1.EndToken.Next, false)) 
+                {
+                    res = res1;
+                    res.BeginToken = t;
+                    res.EndToken = res1.EndToken.Next;
+                }
+            }
+            if (res == null && (t is Pullenti.Ner.TextToken) && (t as Pullenti.Ner.TextToken).Term.StartsWith("ЖИЛ")) 
+            {
+                Pullenti.Ner.Token tt = t.Next;
+                if (tt != null && tt.IsCharOf(".\\/-")) 
+                    tt = tt.Next;
+                AddressItemToken res1 = _tryParsePureItem(tt, false, prev);
+                if (res1 != null) 
+                {
+                    res1.BeginToken = t;
+                    res = res1;
+                }
+            }
+            if ((res == null && prev != null && t.LengthChar == 1) && t.IsValue("С", null)) 
+            {
+                if (prev.Typ == AddressItemType.Corpus || prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Street) 
+                {
+                    AddressItemToken next = _tryParsePureItem(t.Next, false, null);
+                    if (next != null && next.Typ == AddressItemType.Number) 
+                    {
+                        next.Typ = AddressItemType.Building;
+                        next.BeginToken = t;
+                        res = next;
+                    }
+                }
+            }
+            if (res != null && res.Typ == AddressItemType.Detail) 
+            {
+            }
+            else 
+            {
+                AddressItemToken det = _tryAttachDetail(t, null);
+                if (res == null) 
+                    res = det;
+                else if (det != null && det.EndChar > res.EndChar) 
+                    res = det;
+            }
+            if ((res != null && !string.IsNullOrEmpty(res.Value) && char.IsDigit(res.Value[res.Value.Length - 1])) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res)) 
+            {
+                Pullenti.Ner.Token t1 = res.EndToken.Next;
+                if (((t1 is Pullenti.Ner.TextToken) && (t1.WhitespacesBeforeCount < 3) && t1.Chars.IsLetter) && t1.LengthChar == 1) 
+                {
+                    AddressItemToken res2 = _tryParsePureItem(t1, false, null);
+                    if (res2 == null) 
+                    {
+                        StreetItemToken sit = StreetItemToken.TryParse(t1, null, false, null);
+                        if (sit != null && sit.Typ == StreetItemType.Noun) 
+                        {
+                        }
+                        else if (t1.IsValue2("В", "ГРАНИЦА")) 
+                        {
+                        }
+                        else 
+                        {
+                            string ch = CorrectCharToken(t1);
+                            if (Pullenti.Ner.Geo.Internal.OrgTypToken.TryParse(t1, false, null) != null) 
+                                ch = null;
+                            if (ch != null && ch != "К" && ch != "С") 
+                            {
+                                res.Value = string.Format("{0}{1}", res.Value, ch);
+                                res.EndToken = t1;
+                            }
+                        }
+                    }
+                }
+            }
+            if ((res != null && res.Typ == AddressItemType.Number && res.EndToken.Next != null) && res.EndToken.Next.IsValue("ДОЛЯ", null)) 
+            {
+                res.EndToken = res.EndToken.Next;
+                res.Typ = AddressItemType.Part;
+                res.Value = "1";
+            }
+            if (res == null && t.GetMorphClassInDictionary().IsPreposition) 
+            {
+                AddressItemToken next = TryParsePureItem(t.Next, null, null);
+                if (next != null && next.Typ != AddressItemType.Number && !t.Next.IsValue("СТ", null)) 
+                {
+                    next.BeginToken = t;
+                    res = next;
+                }
+            }
+            if (res != null && ((res.Typ == AddressItemType.Number || res.Typ == AddressItemType.House || res.Typ == AddressItemType.Plot))) 
+            {
+                Pullenti.Ner.Token tt = res.EndToken.Next;
+                if (tt != null && tt.IsHiphen) 
+                    tt = tt.Next;
+                if (tt != null && tt.IsValue("ЛПХ", null)) 
+                    res.EndToken = tt;
+                if (tt != null && tt.IsCharOf("\\/")) 
+                    tt = tt.Next;
+                if ((tt is Pullenti.Ner.TextToken) && (tt as Pullenti.Ner.TextToken).Term.Length == 2) 
+                {
+                    if ((tt as Pullenti.Ner.TextToken).Term[1] == 'П' || (tt as Pullenti.Ner.TextToken).Term[1] == 'С') 
+                    {
+                        AddressItemToken ne = _tryParsePureItem(tt, false, null);
+                        if (ne == null || ne.EndToken == tt) 
+                            res.EndToken = tt;
+                    }
+                }
+            }
+            if (res != null && res.Value != null) 
+                res._corrNum();
+            ad.Level--;
             return res;
         }
-        static List<AddressItemToken> TryParseListInt(Pullenti.Ner.Token t, int maxCount = 20)
+        static AddressItemToken _tryParsePureItem(Pullenti.Ner.Token t, bool prefixBefore, AddressItemToken prev)
         {
             if (t is Pullenti.Ner.NumberToken) 
             {
-                if ((t as Pullenti.Ner.NumberToken).IntValue == null) 
+                Pullenti.Ner.NumberToken n = t as Pullenti.Ner.NumberToken;
+                if (((n.LengthChar == 6 || ((n.LengthChar == 5 && t.Kit.BaseLanguage.IsUa)))) && n.Typ == Pullenti.Ner.NumberSpellingType.Digit && !n.Morph.Class.IsAdjective) 
+                    return new AddressItemToken(AddressItemType.Zip, t, t) { Value = n.Value.ToString() };
+                if ((!t.IsWhitespaceAfter && t.Next != null && t.Next.IsCharOf(":")) && !t.Next.IsWhitespaceAfter && (t.Next.Next is Pullenti.Ner.NumberToken)) 
                     return null;
-                int v = (t as Pullenti.Ner.NumberToken).IntValue.Value;
-                if ((v < 100000) || v >= 10000000) 
+                bool ok = false;
+                if ((t.Previous != null && t.Previous.Morph.Class.IsPreposition && t.Next != null) && t.Next.Chars.IsLetter && t.Next.Chars.IsAllLower) 
+                    ok = true;
+                else if (t.Morph.Class.IsAdjective && !t.Morph.Class.IsNoun) 
+                    ok = true;
+                Pullenti.Ner.Core.TerminToken tok0 = m_Ontology.TryParse(t.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                if (tok0 != null && (tok0.Termin.Tag is AddressItemType)) 
                 {
-                    if ((t as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit && !t.Morph.Class.IsAdjective) 
+                    AddressItemType typ0 = (AddressItemType)tok0.Termin.Tag;
+                    if (tok0.EndToken.Next == null || tok0.EndToken.IsNewlineAfter) 
+                        ok = true;
+                    else if (tok0.EndToken.Next.IsComma && (tok0.EndToken.Next.Next is Pullenti.Ner.NumberToken) && typ0 == AddressItemType.Flat) 
+                        return new AddressItemToken(AddressItemType.House, t, t) { Value = n.Value };
+                    if (t.Previous != null && t.Previous.IsComma && tok0.LengthChar > 1) 
                     {
-                        if (t.Next == null || (t.Next is Pullenti.Ner.NumberToken)) 
+                        Pullenti.Ner.Token tt = tok0.EndToken.Next;
+                        if (tt == null || tt.IsComma || tok0.IsNewlineAfter) 
+                            return new AddressItemToken(typ0, t, tok0.EndToken) { Value = n.Value };
+                    }
+                    if (typ0 == AddressItemType.Flat) 
+                    {
+                        if ((t.Next is Pullenti.Ner.TextToken) && t.Next.IsValue("КВ", null)) 
                         {
-                            if (t.Previous == null || !t.Previous.Morph.Class.IsPreposition) 
+                            if (t.Next.GetSourceText() == "кВ" && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                                return null;
+                            StreetItemToken si = StreetItemToken.TryParse(t.Next, null, false, null);
+                            if (si != null && si.Typ == StreetItemType.Noun && si.EndChar > tok0.EndChar) 
+                                return null;
+                            Pullenti.Ner.Core.NumberExToken suf = Pullenti.Ner.Core.NumberHelper.TryParsePostfixOnly(t.Next);
+                            if (suf != null) 
+                                return null;
+                        }
+                        if ((tok0.EndToken.Next is Pullenti.Ner.NumberToken) && (tok0.EndToken.WhitespacesAfterCount < 3)) 
+                        {
+                            if (prev != null && ((prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City))) 
+                                return new AddressItemToken(AddressItemType.Number, t, t) { Value = n.Value.ToString() };
+                        }
+                    }
+                    if (tok0.EndToken.Next is Pullenti.Ner.NumberToken) 
+                    {
+                    }
+                    else if (tok0.EndToken.Next != null && tok0.EndToken.Next.IsValue("НЕТ", null)) 
+                    {
+                    }
+                    else if ((((typ0 == AddressItemType.Kilometer || typ0 == AddressItemType.Floor || typ0 == AddressItemType.Block) || typ0 == AddressItemType.Potch || typ0 == AddressItemType.Flat) || typ0 == AddressItemType.Plot || typ0 == AddressItemType.Box) || typ0 == AddressItemType.Office) 
+                    {
+                        AddressItemToken next = _tryParsePureItem(tok0.EndToken.Next, false, null);
+                        if (next != null && next.Typ == AddressItemType.Number) 
+                        {
+                        }
+                        else if (tok0.EndToken.IsValue("ПОД", null)) 
+                        {
+                        }
+                        else 
+                        {
+                            next = _tryParsePureItem(tok0.EndToken, false, null);
+                            if (next != null && next.Value != null && next.Value != "0") 
+                            {
+                            }
+                            else 
+                                return new AddressItemToken(typ0, t, tok0.EndToken) { Value = n.Value.ToString() };
+                        }
+                    }
+                }
+            }
+            bool prepos = false;
+            Pullenti.Ner.Core.TerminToken tok = null;
+            if (t != null && t.Morph.Class.IsPreposition) 
+            {
+                if ((((tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No)))) == null) 
+                {
+                    if (t.BeginChar < t.EndChar) 
+                        return null;
+                    if (t.IsValue("В", null) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                    {
+                        Pullenti.Ner.Token tt = t.Next;
+                        if (tt != null && tt.IsChar('.')) 
+                            tt = tt.Next;
+                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
+                        if (num1 != null) 
+                        {
+                            for (Pullenti.Ner.Token tt0 = t.Previous; tt0 != null; tt0 = tt0.Previous) 
+                            {
+                                if (tt0.IsValue("КВАРТАЛ", null) || tt0.IsValue("КВ", null) || tt0.IsValue("ЛЕСНИЧЕСТВО", null)) 
+                                    return new AddressItemToken(AddressItemType.Plot, t, num1.EndToken) { Value = num1.Value };
+                                if (tt0.IsNewlineBefore) 
+                                    break;
+                            }
+                        }
+                    }
+                    if (!t.IsCharOf("КСкс")) 
+                        t = t.Next;
+                    prepos = true;
+                }
+            }
+            if (t == null) 
+                return null;
+            if ((((t is Pullenti.Ner.TextToken) && t.LengthChar == 1 && t.Chars.IsLetter) && !t.IsValue("V", null) && !t.IsValue("I", null)) && !t.IsValue("X", null)) 
+            {
+                if (t.Previous != null && t.Previous.IsComma) 
+                {
+                    if (((t.Next != null && t.Next.IsComma && (t.Next.Next is Pullenti.Ner.NumberToken)) && t.IsValue("Д", null) && prev != null) && prev.Typ == AddressItemType.Street) 
+                    {
+                    }
+                    else if (t.IsNewlineAfter || t.Next.IsComma) 
+                        return new AddressItemToken(AddressItemType.Building, t, t) { BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter, Value = (t as Pullenti.Ner.TextToken).Term };
+                }
+            }
+            if (Pullenti.Ner.Core.BracketHelper.IsBracket(t, true)) 
+            {
+                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                if ((br != null && (t.Next is Pullenti.Ner.TextToken) && t.Next.LengthChar <= 2) && t.Next.Next == br.EndToken && t.Next.LengthChar == 1) 
+                    return new AddressItemToken(AddressItemType.Building, t, br.EndToken) { BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter, Value = (t.Next as Pullenti.Ner.TextToken).Term };
+            }
+            if (t.IsChar('/')) 
+            {
+                AddressItemToken next = TryParsePureItem(t.Next, prev, null);
+                if (next != null && next.EndToken.Next != null && next.EndToken.Next.IsChar('/')) 
+                {
+                    next.BeginToken = t;
+                    next.EndToken = next.EndToken.Next;
+                    return next;
+                }
+                if (next != null && next.EndToken.IsChar('/')) 
+                {
+                    next.BeginToken = t;
+                    return next;
+                }
+            }
+            if (tok == null) 
+                tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
+            Pullenti.Ner.Token t1 = t;
+            AddressItemType typ = AddressItemType.Number;
+            Pullenti.Ner.Address.AddressHouseType houseTyp = Pullenti.Ner.Address.AddressHouseType.Undefined;
+            Pullenti.Ner.Address.AddressBuildingType buildTyp = Pullenti.Ner.Address.AddressBuildingType.Undefined;
+            string spaceDetail = null;
+            bool hasNumPrefix = false;
+            Pullenti.Ner.Core.TerminToken tok00 = tok;
+            if (tok != null) 
+            {
+                if (t.IsValue("УЖЕ", null)) 
+                    return null;
+                if (t.IsValue("ЛИТЕРА", null)) 
+                {
+                    string str = t.GetSourceText();
+                    if (char.IsUpper(str[str.Length - 1]) && char.IsLower(str[str.Length - 2])) 
+                        return new AddressItemToken(AddressItemType.Building, t, t) { BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter, Value = str.Substring(str.Length - 1) };
+                }
+                if (t.IsValue("ПОД", null) && tok.EndToken == t) 
+                {
+                    if (!(t.Next is Pullenti.Ner.NumberToken)) 
+                        return null;
+                }
+                if ((tok.LengthChar == 1 && t.Next != null && t.Next.IsHiphen) && (t.Next.Next is Pullenti.Ner.NumberToken)) 
+                    return null;
+                if (t.IsValue("НОМЕР", null)) 
+                    hasNumPrefix = true;
+                if (tok.Termin.CanonicText == "ТАМ ЖЕ") 
+                {
+                    int cou = 0;
+                    for (Pullenti.Ner.Token tt = t.Previous; tt != null; tt = tt.Previous) 
+                    {
+                        if (cou > 1000) 
+                            break;
+                        Pullenti.Ner.Referent r = tt.GetReferent();
+                        if (r == null) 
+                            continue;
+                        if (r is Pullenti.Ner.Address.AddressReferent) 
+                        {
+                            Pullenti.Ner.Geo.GeoReferent g = r.GetSlotValue(Pullenti.Ner.Address.AddressReferent.ATTR_GEO) as Pullenti.Ner.Geo.GeoReferent;
+                            if (g != null) 
+                                return new AddressItemToken(AddressItemType.City, t, tok.EndToken) { Referent = g };
+                            break;
+                        }
+                        else if (r is Pullenti.Ner.Geo.GeoReferent) 
+                        {
+                            Pullenti.Ner.Geo.GeoReferent g = r as Pullenti.Ner.Geo.GeoReferent;
+                            if (!g.IsState) 
+                                return new AddressItemToken(AddressItemType.City, t, tok.EndToken) { Referent = g };
+                        }
+                    }
+                    return null;
+                }
+                if (tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType) 
+                    return _tryAttachDetail(t, tok);
+                t1 = tok.EndToken.Next;
+                if ((t1 is Pullenti.Ner.TextToken) && (t1 as Pullenti.Ner.TextToken).Term.StartsWith("ОБ")) 
+                {
+                    tok.EndToken = t1;
+                    t1 = t1.Next;
+                    if (t1 != null && t1.IsChar('.')) 
+                    {
+                        tok.EndToken = t1;
+                        t1 = t1.Next;
+                    }
+                }
+                bool build = false;
+                if (tok.Termin.CanonicText == "НЕЖИЛОЕ") 
+                {
+                    for (; t1 != null; t1 = t1.Next) 
+                    {
+                        if (t1.IsChar('.')) 
+                            continue;
+                        if (t1.IsValue("ВСТР", null) || t1.IsValue("ВСТРОЕН", null) || t1.IsValue("ВСТРОЕННЫЙ", null)) 
+                            continue;
+                        if (t1.IsValue("ЗДАНИЕ", null)) 
+                        {
+                            build = true;
+                            continue;
+                        }
+                        if (build) 
+                        {
+                            if ((t1.IsComma || t1.IsValue("В", null) || t1.IsValue("ЧАСТЬ", null)) || t1.IsValue("НЕЖИЛОЙ", null)) 
+                                continue;
+                        }
+                        Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
+                        if (tok2 == null) 
+                            break;
+                        if (tok2.Termin.CanonicText == "ПОМЕЩЕНИЕ") 
+                        {
+                            t1 = tok2.EndToken.Next;
+                            typ = AddressItemType.Space;
+                        }
+                        break;
+                    }
+                }
+                if (t.IsValue("ЖИЛОЙ", null) && t.Next != null && t.Next.IsComma) 
+                    return null;
+                if ((t1 != null && t1.IsChar('(') && (t1.Next is Pullenti.Ner.TextToken)) && (t1.Next as Pullenti.Ner.TextToken).Term.StartsWith("ОБ")) 
+                {
+                    tok.EndToken = t1.Next;
+                    t1 = t1.Next.Next;
+                    while (t1 != null) 
+                    {
+                        if (t1.IsCharOf(".)")) 
+                        {
+                            tok.EndToken = t1;
+                            t1 = t1.Next;
+                        }
+                        else 
+                            break;
+                    }
+                }
+                if (tok.Termin.Tag is AddressItemType) 
+                {
+                    if (tok.Termin.Tag2 is Pullenti.Ner.Address.AddressHouseType) 
+                        houseTyp = (Pullenti.Ner.Address.AddressHouseType)tok.Termin.Tag2;
+                    if (tok.Termin.Tag2 is Pullenti.Ner.Address.AddressBuildingType) 
+                        buildTyp = (Pullenti.Ner.Address.AddressBuildingType)tok.Termin.Tag2;
+                    typ = (AddressItemType)tok.Termin.Tag;
+                    if (typ == AddressItemType.CorpusOrFlat && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamNoFlats(tok)) 
+                        typ = AddressItemType.Corpus;
+                    if (typ == AddressItemType.Plot) 
+                    {
+                        if (t.Previous != null && ((t.Previous.IsValue("СУДЕБНЫЙ", "СУДОВИЙ") || t.Previous.IsValue("ИЗБИРАТЕЛЬНЫЙ", "ВИБОРЧИЙ")))) 
+                            return null;
+                    }
+                    if (typ == AddressItemType.Space && tok.BeginToken == tok.EndToken && t.GetMorphClassInDictionary().IsAdjective) 
+                    {
+                        if (StreetItemToken.CheckKeyword(t.Next)) 
+                            return null;
+                        if (prev == null) 
+                            return null;
+                        if ((prev.Typ != AddressItemType.House && prev.Typ != AddressItemType.Corpus && prev.Typ != AddressItemType.Building) && prev.Typ != AddressItemType.CorpusOrFlat) 
+                            return null;
+                    }
+                    if (t1 != null && t1.IsCharOf("\\/") && m_Ontology.TryParse(t1.Next, Pullenti.Ner.Core.TerminParseAttr.No) != null) 
+                    {
+                        List<AddressItemToken> resList = new List<AddressItemToken>();
+                        resList.Add(new AddressItemToken(typ, t, t1));
+                        Pullenti.Ner.Token tt;
+                        for (tt = t1.Next; tt != null; tt = tt.Next) 
+                        {
+                            Pullenti.Ner.Core.TerminToken tok1 = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
+                            if (tok1 == null) 
+                                break;
+                            if (!(tok1.Termin.Tag is AddressItemType)) 
+                                break;
+                            resList.Add(new AddressItemToken((AddressItemType)tok1.Termin.Tag, tt, tok1.EndToken));
+                            tt = tok1.EndToken;
+                            tt = tt.Next;
+                            if (tt == null || !tt.IsCharOf("\\/")) 
+                                break;
+                        }
+                        if (resList.Count > 1 && tt != null) 
+                        {
+                            for (int i = 0; i < resList.Count; i++) 
+                            {
+                                Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt, Pullenti.Ner.Geo.Internal.GeoTokenType.ToSlash);
+                                if (nn == null) 
+                                    break;
+                                resList[i].EndToken = nn.EndToken;
+                                resList[i].Value = nn.Value;
+                                if (i > 0) 
+                                    resList[i].BeginToken = tt;
+                                if (i == (resList.Count - 1)) 
+                                {
+                                    for (int j = resList.Count - 2; j >= 0; j--) 
+                                    {
+                                        resList[j].AltTyp = resList[j + 1];
+                                    }
+                                    return resList[0];
+                                }
+                                tt = nn.EndToken.Next;
+                                if (tt == null || !tt.IsCharOf("\\/")) 
+                                    break;
+                                tt = tt.Next;
+                            }
+                        }
+                    }
+                    if (typ == AddressItemType.Floor && (tok.Termin.Tag3 is string)) 
+                        return new AddressItemToken(typ, t, tok.EndToken) { Value = tok.Termin.Tag3 as string };
+                    if (typ == AddressItemType.Floor && (tok.EndToken.Next is Pullenti.Ner.TextToken)) 
+                    {
+                        if (tok.EndToken.Next.IsHiphen && !tok.EndToken.Next.IsWhitespaceAfter && (tok.EndToken.Next.Next is Pullenti.Ner.NumberToken)) 
+                            return new AddressItemToken(typ, t, tok.EndToken.Next.Next) { Value = "-" + (tok.EndToken.Next.Next as Pullenti.Ner.NumberToken).Value };
+                        if ((tok.EndToken.Next.LengthChar == 1 && tok.EndToken.Next.Chars.IsAllUpper && (tok.EndToken.Next.Next is Pullenti.Ner.NumberToken)) && !tok.EndToken.Next.IsWhitespaceAfter) 
+                            return new AddressItemToken(typ, t, tok.EndToken.Next.Next) { Value = (tok.EndToken.Next as Pullenti.Ner.TextToken).Term + (tok.EndToken.Next.Next as Pullenti.Ner.NumberToken).Value };
+                    }
+                    if (typ == AddressItemType.House && houseTyp == Pullenti.Ner.Address.AddressHouseType.Special) 
+                    {
+                        Pullenti.Ner.Token tt2 = tok.EndToken.Next;
+                        if (tt2 != null && tt2.IsHiphen) 
+                            tt2 = tt2.Next;
+                        AddressItemToken res = new AddressItemToken(typ, t, tok.EndToken) { HouseType = houseTyp, Value = tok.Termin.Acronym ?? tok.Termin.CanonicText };
+                        Pullenti.Ner.Geo.Internal.NumToken num2 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt2, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
+                        if (num2 != null && (tt2.WhitespacesBeforeCount < 2)) 
+                        {
+                            res.Value = string.Format("{0}-{1}", res.Value, num2.Value);
+                            res.EndToken = num2.EndToken;
+                        }
+                        return res;
+                    }
+                    if (typ == AddressItemType.Flat && t.IsValue("КВ", null)) 
+                    {
+                        StreetItemToken sit = StreetItemToken.TryParse(t, null, false, null);
+                        if (sit != null && sit.EndChar > tok.EndChar) 
+                            return null;
+                    }
+                    if (typ == AddressItemType.Prefix) 
+                    {
+                        for (; t1 != null; t1 = t1.Next) 
+                        {
+                            if (((t1.Morph.Class.IsPreposition || t1.Morph.Class.IsConjunction)) && t1.WhitespacesAfterCount == 1) 
+                                continue;
+                            if (t1.IsChar(':')) 
+                            {
+                                t1 = t1.Next;
+                                break;
+                            }
+                            if (t1.IsChar('(')) 
+                            {
+                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                                if (br != null && (br.LengthChar < 50)) 
+                                {
+                                    t1 = br.EndToken;
+                                    continue;
+                                }
+                            }
+                            if (t1 is Pullenti.Ner.TextToken) 
+                            {
+                                if (t1.Chars.IsAllLower || (t1.WhitespacesBeforeCount < 3)) 
+                                {
+                                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(t1);
+                                    if (npt != null && ((npt.Chars.IsAllLower || npt.Morph.Case.IsGenitive))) 
+                                    {
+                                        if (Pullenti.Ner.Geo.Internal.CityItemToken.CheckKeyword(npt.EndToken) == null && Pullenti.Ner.Geo.Internal.TerrItemToken.CheckKeyword(npt.EndToken) == null && !StreetItemToken.CheckKeyword(npt.EndToken)) 
+                                        {
+                                            t1 = npt.EndToken;
+                                            continue;
+                                        }
+                                    }
+                                }
+                            }
+                            if (t1.IsValue("УКАЗАННЫЙ", null) || t1.IsValue("ЕГРИП", null) || t1.IsValue("ФАКТИЧЕСКИЙ", null)) 
+                                continue;
+                            if (t1.IsComma) 
+                            {
+                                if (t1.Next != null && t1.Next.IsValue("УКАЗАННЫЙ", null)) 
+                                    continue;
+                            }
+                            break;
+                        }
+                        if (t1 != null) 
+                        {
+                            Pullenti.Ner.Token t0 = t;
+                            if (((t0.Previous != null && !t0.IsNewlineBefore && t0.Previous.IsChar(')')) && (t0.Previous.Previous is Pullenti.Ner.TextToken) && t0.Previous.Previous.Previous != null) && t0.Previous.Previous.Previous.IsChar('(')) 
+                            {
+                                t = t0.Previous.Previous.Previous.Previous;
+                                if (t != null && t.GetMorphClassInDictionary().IsAdjective && !t.IsNewlineAfter) 
+                                    t0 = t;
+                            }
+                            if (t0.BeginChar > t1.Previous.BeginChar) 
+                                return null;
+                            AddressItemToken res = new AddressItemToken(AddressItemType.Prefix, t0, t1.Previous);
+                            for (Pullenti.Ner.Token tt = t0.Previous; tt != null; tt = tt.Previous) 
+                            {
+                                if (tt.NewlinesAfterCount > 3) 
+                                    break;
+                                if (tt.IsCommaAnd || tt.IsCharOf("().")) 
+                                    continue;
+                                if (!(tt is Pullenti.Ner.TextToken)) 
+                                    break;
+                                if (((tt.IsValue("ПОЧТОВЫЙ", null) || tt.IsValue("ЮРИДИЧЕСКИЙ", null) || tt.IsValue("ЮР", null)) || tt.IsValue("ФАКТИЧЕСКИЙ", null) || tt.IsValue("ФАКТ", null)) || tt.IsValue("ПОЧТ", null) || tt.IsValue("АДРЕС", null)) 
+                                    res.BeginToken = tt;
+                                else 
+                                    break;
+                            }
+                            return res;
+                        }
+                        else 
+                            return null;
+                    }
+                    else if ((typ == AddressItemType.CorpusOrFlat && !tok.IsWhitespaceBefore && !tok.IsWhitespaceAfter) && tok.BeginToken == tok.EndToken && tok.BeginToken.IsValue("К", null)) 
+                    {
+                        if (prev != null && prev.Typ == AddressItemType.Flat) 
+                            typ = AddressItemType.Room;
+                        else 
+                            typ = AddressItemType.Corpus;
+                    }
+                    if (typ == AddressItemType.Detail && t.IsValue("У", null)) 
+                    {
+                        if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.CheckGeoObjectBefore(t, false)) 
+                            return null;
+                    }
+                    if (typ == AddressItemType.Flat && t.IsValue("КВ", null)) 
+                    {
+                        if (t.GetSourceText() == "кВ") 
+                            return null;
+                    }
+                    if (((typ == AddressItemType.Flat || typ == AddressItemType.Space || typ == AddressItemType.Office)) && !(tok.EndToken.Next is Pullenti.Ner.NumberToken)) 
+                    {
+                        Pullenti.Ner.Token tt2 = tok.EndToken.Next;
+                        if (tt2 != null && tt2.IsCharOf("\\/")) 
+                            tt2 = tt2.Next;
+                        AddressItemToken next = _tryParsePureItem(tt2, false, null);
+                        if ((next == null && typ == AddressItemType.Space && tt2 != null) && tt2.IsChar('(')) 
+                        {
+                            AddressItemToken next2 = _tryParsePureItem(tt2.Next, false, null);
+                            if (next2 != null && next2.EndToken.Next != null && next2.EndToken.Next.IsChar(')')) 
+                            {
+                                next2.BeginToken = t;
+                                next2.EndToken = next2.EndToken.Next;
+                                return next2;
+                            }
+                        }
+                        if (next != null && typ != AddressItemType.Office && next.Typ == AddressItemType.Flat) 
+                        {
+                            next.BeginToken = t;
+                            return next;
+                        }
+                        if (next != null && typ == AddressItemType.Flat && next.Typ == AddressItemType.Office) 
+                        {
+                            next.BeginToken = t;
+                            return next;
+                        }
+                        if (next != null && next.Typ == AddressItemType.Building && next.BuildingType == Pullenti.Ner.Address.AddressBuildingType.Liter) 
+                            return new AddressItemToken(typ, t, next.EndToken) { Value = next.Value };
+                        if (next != null && ((next.Typ == AddressItemType.Corpus || next.Typ == AddressItemType.House)) && next.BeginToken.LengthChar == 1) 
+                            return new AddressItemToken(typ, t, next.EndToken) { Value = string.Format("{0}{1}", (next.Typ == AddressItemType.Corpus ? "К" : "Д"), next.Value) };
+                        if (next != null && typ == AddressItemType.Office && ((next.Typ == AddressItemType.Space || next.Typ == AddressItemType.Flat))) 
+                        {
+                            next.Typ = AddressItemType.Office;
+                            next.BeginToken = t;
+                            return next;
+                        }
+                        if (tok.EndToken.Next != null && tok.EndToken.Next.IsChar('(')) 
+                        {
+                            Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(tok.EndToken.Next.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                            if (tok2 != null && tok2.EndToken.Next != null && tok2.EndToken.Next.IsChar(')')) 
+                                t1 = tok2.EndToken.Next.Next;
+                        }
+                    }
+                    if (typ == AddressItemType.Space && tok.Termin.Tag3 != null) 
+                    {
+                        if (prev != null && ((prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City))) 
+                            typ = AddressItemType.House;
+                        else if (prev != null && ((prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Building || prev.Typ == AddressItemType.Corpus))) 
+                        {
+                        }
+                        else 
+                        {
+                        }
+                        if (tok.Termin.Tag2 != null) 
+                        {
+                            spaceDetail = tok.Termin.CanonicText;
+                            if (spaceDetail.Length > 4 || spaceDetail == "КАФЕ") 
+                                spaceDetail = spaceDetail.ToLower();
+                            Pullenti.Ner.Geo.Internal.OrgItemToken org1 = Pullenti.Ner.Geo.Internal.OrgItemToken.TryParse(t, null);
+                            if (org1 != null && org1.IsBuilding) 
+                                return new AddressItemToken(typ, t, org1.EndToken) { DetailParam = spaceDetail, RefToken2 = org1 };
+                        }
+                    }
+                    if (typ == AddressItemType.Space) 
+                    {
+                        if (tok.Termin.Tag2 != null) 
+                        {
+                            spaceDetail = tok.Termin.CanonicText;
+                            if (spaceDetail.Length > 4 || spaceDetail == "КАФЕ") 
+                                spaceDetail = spaceDetail.ToLower();
+                            Pullenti.Ner.Geo.Internal.OrgItemToken org1 = Pullenti.Ner.Geo.Internal.OrgItemToken.TryParse(t, null);
+                            if (org1 != null && org1.IsBuilding) 
+                                return new AddressItemToken(typ, t, org1.EndToken) { DetailParam = spaceDetail, RefToken2 = org1 };
+                        }
+                        AddressItemToken next = _tryParsePureItem(tok.EndToken.Next, false, null);
+                        if (next == null && tok.EndToken.Next != null && tok.EndToken.Next.IsHiphen) 
+                            next = _tryParsePureItem(tok.EndToken.Next.Next, false, null);
+                        if (next != null && ((next.Typ == AddressItemType.Space || next.Typ == AddressItemType.Room || next.Typ == AddressItemType.Office))) 
+                        {
+                            next.BeginToken = t;
+                            if (next.DetailParam == null) 
+                                next.DetailParam = spaceDetail;
+                            return next;
+                        }
+                        Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(tok.EndToken.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                        if (tok2 == null && tok.EndToken.Next != null && tok.EndToken.Next.IsHiphen) 
+                            tok2 = m_Ontology.TryParse(tok.EndToken.Next.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                        if ((tok2 != null && tok2.Termin.Tag != null && ((AddressItemType)tok2.Termin.Tag) == AddressItemType.Space) && tok2.Termin.Tag2 != null) 
+                        {
+                            spaceDetail = tok2.Termin.CanonicText;
+                            if (spaceDetail.Length > 4) 
+                                spaceDetail = spaceDetail.ToLower();
+                            tok = tok2;
+                            tok.BeginToken = t;
+                        }
+                        if ((tok.EndToken.Next is Pullenti.Ner.TextToken) && (tok.EndToken.Next as Pullenti.Ner.TextToken).Term == "ЗОИ") 
+                            return new AddressItemToken(typ, t, tok.EndToken.Next) { Value = "3", DetailParam = "МОП" };
+                    }
+                    if (typ == AddressItemType.Floor && t1 != null) 
+                    {
+                        AddressItemToken next = _tryParsePureItem(t1, false, null);
+                        if (next != null && next.Typ == typ) 
+                        {
+                            next.BeginToken = t;
+                            return next;
+                        }
+                        Pullenti.Ner.Token tt2 = t1;
+                        if (tt2 != null && tt2.IsCharOf("\\/")) 
+                            tt2 = tt2.Next;
+                        next = _tryParsePureItem(tt2, prefixBefore, prev);
+                        if (next != null && next.Value == "подвал") 
+                        {
+                            tt2 = next.EndToken.Next;
+                            if (tt2 != null && tt2.IsCharOf("\\/")) 
+                                tt2 = tt2.Next;
+                            AddressItemToken num2 = _tryParsePureItem(tt2, prefixBefore, prev);
+                            if (num2 != null && num2.Typ == AddressItemType.Number && num2.Value != null) 
+                            {
+                                num2.Typ = typ;
+                                num2.BeginToken = t;
+                                num2.Value = "-" + num2.Value;
+                                return num2;
+                            }
+                        }
+                    }
+                    if (typ == AddressItemType.Kilometer || typ == AddressItemType.Floor || typ == AddressItemType.Potch) 
+                    {
+                        if ((tok.EndToken.Next is Pullenti.Ner.NumberToken) || Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tok.EndToken.Next) != null) 
+                        {
+                        }
+                        else 
+                            return new AddressItemToken(typ, t, tok.EndToken);
+                    }
+                    if ((typ == AddressItemType.House || typ == AddressItemType.Building || typ == AddressItemType.Corpus) || typ == AddressItemType.Plot || typ == AddressItemType.Box) 
+                    {
+                        for (Pullenti.Ner.Token tt2 = t1; tt2 != null; tt2 = tt2.Next) 
+                        {
+                            if (tt2.IsComma) 
+                                continue;
+                            if (tt2.IsValue("РАСПОЛОЖЕННЫЙ", null) || tt2.IsValue("НАХОДЯЩИЙСЯ", null) || tt2.IsValue("ПРИЛЕГАЮЩИЙ", null)) 
+                                continue;
+                            if (tt2.IsValue("ПОДВАЛ", null)) 
+                            {
+                                t1 = tt2.Next;
+                                continue;
+                            }
+                            if (tt2.Morph.Class.IsPreposition) 
+                                continue;
+                            Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(tt2, Pullenti.Ner.Core.TerminParseAttr.No);
+                            if (tok2 != null && (tok2.Termin.Tag is AddressItemType)) 
+                            {
+                                AddressItemType typ2 = (AddressItemType)tok2.Termin.Tag;
+                                if (typ2 != typ && ((typ2 == AddressItemType.Plot || ((typ2 == AddressItemType.House && typ == AddressItemType.Plot))))) 
+                                {
+                                    if (t.BeginChar > tt2.Previous.BeginChar) 
+                                        return null;
+                                    return new AddressItemToken(typ, t, tt2.Previous) { Value = "0", HouseType = houseTyp };
+                                }
+                                if (typ == AddressItemType.Box && typ2 == AddressItemType.Space && tok2.Termin.CanonicText == "ПОДВАЛ") 
+                                {
+                                    tt2 = tok2.EndToken;
+                                    t1 = tt2.Next;
+                                    continue;
+                                }
+                                if (typ == AddressItemType.Corpus && typ2 == AddressItemType.House && (tok2.Termin.Tag2 is Pullenti.Ner.Address.AddressHouseType)) 
+                                {
+                                    Pullenti.Ner.Address.AddressHouseType ht = (Pullenti.Ner.Address.AddressHouseType)tok2.Termin.Tag2;
+                                    if (ht == Pullenti.Ner.Address.AddressHouseType.Estate || ht == Pullenti.Ner.Address.AddressHouseType.HouseEstate) 
+                                    {
+                                        tt2 = tok2.EndToken;
+                                        t1 = tt2.Next;
+                                        continue;
+                                    }
+                                }
+                            }
+                            if (tt2 is Pullenti.Ner.TextToken) 
+                            {
+                                if ((tt2 as Pullenti.Ner.TextToken).Term.StartsWith("ДОП")) 
+                                {
+                                    t1 = tt2.Next;
+                                    if (t1 != null && t1.IsChar('.')) 
+                                    {
+                                        tt2 = tt2.Next;
+                                        t1 = t1.Next;
+                                    }
+                                    continue;
+                                }
+                            }
+                            break;
+                        }
+                        if (typ == AddressItemType.Corpus) 
+                        {
+                            if (t1 != null) 
+                            {
+                                if (t1.IsValue("СЕКТОР", null) || t1.IsValue("МАССИВ", null)) 
+                                    t1 = t1.Next;
+                                else if (t1.IsValue("СЕКТ", null) || t1.IsValue("МАС", null)) 
+                                {
+                                    t1 = t1.Next;
+                                    if (t1 != null && t1.IsChar('.')) 
+                                        t1 = t1.Next;
+                                }
+                                else 
+                                {
+                                    AddressItemToken next = TryParsePureItem(t1, null, null);
+                                    if (next != null && ((next.Typ == AddressItemType.Corpus || next.Typ == AddressItemType.Flat || next.Typ == AddressItemType.CorpusOrFlat))) 
+                                    {
+                                        next.Typ = AddressItemType.Corpus;
+                                        next.BeginToken = t;
+                                        return next;
+                                    }
+                                    if (next != null && next.BuildingType == Pullenti.Ner.Address.AddressBuildingType.Liter) 
+                                    {
+                                        next.BeginToken = t;
+                                        return next;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (typ == AddressItemType.House && t1 != null && t1.Chars.IsLetter) 
+                    {
+                        AddressItemToken next = TryParsePureItem(t1, prev, null);
+                        if (next != null && ((next.Typ == typ || next.Typ == AddressItemType.Plot))) 
+                        {
+                            next.BeginToken = t;
+                            return next;
+                        }
+                    }
+                    if (typ == AddressItemType.Flat && (t1 is Pullenti.Ner.TextToken) && ((t1.IsValue("М", null) || t1.IsValue("M", null)))) 
+                    {
+                        if (t1.Next is Pullenti.Ner.NumberToken) 
+                            t1 = t1.Next;
+                        else if (t1.Next != null && t1.Next.IsChar('.') && (t1.Next.Next is Pullenti.Ner.NumberToken)) 
+                            t1 = t1.Next.Next;
+                    }
+                    if (typ == AddressItemType.Room && t1 != null) 
+                    {
+                        if (t1.IsCharOf("\\/")) 
+                        {
+                            AddressItemToken next = _tryParsePureItem(t1.Next, prefixBefore, prev);
+                            if (next != null && ((next.Typ == AddressItemType.Room || next.Typ == AddressItemType.Office))) 
+                            {
+                                next.BeginToken = t;
+                                return next;
+                            }
+                        }
+                        else if (t1.IsValue("К", null) && !t1.IsWhitespaceAfter && (t1.Next is Pullenti.Ner.NumberToken)) 
+                            t1 = t1.Next;
+                    }
+                    if (typ == AddressItemType.Field) 
+                    {
+                        Pullenti.Ner.Core.NumberExToken nt2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t1);
+                        if (nt2 != null && ((nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2 || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Gektar || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Ar))) 
+                            return new AddressItemToken(typ, t, nt2.EndToken) { Value = nt2.ToString() };
+                        AddressItemToken re = new AddressItemToken(typ, t, tok.EndToken);
+                        StringBuilder nnn = new StringBuilder();
+                        for (Pullenti.Ner.Token tt = tok.EndToken.Next; tt != null; tt = tt.Next) 
+                        {
+                            Pullenti.Ner.NumberToken ll = Pullenti.Ner.Core.NumberHelper.TryParseRoman(tt);
+                            if (ll != null && ll.IntValue != null) 
+                            {
+                                if (nnn.Length > 0) 
+                                    nnn.Append("-");
+                                nnn.Append(ll.Value);
+                                re.EndToken = (tt = ll.EndToken);
+                                continue;
+                            }
+                            if (tt.IsHiphen) 
+                                continue;
+                            if (tt.IsWhitespaceBefore) 
+                                break;
+                            if (tt is Pullenti.Ner.NumberToken) 
+                            {
+                                if (nnn.Length > 0) 
+                                    nnn.Append("-");
+                                nnn.Append((tt as Pullenti.Ner.NumberToken).Value);
+                                re.EndToken = tt;
+                                continue;
+                            }
+                            if ((tt is Pullenti.Ner.TextToken) && tt.Chars.IsAllUpper) 
+                            {
+                                if (nnn.Length > 0) 
+                                    nnn.Append("-");
+                                nnn.Append((tt as Pullenti.Ner.TextToken).Term);
+                                re.EndToken = tt;
+                                continue;
+                            }
+                            break;
+                        }
+                        if (nnn.Length > 0) 
+                        {
+                            re.Value = nnn.ToString();
+                            return re;
+                        }
+                    }
+                    if (typ == AddressItemType.NoNumber) 
+                        return new AddressItemToken(AddressItemType.NoNumber, t, tok.EndToken) { Value = "0", IsDoubt = false };
+                    if (typ == AddressItemType.House || typ == AddressItemType.Plot) 
+                    {
+                        if (t1 != null && t1.IsValue("ЛПХ", null)) 
+                            t1 = t1.Next;
+                    }
+                    if ((typ != AddressItemType.Number && (t1 is Pullenti.Ner.TextToken) && t1.Chars.IsLetter) && !t1.Chars.IsAllUpper) 
+                    {
+                        AddressItemToken next = TryParsePureItem(t1, null, null);
+                        if ((next != null && next.Typ != AddressItemType.Number && next.Typ != AddressItemType.NoNumber) && next.Value != null) 
+                        {
+                            next.BeginToken = t;
+                            return next;
+                        }
+                    }
+                    if (typ != AddressItemType.Number) 
+                    {
+                        if (t1 == null || ((t1.IsComma && !(t1.Next is Pullenti.Ner.NumberToken))) || ((tok.IsNewlineAfter && !(t1 is Pullenti.Ner.NumberToken)))) 
+                        {
+                            if (((prev != null || Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t))) && !tok.IsNewlineBefore) 
+                                return new AddressItemToken(typ, t, tok.EndToken) { HouseType = houseTyp, BuildingType = buildTyp, Value = (spaceDetail != null || typ == AddressItemType.Plot ? "0" : null), DetailParam = spaceDetail };
+                        }
+                    }
+                    if (typ == AddressItemType.Plot || typ == AddressItemType.Well) 
+                    {
+                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
+                        if (num1 != null) 
+                            return new AddressItemToken(typ, t, num1.EndToken) { Value = num1.Value };
+                        if (t.IsNewlineBefore) 
+                            return null;
+                    }
+                    if (typ == AddressItemType.Plot) 
+                    {
+                        Pullenti.Ner.Token tt = t1;
+                        if (tt != null) 
+                        {
+                            if (tt.IsValue("У", null) || tt.IsValue("ОКОЛО", null) || tt.IsValue("ПРИ", null)) 
+                                tt = tt.Next;
+                        }
+                        Pullenti.Ner.Core.TerminToken tok1 = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
+                        if (tok1 != null) 
+                        {
+                            if (tok1.Termin.Tag is AddressItemType) 
+                            {
+                                AddressItemType ty1 = (AddressItemType)tok1.Termin.Tag;
+                                if (ty1 == AddressItemType.House || ty1 == AddressItemType.Building || ty1 == AddressItemType.Corpus) 
+                                {
+                                    if (tt.Previous.BeginChar < t.BeginChar) 
+                                        return null;
+                                    return new AddressItemToken(typ, t, tt.Previous) { Value = "0" };
+                                }
+                            }
+                        }
+                    }
+                    if (typ == AddressItemType.Number) 
+                    {
+                        Pullenti.Ner.Core.TerminToken tok1 = m_Ontology.TryParse(tok.EndToken.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                        if (tok1 != null) 
+                        {
+                            if (tok1.Termin.Tag is AddressItemType) 
+                            {
+                                AddressItemType ty1 = (AddressItemType)tok1.Termin.Tag;
+                                if (ty1 != AddressItemType.Number) 
+                                {
+                                    typ = ty1;
+                                    t1 = tok1.EndToken.Next;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (t1 != null && t1.IsComma) 
+            {
+                if (typ == AddressItemType.Flat && (t1.Next is Pullenti.Ner.NumberToken)) 
+                    t1 = t1.Next;
+                else if ((typ == AddressItemType.House && (t1.Next is Pullenti.Ner.NumberToken) && prev != null) && prev.Typ == AddressItemType.Street) 
+                    t1 = t1.Next;
+            }
+            if (t1 != null && t1.IsChar('.') && t1.Next != null) 
+            {
+                t1 = t1.Next;
+                if (t1.IsNewlineBefore && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
+                    return null;
+            }
+            if (t1 != null && t1.IsValue("ЛПХ", null)) 
+            {
+                t1 = t1.Next;
+                if (t1 != null && t1.IsHiphen) 
+                    t1 = t1.Next;
+            }
+            if ((t1 != null && t1 != t && ((t1.IsHiphen || t1.IsCharOf("_:")))) && (t1.Next is Pullenti.Ner.NumberToken)) 
+                t1 = t1.Next;
+            if (t1 != null && t1.IsValue("МОП", null) && (t1.Next is Pullenti.Ner.NumberToken)) 
+                t1 = t1.Next;
+            if (t1 != null && t1.IsValue("НА", null)) 
+            {
+                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t1, Pullenti.Ner.Core.NounPhraseParseAttr.ParsePreposition, 0, null);
+                if (npt != null && npt.EndToken.IsValue("ПЛАН", null)) 
+                    t1 = npt.EndToken.Next;
+            }
+            if (t1 != null && t1.IsChar(':')) 
+            {
+                if (t1.IsNewlineAfter && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
+                {
+                }
+                else 
+                    t1 = t1.Next;
+            }
+            tok = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
+            if (tok != null && (tok.Termin.Tag is AddressItemType) && ((AddressItemType)tok.Termin.Tag) == AddressItemType.Number) 
+                t1 = tok.EndToken.Next;
+            else if (tok != null && (tok.Termin.Tag is AddressItemType) && ((AddressItemType)tok.Termin.Tag) == AddressItemType.NoNumber) 
+            {
+                AddressItemToken re0 = new AddressItemToken(typ, t, tok.EndToken) { Value = "0", HouseType = houseTyp, BuildingType = buildTyp };
+                if (!re0.IsWhitespaceAfter && (re0.EndToken.Next is Pullenti.Ner.NumberToken)) 
+                {
+                    re0.EndToken = re0.EndToken.Next;
+                    re0.Value = (re0.EndToken as Pullenti.Ner.NumberToken).Value.ToString();
+                }
+                return re0;
+            }
+            else if (t1 is Pullenti.Ner.TextToken) 
+            {
+                string term = (t1 as Pullenti.Ner.TextToken).Term;
+                if (((term.Length == 7 && term.StartsWith("ЛИТЕРА"))) || ((term.Length == 6 && term.StartsWith("ЛИТЕР"))) || ((term.Length == 4 && term.StartsWith("ЛИТ")))) 
+                {
+                    string txt = t1.GetSourceText();
+                    if (((char.IsLower(txt[0]) && char.IsUpper(txt[txt.Length - 1]))) || term.Length == 7) 
+                    {
+                        AddressItemToken res1 = new AddressItemToken(AddressItemType.Building, t, t1);
+                        res1.BuildingType = Pullenti.Ner.Address.AddressBuildingType.Liter;
+                        res1.Value = term.Substring(term.Length - 1);
+                        return res1;
+                    }
+                }
+                if (term.StartsWith("БЛОК") && term.Length > 4) 
+                {
+                    string txt = t1.GetSourceText();
+                    if (char.IsLower(txt[0]) && char.IsUpper(txt[4])) 
+                    {
+                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Org);
+                        if (num1 != null) 
+                        {
+                            AddressItemToken res1 = new AddressItemToken(AddressItemType.Block, t, num1.EndToken);
+                            res1.Value = term.Substring(4) + num1.Value;
+                            return res1;
+                        }
+                    }
+                }
+                if (typ == AddressItemType.Flat && t1 != null) 
+                {
+                    Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
+                    if (tok2 == null && t1.IsComma) 
+                        tok2 = m_Ontology.TryParse(t1.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                    if (tok2 != null && ((AddressItemType)tok2.Termin.Tag) == AddressItemType.Flat) 
+                        t1 = tok2.EndToken.Next;
+                }
+                if (t1 != null && t1.IsValue2("СТРОИТЕЛЬНЫЙ", "НОМЕР")) 
+                    t1 = t1.Next;
+                Pullenti.Ner.Token ttt = Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(t1);
+                if (ttt != null) 
+                {
+                    t1 = ttt;
+                    hasNumPrefix = true;
+                    if (t1.IsHiphen || t1.IsChar('_')) 
+                        t1 = t1.Next;
+                }
+            }
+            if (typ != AddressItemType.Number && t1 != null) 
+            {
+                if (t1.IsChar('.') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
+                    t1 = t1.Next;
+                if (t1 != null && t1.IsCharOf("\\/") && (t1.Next is Pullenti.Ner.NumberToken)) 
+                    t1 = t1.Next;
+            }
+            if (t != t1 && (t1 is Pullenti.Ner.TextToken)) 
+            {
+                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t1, Pullenti.Ner.Core.NounPhraseParseAttr.ParsePreposition, 0, null);
+                if (npt != null && npt.EndToken.IsValue("ПЛАН", null)) 
+                    t1 = npt.EndToken.Next;
+            }
+            if (t1 == null) 
+            {
+                if (typ == AddressItemType.Genplan) 
+                    return new AddressItemToken(typ, t, tok00.EndToken) { Value = "0" };
+                return null;
+            }
+            if ((t1 == t && t.IsValue("С", null) && (t.Next is Pullenti.Ner.NumberToken)) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+            {
+                typ = AddressItemType.Building;
+                buildTyp = Pullenti.Ner.Address.AddressBuildingType.Building;
+                t1 = t.Next;
+            }
+            StringBuilder num = new StringBuilder();
+            Pullenti.Ner.NumberToken nt = t1 as Pullenti.Ner.NumberToken;
+            AddressItemToken re11;
+            if (nt != null) 
+            {
+                if (typ == AddressItemType.Room || typ == AddressItemType.CorpusOrFlat) 
+                {
+                    Pullenti.Ner.Core.NumberExToken nt2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t1);
+                    if (nt2 != null && nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2) 
+                        return new AddressItemToken(AddressItemType.Room, t, nt2.EndToken) { Value = nt2.ToString() };
+                }
+                if (typ == AddressItemType.Field || typ == AddressItemType.Plot) 
+                {
+                    Pullenti.Ner.Core.NumberExToken nt2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t1);
+                    if (nt2 != null && ((nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2 || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Gektar || nt2.ExTyp == Pullenti.Ner.Core.NumberExType.Ar))) 
+                        return new AddressItemToken(typ, t, nt2.EndToken) { Value = nt2.ToString() };
+                }
+                num.Append(nt.Value);
+                if (nt.Typ == Pullenti.Ner.NumberSpellingType.Digit || nt.Typ == Pullenti.Ner.NumberSpellingType.Words) 
+                {
+                    if (((nt.EndToken is Pullenti.Ner.TextToken) && (((nt.EndToken as Pullenti.Ner.TextToken).Term == "Е" || (nt.EndToken as Pullenti.Ner.TextToken).Term == "И")) && nt.EndToken.Previous == nt.BeginToken) && !nt.EndToken.IsWhitespaceBefore) 
+                        num.Append((nt.EndToken as Pullenti.Ner.TextToken).Term);
+                    bool drob = false;
+                    bool hiph = false;
+                    bool lit = false;
+                    Pullenti.Ner.Token et = nt.Next;
+                    if (et != null && (((et.IsCharOf("\\/") || et.IsValue("ДРОБЬ", null) || et.IsValue("КЛ", null)) || ((et.IsChar('.') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(et) && (et.Next is Pullenti.Ner.NumberToken)))))) 
+                    {
+                        AddressItemToken next = TryParsePureItem(et.Next, null, null);
+                        if (next != null && next.Typ != AddressItemType.Number && typ != AddressItemType.Flat) 
+                        {
+                            if (next.Typ == typ && next.Value != null) 
+                            {
+                                next.Value = string.Format("{0}/{1}", num.ToString(), next.Value);
+                                next.BeginToken = t;
+                                return next;
+                            }
+                            if ((et.Next is Pullenti.Ner.NumberToken) && et.Next.IsWhitespaceAfter) 
+                            {
+                                AddressItemToken next2 = TryParsePureItem(et.Next.Next, null, null);
+                                if (next2 != null && next2.Typ != AddressItemType.Number) 
+                                {
+                                    drob = true;
+                                    et = et.Next;
+                                }
+                                else 
+                                    t1 = et;
+                            }
+                            else 
+                                t1 = et;
+                        }
+                        else 
+                        {
+                            drob = true;
+                            et = et.Next;
+                        }
+                        if (drob && et != null && et.IsCharOf("\\/")) 
+                            et = et.Next;
+                    }
+                    else if (et != null && ((et.IsHiphen || et.IsChar('_')))) 
+                    {
+                        hiph = true;
+                        et = et.Next;
+                    }
+                    else if ((et != null && et.IsChar('.') && (et.Next is Pullenti.Ner.NumberToken)) && !et.IsWhitespaceAfter) 
+                    {
+                        hiph = true;
+                        et = et.Next;
+                    }
+                    if (et is Pullenti.Ner.NumberToken) 
+                    {
+                        if (drob) 
+                        {
+                            AddressItemToken next = TryParsePureItem(et, null, null);
+                            if (next != null && next.Typ == AddressItemType.Number) 
+                            {
+                                num.AppendFormat("/{0}", next.Value);
+                                t1 = next.EndToken;
+                                et = t1.Next;
+                                drob = false;
+                            }
+                            else 
+                            {
+                                num.AppendFormat("/{0}", (et as Pullenti.Ner.NumberToken).Value);
+                                drob = false;
+                                t1 = et;
+                                et = et.Next;
+                                if (et != null && et.IsCharOf("\\/") && (et.Next is Pullenti.Ner.NumberToken)) 
+                                {
+                                    t1 = et.Next;
+                                    num.AppendFormat("/{0}", (t1 as Pullenti.Ner.NumberToken).Value);
+                                    et = t1.Next;
+                                }
+                            }
+                        }
+                        else if ((hiph && !t1.IsWhitespaceAfter && (et is Pullenti.Ner.NumberToken)) && !et.IsWhitespaceBefore) 
+                        {
+                            AddressItemToken numm = TryParsePureItem(et, null, null);
+                            if (numm != null && numm.Typ == AddressItemType.Number) 
+                            {
+                                bool merge = false;
+                                if ((typ == AddressItemType.Flat || typ == AddressItemType.Plot || typ == AddressItemType.Space) || typ == AddressItemType.Office) 
+                                {
+                                    if (!hasNumPrefix) 
+                                        merge = true;
+                                }
+                                else if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamNoFlats(et)) 
+                                    merge = true;
+                                else if (typ == AddressItemType.House || typ == AddressItemType.Building || typ == AddressItemType.Corpus) 
+                                {
+                                    Pullenti.Ner.Token ttt = numm.EndToken.Next;
+                                    if (ttt != null && ttt.IsComma) 
+                                        ttt = ttt.Next;
+                                    AddressItemToken numm2 = TryParsePureItem(ttt, null, null);
+                                    if (numm2 != null) 
+                                    {
+                                        if ((numm2.Typ == AddressItemType.Flat || numm2.Typ == AddressItemType.Building || ((numm2.Typ == AddressItemType.CorpusOrFlat && numm2.Value != null))) || numm2.Typ == AddressItemType.Corpus) 
+                                            merge = true;
+                                    }
+                                }
+                                if (merge) 
+                                {
+                                    num.AppendFormat("/{0}", numm.Value);
+                                    t1 = numm.EndToken;
+                                    et = t1.Next;
+                                    hiph = false;
+                                }
+                            }
+                        }
+                    }
+                    else if (et != null && ((et.IsHiphen || et.IsChar('_') || et.IsValue("НЕТ", null))) && drob) 
+                        t1 = et;
+                    Pullenti.Ner.Token ett = et;
+                    if ((ett != null && ett.IsCharOf(",.") && (ett.WhitespacesAfterCount < 2)) && (ett.Next is Pullenti.Ner.TextToken)) 
+                    {
+                        if (Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next, false)) 
+                            ett = ett.Next;
+                        else if (ett.Next.LengthChar == 1 && ett.Next.Chars.IsLetter && ((ett.Next.Next == null || ett.Next.Next.IsComma))) 
+                        {
+                            string ch = CorrectCharToken(ett.Next);
+                            if (ch != null) 
+                            {
+                                num.Append(ch);
+                                ett = ett.Next;
+                                t1 = ett;
+                            }
+                        }
+                    }
+                    if ((Pullenti.Ner.Core.BracketHelper.IsBracket(ett, false) && (ett.Next is Pullenti.Ner.TextToken) && ett.Next.LengthChar == 1) && ett.Next.IsLetters && Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next.Next, false)) 
+                    {
+                        string ch = CorrectCharToken(ett.Next);
+                        if (ch != null) 
+                        {
+                            num.Append(ch);
+                            t1 = ett.Next.Next;
+                        }
+                        else 
+                        {
+                            Pullenti.Ner.NumberToken ntt = Pullenti.Ner.Core.NumberHelper.TryParseRoman(ett.Next);
+                            if (ntt != null) 
+                            {
+                                num.AppendFormat("/{0}", ntt.Value);
+                                t1 = ett.Next.Next;
+                            }
+                        }
+                    }
+                    else if (((Pullenti.Ner.Core.BracketHelper.IsBracket(ett, false) && Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next, false) && (ett.Next.Next is Pullenti.Ner.TextToken)) && ett.Next.Next.LengthChar == 1 && ett.Next.Next.IsLetters) && Pullenti.Ner.Core.BracketHelper.IsBracket(ett.Next.Next.Next, false)) 
+                    {
+                        string ch = CorrectCharToken(ett.Next.Next);
+                        if (ch != null) 
+                        {
+                            num.Append(ch);
+                            t1 = ett.Next.Next.Next;
+                            while (t1.Next != null && Pullenti.Ner.Core.BracketHelper.IsBracket(t1.Next, false)) 
+                            {
+                                t1 = t1.Next;
+                            }
+                        }
+                    }
+                    else if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(ett, true, false) && (ett.WhitespacesBeforeCount < 2)) 
+                    {
+                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(ett, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br != null && (br.BeginToken.Next is Pullenti.Ner.TextToken) && br.BeginToken.Next.Next == br.EndToken) 
+                        {
+                            string s = CorrectCharToken(br.BeginToken.Next);
+                            if (s != null) 
+                            {
+                                num.Append(s);
+                                t1 = br.EndToken;
+                            }
+                        }
+                    }
+                    else if ((et is Pullenti.Ner.TextToken) && (((et as Pullenti.Ner.TextToken).LengthChar == 1 || ((et.LengthChar == 2 && et.Chars.IsAllUpper && !et.IsWhitespaceBefore)))) && et.Chars.IsLetter) 
+                    {
+                        StreetItemToken ttt = StreetItemToken.TryParse(et, null, false, null);
+                        string s = CorrectCharToken(et);
+                        if (ttt != null && ((ttt.Typ == StreetItemType.StdName || ttt.Typ == StreetItemType.Noun || ttt.Typ == StreetItemType.Fix))) 
+                        {
+                            if (!et.IsWhitespaceBefore && et.Next != null && et.Next.IsCharOf("\\/")) 
+                            {
+                            }
+                            else 
+                                s = null;
+                        }
+                        else if (Pullenti.Ner.Geo.Internal.TerrItemToken.CheckKeyword(et) != null) 
+                            s = null;
+                        if (et.IsWhitespaceBefore) 
+                        {
+                            AddressItemToken next = TryParsePureItem(et, null, null);
+                            if (next != null && next.Value != null) 
+                                s = null;
+                            else if (et.Previous != null && et.Previous.IsHiphen && et.Previous.IsWhitespaceBefore) 
+                                s = null;
+                        }
+                        if (s != null) 
+                        {
+                            if (((s == "К" || s == "С")) && (et.Next is Pullenti.Ner.NumberToken) && !et.IsWhitespaceAfter) 
+                            {
+                            }
+                            else if ((s == "Б" && et.Next != null && et.Next.IsCharOf("/\\")) && (et.Next.Next is Pullenti.Ner.TextToken) && et.Next.Next.IsValue("Н", null)) 
+                                t1 = (et = et.Next.Next);
+                            else 
+                            {
+                                bool ok = false;
+                                if (drob || hiph || lit) 
+                                    ok = true;
+                                else if (!et.IsWhitespaceBefore || ((et.WhitespacesBeforeCount == 1 && ((Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(et) || et.Chars.IsAllUpper || ((et.IsNewlineAfter || ((et.Next != null && et.Next.IsComma))))))))) 
+                                {
+                                    ok = true;
+                                    if (et.Next is Pullenti.Ner.NumberToken) 
+                                    {
+                                        if (!et.IsWhitespaceBefore && ((et.IsWhitespaceAfter || (et.Next is Pullenti.Ner.NumberToken)))) 
+                                        {
+                                        }
+                                        else 
+                                            ok = false;
+                                    }
+                                    if (s == "К") 
+                                    {
+                                        if (t.BeginChar <= et.Previous.BeginChar) 
+                                        {
+                                            AddressItemToken tmp = new AddressItemToken(typ, t, et.Previous);
+                                            AddressItemToken next = TryParsePureItem(et, tmp, null);
+                                            if (next != null && next.Value != null) 
+                                                ok = false;
+                                        }
+                                    }
+                                    if (s == "И") 
+                                    {
+                                        AddressItemToken next = TryParsePureItem(et.Next, prev, null);
+                                        if (next != null && next.Typ == typ) 
+                                            ok = false;
+                                    }
+                                }
+                                else if (((et.Next == null || et.Next.IsComma)) && (((et.WhitespacesBeforeCount < 2) || Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(et)))) 
+                                    ok = true;
+                                else if (et.IsWhitespaceBefore && et.Chars.IsAllLower && et.IsValue("В", "У")) 
+                                {
+                                }
+                                else 
+                                {
+                                    AddressItemToken aitNext = TryParsePureItem(et.Next, null, null);
+                                    if (aitNext != null) 
+                                    {
+                                        if ((aitNext.Typ == AddressItemType.Corpus || aitNext.Typ == AddressItemType.Flat || aitNext.Typ == AddressItemType.Building) || aitNext.Typ == AddressItemType.Office || aitNext.Typ == AddressItemType.Room) 
+                                            ok = true;
+                                    }
+                                }
+                                if (ok) 
+                                {
+                                    num.Append(s);
+                                    t1 = et;
+                                    if (et.Next != null && et.Next.IsCharOf("\\/") && et.Next.Next != null) 
+                                    {
+                                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(et.Next.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Strong);
+                                        if (nn != null) 
+                                        {
+                                            num.AppendFormat("/{0}", nn.Value);
+                                            t1 = (et = nn.EndToken);
+                                        }
+                                        else if (et.Next.Next is Pullenti.Ner.NumberToken) 
+                                        {
+                                            num.AppendFormat("/{0}", (et.Next.Next as Pullenti.Ner.NumberToken).Value);
+                                            t1 = (et = et.Next.Next);
+                                        }
+                                        else if (et.Next.Next.IsHiphen || et.Next.Next.IsChar('_') || et.Next.Next.IsValue("НЕТ", null)) 
+                                            t1 = (et = et.Next.Next);
+                                    }
+                                    if ((et.Next is Pullenti.Ner.NumberToken) && !et.IsWhitespaceAfter) 
+                                    {
+                                        t1 = (et = et.Next);
+                                        num.Append((t1 as Pullenti.Ner.NumberToken).Value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if ((et is Pullenti.Ner.TextToken) && !et.IsWhitespaceBefore) 
+                    {
+                        string val = (et as Pullenti.Ner.TextToken).Term;
+                        if (val == "КМ" && typ == AddressItemType.House) 
+                        {
+                            t1 = et;
+                            num.Append("КМ");
+                        }
+                        else if (val == "БН") 
+                            t1 = et;
+                        else if (((val.Length == 2 && val[1] == 'Б' && et.Next != null) && et.Next.IsCharOf("\\/") && et.Next.Next != null) && et.Next.Next.IsValue("Н", null)) 
+                        {
+                            num.Append(val[0]);
+                            t1 = (et = et.Next.Next);
+                        }
+                    }
+                    if (!drob && t1.Next != null && t1.Next.IsCharOf("\\/")) 
+                    {
+                        AddressItemToken next = _tryParsePureItem(t1.Next.Next, false, null);
+                        if (next != null && next.Typ == AddressItemType.Number) 
+                        {
+                            num.AppendFormat("/{0}", next.Value);
+                            t1 = next.EndToken;
+                        }
+                    }
+                }
+            }
+            else if ((((re11 = _tryAttachVCH(t1, typ)))) != null) 
+            {
+                re11.BeginToken = t;
+                re11.HouseType = houseTyp;
+                re11.BuildingType = buildTyp;
+                return re11;
+            }
+            else if (((t1 is Pullenti.Ner.TextToken) && t1.LengthChar == 2 && t1.IsLetters) && !t1.IsWhitespaceBefore && (t1.Previous is Pullenti.Ner.NumberToken)) 
+            {
+                string src = t1.GetSourceText();
+                if ((src != null && src.Length == 2 && ((src[0] == 'к' || src[0] == 'k'))) && char.IsUpper(src[1])) 
+                {
+                    char ch = CorrectChar(src[1]);
+                    if (ch != ((char)0)) 
+                        return new AddressItemToken(AddressItemType.Corpus, t1, t1) { Value = string.Format("{0}", ch) };
+                }
+            }
+            else if ((t1 is Pullenti.Ner.TextToken) && t1.LengthChar == 1 && t1.IsLetters) 
+            {
+                if (t.IsValue("САРАЙ", null)) 
+                    return null;
+                string ch = CorrectCharToken(t1);
+                if (ch == "З" && buildTyp != Pullenti.Ner.Address.AddressBuildingType.Liter) 
+                    ch = "3";
+                if (ch != null) 
+                {
+                    if (typ == AddressItemType.Number) 
+                        return null;
+                    if (ch == "К" || ch == "С") 
+                    {
+                        if (!t1.IsWhitespaceAfter && (t1.Next is Pullenti.Ner.NumberToken)) 
+                        {
+                            if ((buildTyp != Pullenti.Ner.Address.AddressBuildingType.Liter && typ != AddressItemType.House && typ != AddressItemType.Space) && typ != AddressItemType.Carplace && typ != AddressItemType.Box) 
+                                return null;
+                        }
+                    }
+                    if (ch == "С") 
+                    {
+                        Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
+                        if (num1 != null && ((num1.HasPrefix || num1.IsCadasterNumber))) 
+                            return new AddressItemToken(typ, t, num1.EndToken) { Value = num1.Value };
+                    }
+                    if (ch == "Д" && typ == AddressItemType.Plot) 
+                    {
+                        AddressItemToken rrr = TryParsePureItem(t1, null, null);
+                        if (rrr != null) 
+                        {
+                            rrr.Typ = AddressItemType.Plot;
+                            rrr.BeginToken = t;
+                            return rrr;
+                        }
+                    }
+                    if (ch == "С" && t1.IsWhitespaceAfter) 
+                    {
+                        AddressItemToken next = TryParsePureItem(t1.Next, null, null);
+                        if (next != null && next.Typ == AddressItemType.Number) 
+                        {
+                            AddressItemToken res1 = new AddressItemToken(typ, t, next.EndToken) { Value = next.Value, Morph = t.Morph, HouseType = houseTyp, BuildingType = buildTyp };
+                            return res1;
+                        }
+                    }
+                    if (prev != null && ((prev.Typ == AddressItemType.House || prev.Typ == AddressItemType.Number || prev.Typ == AddressItemType.Flat)) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1)) 
+                    {
+                        if (typ == AddressItemType.CorpusOrFlat && prev.Typ == AddressItemType.House) 
+                            typ = AddressItemType.Corpus;
+                    }
+                    else 
+                    {
+                        if (t1.Chars.IsAllLower && ((t1.Morph.Class.IsPreposition || t1.Morph.Class.IsConjunction))) 
+                        {
+                            if ((t1.WhitespacesAfterCount < 2) && t1.Next.Chars.IsLetter) 
+                            {
+                                if (typ == AddressItemType.House || typ == AddressItemType.Plot || typ == AddressItemType.Box) 
+                                {
+                                    if (t.BeginChar <= t1.Previous.BeginChar) 
+                                        return new AddressItemToken(typ, t, t1.Previous) { Value = "0" };
+                                }
+                                return null;
+                            }
+                        }
+                        if ((t.Chars.IsAllUpper && t.LengthChar == 1 && t.Next.IsChar('.')) && ch != "3") 
+                            return null;
+                    }
+                    num.Append(ch);
+                    if ((t1.Next != null && ((t1.Next.IsHiphen || t1.Next.IsChar('_'))) && !t1.IsWhitespaceAfter) && (t1.Next.Next is Pullenti.Ner.NumberToken) && !t1.Next.IsWhitespaceAfter) 
+                    {
+                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
+                        if (nn != null) 
+                        {
+                            num.Append(nn.Value);
+                            t1 = nn.EndToken;
+                        }
+                        else 
+                        {
+                            num.Append((t1.Next.Next as Pullenti.Ner.NumberToken).Value);
+                            t1 = t1.Next.Next;
+                        }
+                    }
+                    else if ((t1.Next is Pullenti.Ner.NumberToken) && !t1.IsWhitespaceAfter) 
+                    {
+                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.House);
+                        if (nn != null) 
+                        {
+                            num.Append(nn.Value);
+                            t1 = nn.EndToken;
+                        }
+                        else 
+                        {
+                            num.Append((t1.Next as Pullenti.Ner.NumberToken).Value);
+                            t1 = t1.Next;
+                        }
+                    }
+                    if (num.Length == 1 && ((typ == AddressItemType.Office || typ == AddressItemType.Room))) 
+                    {
+                        if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
+                        {
+                            if (t.IsValue("КОМ", null) && !t.Next.IsChar('.')) 
                                 return null;
                         }
                     }
                 }
+                if ((((typ == AddressItemType.Box || typ == AddressItemType.Space || typ == AddressItemType.Part) || typ == AddressItemType.Carplace || typ == AddressItemType.Well)) && num.Length == 0) 
+                {
+                    Pullenti.Ner.NumberToken rom = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t1);
+                    if (rom != null) 
+                        return new AddressItemToken(typ, t, rom.EndToken) { Value = rom.Value.ToString() };
+                }
             }
-            AddressItemToken it = TryParse(t, false, null, null);
-            if (it == null) 
-                return null;
-            if (it.Typ == AddressItemType.Number) 
-                return null;
-            if (it.DetailType == Pullenti.Ner.Address.AddressDetailType.Org || ((it.IsHouse && it.Value == "0"))) 
+            else if (((Pullenti.Ner.Core.BracketHelper.IsBracket(t1, false) && (t1.Next is Pullenti.Ner.TextToken) && t1.Next.LengthChar == 1) && t1.Next.IsLetters && Pullenti.Ner.Core.BracketHelper.IsBracket(t1.Next.Next, false)) && !t1.IsWhitespaceAfter && !t1.Next.IsWhitespaceAfter) 
             {
-                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
+                string ch = CorrectCharToken(t1.Next);
+                if (ch == null) 
+                    return null;
+                num.Append(ch);
+                t1 = t1.Next.Next;
+            }
+            else if ((t1 is Pullenti.Ner.TextToken) && ((((t1.LengthChar == 1 && ((t1.IsHiphen || t1.IsChar('_'))))) || t1.IsValue("НЕТ", null) || t1.IsValue("БН", null))) && (((typ == AddressItemType.Corpus || typ == AddressItemType.CorpusOrFlat || typ == AddressItemType.Building) || typ == AddressItemType.House || typ == AddressItemType.Flat))) 
+            {
+                while (t1.Next != null && ((t1.Next.IsHiphen || t1.Next.IsChar('_'))) && !t1.IsWhitespaceAfter) 
+                {
+                    t1 = t1.Next;
+                }
+                string val = null;
+                if (!t1.IsWhitespaceAfter && (t1.Next is Pullenti.Ner.NumberToken)) 
+                {
+                    t1 = t1.Next;
+                    val = (t1 as Pullenti.Ner.NumberToken).Value.ToString();
+                }
+                if (t1.IsValue("БН", null)) 
+                    val = "0";
+                else if (t1.IsValue("НЕТ", null)) 
+                    val = "НЕТ";
+                return new AddressItemToken(typ, t, t1) { Value = val };
+            }
+            else 
+            {
+                if (((typ == AddressItemType.Floor || typ == AddressItemType.Kilometer || typ == AddressItemType.Potch)) && (t.Previous is Pullenti.Ner.NumberToken)) 
+                    return new AddressItemToken(typ, t, t1.Previous);
+                if ((t1 is Pullenti.Ner.ReferentToken) && (t1.GetReferent() is Pullenti.Ner.Date.DateReferent)) 
+                {
+                    AddressItemToken nn = TryParsePureItem((t1 as Pullenti.Ner.ReferentToken).BeginToken, null, null);
+                    if (nn != null && nn.EndChar == t1.EndChar && nn.Typ == AddressItemType.Number) 
+                    {
+                        nn.BeginToken = t;
+                        nn.EndToken = t1;
+                        nn.Typ = typ;
+                        return nn;
+                    }
+                }
+                if ((t1 is Pullenti.Ner.TextToken) && ((typ == AddressItemType.House || typ == AddressItemType.Building || typ == AddressItemType.Corpus))) 
+                {
+                    string ter = (t1 as Pullenti.Ner.TextToken).Term;
+                    if (ter == "АБ" || ter == "АБВ" || ter == "МГУ") 
+                        return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
+                    string ccc = _corrNumber(ter);
+                    if (ccc != null) 
+                        return new AddressItemToken(typ, t, t1) { Value = ccc, HouseType = houseTyp, BuildingType = buildTyp };
+                    if (t1.Chars.IsAllUpper) 
+                    {
+                        Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1, Pullenti.Ner.Geo.Internal.GeoTokenType.Strong);
+                        if (nn != null && nn.EndToken != t1) 
+                        {
+                            t1 = nn.EndToken;
+                            ter = nn.Value;
+                        }
+                        if (prev != null && ((prev.Typ == AddressItemType.Street || prev.Typ == AddressItemType.City))) 
+                            return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
+                        if (typ == AddressItemType.Corpus && (t1.LengthChar < 4)) 
+                            return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
+                        if (typ == AddressItemType.Building && buildTyp == Pullenti.Ner.Address.AddressBuildingType.Liter && (t1.LengthChar < 4)) 
+                            return new AddressItemToken(typ, t, t1) { Value = ter, HouseType = houseTyp, BuildingType = buildTyp };
+                    }
+                }
+                if ((typ == AddressItemType.Box || typ == AddressItemType.Space || typ == AddressItemType.Part) || typ == AddressItemType.Carplace || typ == AddressItemType.Well) 
+                {
+                    Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
+                    if (num1 != null) 
+                        return new AddressItemToken(typ, t, num1.EndToken) { Value = num1.Value };
+                }
+                if (typ == AddressItemType.Plot && t1 != null) 
+                {
+                    if ((t1.IsValue("ОКОЛО", null) || t1.IsValue("РЯДОМ", null) || t1.IsValue("НАПРОТИВ", null)) || t1.IsValue("БЛИЗЬКО", null) || t1.IsValue("НАВПАКИ", null)) 
+                        return new AddressItemToken(typ, t, t1) { Value = t1.GetSourceText().ToLower() };
+                    AddressItemToken det = _tryAttachDetail(t1, null);
+                    if (det != null) 
+                    {
+                        if (t1.Previous == null || (t1.Previous.BeginChar < t.BeginChar)) 
+                            return null;
+                        return new AddressItemToken(typ, t, t1.Previous) { Value = "0" };
+                    }
+                }
+                if (((typ != AddressItemType.Number && (t1 is Pullenti.Ner.TextToken) && t1.LengthChar <= 2) && t1.Chars.IsAllUpper && t1.Chars.IsLetter) && ((!t1.IsWhitespaceAfter || typ == AddressItemType.Plot || typ == AddressItemType.Box)) && (t1.Next is Pullenti.Ner.NumberToken)) 
+                {
+                    Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t1.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
+                    if (num1 != null) 
+                        return new AddressItemToken(typ, t, num1.EndToken) { Value = (t1 as Pullenti.Ner.TextToken).Term + num1.Value };
+                }
+                if (t1 != null && t1.IsComma && prev != null) 
+                {
+                    AddressItemToken next = TryParsePureItem(t1.Next, null, null);
+                    if (next != null) 
+                    {
+                        if (next.Typ == AddressItemType.Number || next.Typ == typ) 
+                            return new AddressItemToken(typ, t, next.EndToken) { Value = next.Value };
+                        if (prev != null && t1.Previous != null && t.BeginChar <= t1.Previous.BeginChar) 
+                            return new AddressItemToken(typ, t, t1.Previous);
+                    }
+                }
+                if (t1 != null && t1.IsChar('(')) 
+                {
+                    AddressItemToken next = TryParsePureItem(t1.Next, prev, null);
+                    if ((next != null && next.Typ == AddressItemType.Number && next.EndToken.Next != null) && next.EndToken.Next.IsChar(')')) 
+                    {
+                        next.Typ = typ;
+                        next.BeginToken = t;
+                        next.EndToken = next.EndToken.Next;
+                        return next;
+                    }
+                }
+                if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t1) || typ != AddressItemType.Number) 
+                {
+                    Pullenti.Ner.NumberToken nt1 = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t1);
+                    if (nt1 != null) 
+                        return new AddressItemToken(typ, t, t1) { Value = nt1.Value };
+                }
+                if (Pullenti.Ner.Core.BracketHelper.IsBracket(t1, false) && (t1.Next is Pullenti.Ner.NumberToken)) 
+                {
+                    AddressItemToken next = _tryParsePureItem(t1.Next, false, prev);
+                    if ((next != null && next.Typ == AddressItemType.Number && next.EndToken.Next != null) && Pullenti.Ner.Core.BracketHelper.IsBracket(next.EndToken.Next, false)) 
+                    {
+                        next.BeginToken = t;
+                        next.Typ = typ;
+                        next.EndToken = next.EndToken.Next;
+                        return next;
+                    }
+                }
+                if (typ == AddressItemType.Genplan) 
+                    return new AddressItemToken(typ, t, tok00.EndToken) { Value = "0" };
+                if (typ == AddressItemType.Number && t.IsValue("ОБЩЕЖИТИЕ", null)) 
+                {
+                    Pullenti.Ner.Geo.Internal.NumToken num1 = Pullenti.Ner.Geo.Internal.NumToken.TryParse(t.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
+                    if (num1 != null) 
+                        return new AddressItemToken(AddressItemType.House, t, num1.EndToken) { Value = num1.Value };
+                }
+                if (t.Chars.IsLatinLetter && !t.Kit.BaseLanguage.IsEn) 
+                {
+                    Pullenti.Ner.NumberToken num2 = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t);
+                    if (num2 != null) 
+                        return new AddressItemToken(typ, t, num2.EndToken) { Value = num2.Value };
+                }
+                return null;
+            }
+            if (typ == AddressItemType.Number && prepos) 
+                return null;
+            if (t1 == null) 
+            {
+                t1 = t;
+                while (t1.Next != null) 
+                {
+                    t1 = t1.Next;
+                }
+            }
+            for (Pullenti.Ner.Token tt = t.Next; tt != null && tt.EndChar <= t1.EndChar; tt = tt.Next) 
+            {
+                if (tt.IsNewlineBefore && !(tt is Pullenti.Ner.NumberToken)) 
                     return null;
             }
-            if (it.Typ == AddressItemType.Kilometer && (it.BeginToken.Previous is Pullenti.Ner.NumberToken)) 
+            if (num.Length == 0) 
             {
-                it = it.Clone();
-                it.BeginToken = it.BeginToken.Previous;
-                it.Value = (it.BeginToken as Pullenti.Ner.NumberToken).Value.ToString();
-                if (it.BeginToken.Previous != null && it.BeginToken.Previous.Morph.Class.IsPreposition) 
-                    it.BeginToken = it.BeginToken.Previous;
-            }
-            if (it.Typ == AddressItemType.Street && it.RefToken != null && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
+                if (t1 != null && t1.Chars.IsLatinLetter && ((!t1.Kit.BaseLanguage.IsEn || Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)))) 
+                {
+                    Pullenti.Ner.NumberToken num2 = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t1);
+                    if (num2 != null) 
+                        return new AddressItemToken(typ, t, num2.EndToken) { Value = num2.Value };
+                }
                 return null;
-            List<AddressItemToken> res = new List<AddressItemToken>();
-            res.Add(it);
-            while (it.AltTyp != null) 
-            {
-                res.Add(it.AltTyp);
-                it = it.AltTyp;
             }
-            bool pref = it.Typ == AddressItemType.Prefix;
-            for (t = it.EndToken.Next; t != null; t = t.Next) 
+            AddressItemToken res0 = new AddressItemToken(typ, t, t1) { Value = num.ToString(), Morph = t.Morph, HouseType = houseTyp, BuildingType = buildTyp, DetailParam = spaceDetail };
+            t1 = t1.Next;
+            if (t1 != null && t1.IsComma) 
+                t1 = t1.Next;
+            if ((t1 is Pullenti.Ner.TextToken) && (t1 as Pullenti.Ner.TextToken).Term.StartsWith("ОБ") && (t1.WhitespacesBeforeCount < 2)) 
             {
-                if (maxCount > 0 && res.Count >= maxCount) 
-                    break;
-                AddressItemToken last = res[res.Count - 1];
-                if (res.Count > 1) 
+                res0.EndToken = t1;
+                t1 = t1.Next;
+                if (t1 != null && t1.IsChar('.')) 
                 {
-                    if (last.IsNewlineBefore && res[res.Count - 2].Typ != AddressItemType.Prefix) 
-                    {
-                        int i;
-                        for (i = 0; i < (res.Count - 1); i++) 
-                        {
-                            if (res[i].Typ == last.Typ) 
-                            {
-                                if (i == (res.Count - 2) && ((last.Typ == AddressItemType.City || last.Typ == AddressItemType.Region))) 
-                                {
-                                    int jj;
-                                    for (jj = 0; jj < i; jj++) 
-                                    {
-                                        if ((res[jj].Typ != AddressItemType.Prefix && res[jj].Typ != AddressItemType.Zip && res[jj].Typ != AddressItemType.Region) && res[jj].Typ != AddressItemType.Country) 
-                                            break;
-                                    }
-                                    if (jj >= i) 
-                                        continue;
-                                }
-                                break;
-                            }
-                        }
-                        if ((i < (res.Count - 1)) || last.Typ == AddressItemType.Zip) 
-                        {
-                            res.Remove(last);
-                            break;
-                        }
-                    }
+                    res0.EndToken = t1;
+                    t1 = t1.Next;
                 }
-                if (t.IsTableControlChar) 
-                    break;
-                if (t.IsChar(',') || t.IsChar('|')) 
-                    continue;
-                if (t.IsValue("ДУБЛЬ", null)) 
-                    continue;
-                if (t.IsCharOf("\\/")) 
+                if (res0.Typ == AddressItemType.CorpusOrFlat) 
+                    res0.Typ = AddressItemType.Flat;
+            }
+            if ((t1 != null && t1.IsChar('(') && (t1.Next is Pullenti.Ner.TextToken)) && (t1.Next as Pullenti.Ner.TextToken).Term.StartsWith("ОБ")) 
+            {
+                res0.EndToken = t1.Next;
+                t1 = t1.Next.Next;
+                while (t1 != null) 
                 {
-                    if (t.IsNewlineBefore || t.IsNewlineAfter) 
+                    if (t1.IsCharOf(".)")) 
+                    {
+                        res0.EndToken = t1;
+                        t1 = t1.Next;
+                    }
+                    else 
                         break;
-                    if (t.Previous != null && t.Previous.IsComma) 
-                        continue;
-                    if (last.Typ == AddressItemType.Street && last.IsDoubt) 
+                }
+                if (res0.Typ == AddressItemType.CorpusOrFlat) 
+                    res0.Typ = AddressItemType.Flat;
+            }
+            if ((((t1 is Pullenti.Ner.TextToken) && !t1.IsWhitespaceBefore && !t1.IsWhitespaceAfter) && (t1.Next is Pullenti.Ner.NumberToken) && (t1 as Pullenti.Ner.TextToken).Term.Length == 2) && (((t1 as Pullenti.Ner.TextToken).Term[1] == 'К' || (t1 as Pullenti.Ner.TextToken).Term[1] == 'K'))) 
+            {
+                res0.Value = string.Format("{0}{1}", res0.Value, (t1 as Pullenti.Ner.TextToken).Term[0]);
+                res0.Next = new AddressItemToken(AddressItemType.Corpus, t1, t1.Next) { Value = (t1.Next as Pullenti.Ner.NumberToken).Value };
+                res0.EndToken = t1.Next;
+                if (res0.Typ == AddressItemType.Number) 
+                    res0.Typ = AddressItemType.House;
+                return res0;
+            }
+            if ((typ == AddressItemType.Number && t1 != null && (t1.WhitespacesBeforeCount < 3)) && t1.IsWhitespaceBefore) 
+            {
+                Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
+                if (tok2 != null && !t1.Previous.IsComma) 
+                {
+                    AddressItemToken next = _tryParsePureItem(t1, false, null);
+                    if ((next != null && next.EndToken == tok2.EndToken && next.Typ != AddressItemType.Number) && next.BuildingType != Pullenti.Ner.Address.AddressBuildingType.Liter) 
+                    {
+                        if (((next.Typ == AddressItemType.House || next.Typ == AddressItemType.Building || (next.Typ == AddressItemType.Corpus && next.Typ == AddressItemType.Floor)) || next.Typ == AddressItemType.Flat || next.Typ == AddressItemType.Office) || next.Typ == AddressItemType.Plot) 
+                        {
+                            next.Value = res0.Value;
+                            next.BeginToken = t;
+                            return next;
+                        }
+                    }
+                }
+            }
+            if ((((res0.Typ == AddressItemType.Space || res0.Typ == AddressItemType.Flat || res0.Typ == AddressItemType.Office) || res0.Typ == AddressItemType.Room || ((res0.Typ == AddressItemType.Number && hasNumPrefix)))) && res0.Value != null) 
+            {
+                int n0 = 0;
+                int.TryParse(res0.Value ?? "", out n0);
+                for (Pullenti.Ner.Token tt = res0.EndToken.Next; tt != null; tt = tt.Next) 
+                {
+                    if (!tt.IsCommaAnd && !tt.IsHiphen) 
                         break;
-                    res.Add((it = new AddressItemToken(AddressItemType.Detail, t, t) { DetailType = Pullenti.Ner.Address.AddressDetailType.Cross }));
-                    continue;
-                }
-                if (t.IsChar(':') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-                    continue;
-                if (t.IsChar(';') && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t) && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamGarAddress(t)) 
-                    continue;
-                if (Pullenti.Ner.Core.BracketHelper.IsBracket(t, false) && t.Next != null && t.Next.IsComma) 
-                    continue;
-                if (t.IsChar('.')) 
-                {
-                    if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-                        continue;
-                    if (t.IsNewlineAfter) 
-                    {
-                        if (last.Typ == AddressItemType.City) 
-                        {
-                            AddressItemToken next = TryParse(t.Next, false, null, null);
-                            if (next != null && next.Typ == AddressItemType.Street) 
-                                continue;
-                        }
+                    Pullenti.Ner.Geo.Internal.NumToken nn = Pullenti.Ner.Geo.Internal.NumToken.TryParse(tt.Next, Pullenti.Ner.Geo.Internal.GeoTokenType.Any);
+                    if (nn == null) 
                         break;
-                    }
-                    if (t.Previous != null && t.Previous.IsChar('.')) 
+                    if (nn.Value.Length == 6) 
+                        break;
+                    if (nn.Value.IndexOf('-') > 0) 
                     {
-                        if (t.Previous.Previous != null && t.Previous.Previous.IsChar('.')) 
-                            break;
+                        nn.Value = nn.Value.Substring(0, nn.Value.IndexOf('-'));
+                        nn.EndToken = nn.BeginToken;
                     }
-                    continue;
-                }
-                if (t.IsHiphen || t.IsChar('_')) 
-                {
-                    if (((it.Typ == AddressItemType.Number || it.Typ == AddressItemType.Street)) && (t.Next is Pullenti.Ner.NumberToken)) 
-                        continue;
-                    if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
-                        continue;
-                    if (it.Typ == AddressItemType.City) 
-                        continue;
-                }
-                if (it.Typ == AddressItemType.Detail && it.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross) 
-                {
-                    AddressItemToken str1 = TryParse(t, true, null, null);
-                    if (str1 != null && str1.Typ == AddressItemType.Street) 
+                    Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(nn.EndToken.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                    if (tok2 != null) 
+                        break;
+                    int n = 0;
+                    int.TryParse(nn.Value, out n);
+                    if (tt.IsHiphen) 
                     {
-                        if (str1.EndToken.Next != null && ((str1.EndToken.Next.IsAnd || str1.EndToken.Next.IsHiphen))) 
+                        if (n > n0 && n0 > 0 && ((n - n0) < 100)) 
                         {
-                            AddressItemToken str2 = TryParse(str1.EndToken.Next.Next, true, null, null);
-                            if (str2 == null || str2.Typ != AddressItemType.Street) 
+                            for (int k = n0 + 1; k <= n; k++) 
                             {
-                                str2 = StreetDefineHelper.TryParseSecondStreet(str1.BeginToken, str1.EndToken.Next.Next);
-                                if (str2 != null && str2.IsDoubt) 
-                                {
-                                    str2 = str2.Clone();
-                                    str2.IsDoubt = false;
-                                }
-                            }
-                            if (str2 != null && str2.Typ == AddressItemType.Street) 
-                            {
-                                res.Add(str1);
-                                res.Add(str2);
-                                t = str2.EndToken;
-                                it = str2;
-                                continue;
+                                res0.Value = string.Format("{0},{1}", res0.Value, k);
                             }
                         }
-                    }
-                }
-                bool pre = pref;
-                if (it.Typ == AddressItemType.Kilometer || ((it.Typ == AddressItemType.House && it.Value != null && ((res.Count == 1 || res[res.Count - 2].Typ != AddressItemType.Street))))) 
-                {
-                    if (!t.IsNewlineBefore) 
-                        pre = true;
-                }
-                if (t.IsValue2("НЕ", "УКАЗАН") || t.IsValue2("НЕ", "ЗАДАН")) 
-                {
-                    t = t.Next;
-                    continue;
-                }
-                AddressItemToken it0 = TryParse(t, pre, it, null);
-                if (it0 == null) 
-                {
-                    bool hous = false;
-                    Pullenti.Ner.Token tt = GotoEndOfAddress(t.Previous, out hous);
-                    if (tt != null && tt.EndChar >= t.EndChar && tt.Next != null) 
-                    {
-                        if (tt.Next.IsComma) 
-                            tt = tt.Next;
-                        it0 = TryParse(tt.Next, pre, it, null);
-                        if (it0 == null && hous && it.Typ == AddressItemType.Street) 
-                            res.Add(new AddressItemToken(AddressItemType.House, t, tt) { Value = "0" });
-                    }
-                    if (it.Typ == AddressItemType.City) 
-                    {
-                        StreetItemToken sit = StreetItemToken.TryParse(t, null, false, null);
-                        if (sit != null && sit.Typ == StreetItemType.Noun && sit.Termin.CanonicText == "УЛИЦА") 
-                        {
-                            if (AddressItemToken.CheckHouseAfter(sit.EndToken.Next, false, false)) 
-                            {
-                                t = sit.EndToken;
-                                continue;
-                            }
-                        }
-                    }
-                }
-                if (it0 == null && t.GetMorphClassInDictionary().IsPreposition && (t.WhitespacesAfterCount < 3)) 
-                {
-                    it0 = TryParse(t.Next, pre, it, null);
-                    if (it0 != null) 
-                    {
-                        if (it0.Typ == AddressItemType.Number) 
-                            it0 = null;
-                        else if (it0.Typ == AddressItemType.Building && t.Next.IsValue("СТ", null)) 
-                            it0 = null;
                         else 
-                        {
-                            it0 = it0.Clone();
-                            it0.BeginToken = t;
-                        }
-                    }
-                }
-                if (it0 == null) 
-                {
-                    if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t, true, null, false) && last.Typ == AddressItemType.Street) 
-                        continue;
-                    if (t.IsCharOf("\\/") && last.Typ == AddressItemType.Street) 
-                        continue;
-                }
-                if (((it0 == null && t.IsChar('(') && (t.Next is Pullenti.Ner.ReferentToken)) && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && t.Next.Next != null) && t.Next.Next.IsChar(')')) 
-                {
-                    it0 = TryParse(t.Next, pre, it, null);
-                    if (it0 != null) 
-                    {
-                        it0 = it0.Clone();
-                        it0.BeginToken = t;
-                        it0.EndToken = it0.EndToken.Next;
-                        Pullenti.Ner.Geo.GeoReferent geo0 = t.Next.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
-                        if (geo0.Higher == null) 
-                        {
-                            for (int kk = res.Count - 1; kk >= 0; kk--) 
-                            {
-                                if (res[kk].Typ == AddressItemType.City && (res[kk].Referent is Pullenti.Ner.Geo.GeoReferent)) 
-                                {
-                                    if (Pullenti.Ner.Geo.Internal.GeoOwnerHelper.CanBeHigher(res[kk].Referent as Pullenti.Ner.Geo.GeoReferent, geo0, null, null) || ((geo0.FindSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_TYPE, "город", true) != null && res[kk].Referent.FindSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_TYPE, "город", true) != null))) 
-                                    {
-                                        geo0.Higher = res[kk].Referent as Pullenti.Ner.Geo.GeoReferent;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (it0 == null) 
-                {
-                    if (t.NewlinesBeforeCount > 2) 
-                        break;
-                    if (it.Typ == AddressItemType.PostOfficeBox) 
-                        break;
-                    if (t.IsHiphen && t.Next != null && t.Next.IsComma) 
-                        continue;
-                    if (t.IsHiphen && (t.Next is Pullenti.Ner.NumberToken) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-                        continue;
-                    if (t.IsValue("НЕТ", null) || t.IsValue("ТЕР", null) || t.IsValue("ТЕРРИТОРИЯ", null)) 
-                        continue;
-                    if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(t)) 
-                    {
-                        if ((t.IsValue("РАСПОЛОЖЕННЫЙ", null) || t.IsValue("НЕЖИЛОЙ", null) || t.IsValue("ЗДАНИЕ", null)) || t.IsValue("ЧАСТЬ", null)) 
-                            continue;
-                        if (((t.IsValue("ПЛ", null) || t.IsValue("ПЛОЩАДЬ", null) || t.IsValue("ПЛОЩ", null))) && t.Next != null) 
-                        {
-                            Pullenti.Ner.Core.NumberExToken nn = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix((t.Next is Pullenti.Ner.NumberToken ? t.Next : t.Next.Next));
-                            if (nn != null && nn.ExTyp == Pullenti.Ner.Core.NumberExType.Meter2) 
-                            {
-                                t = nn.EndToken;
-                                continue;
-                            }
-                        }
-                    }
-                    Pullenti.Ner.Token tt1 = StreetItemToken.CheckStdName(t);
-                    if (tt1 != null) 
-                    {
-                        t = tt1;
-                        continue;
-                    }
-                    if (t.Morph.Class.IsPreposition) 
-                    {
-                        it0 = TryParse(t.Next, false, it, null);
-                        if (it0 != null && it0.Typ == AddressItemType.Building && it0.BeginToken.IsValue("СТ", null)) 
-                        {
-                            it0 = null;
                             break;
-                        }
-                        if (it0 != null) 
-                        {
-                            if ((it0.Typ == AddressItemType.Detail && it.Typ == AddressItemType.City && it.DetailMeters > 0) && it.DetailType == Pullenti.Ner.Address.AddressDetailType.Undefined) 
-                            {
-                                it.DetailType = it0.DetailType;
-                                t = (it.EndToken = it0.EndToken);
-                                continue;
-                            }
-                            if ((it0.Typ == AddressItemType.House || it0.Typ == AddressItemType.Building || it0.Typ == AddressItemType.Corpus) || it0.Typ == AddressItemType.Street || it0.Typ == AddressItemType.Detail) 
-                            {
-                                res.Add((it = it0));
-                                t = it.EndToken;
-                                continue;
-                            }
-                        }
                     }
-                    if (it.Typ == AddressItemType.House || it.Typ == AddressItemType.Building || it.Typ == AddressItemType.Number) 
-                    {
-                        if ((!t.IsWhitespaceBefore && t.LengthChar == 1 && t.Chars.IsLetter) && !t.IsWhitespaceAfter && (t.Next is Pullenti.Ner.NumberToken)) 
-                        {
-                            string ch = CorrectCharToken(t);
-                            if (ch == "К" || ch == "С") 
-                            {
-                                it0 = new AddressItemToken((ch == "К" ? AddressItemType.Corpus : AddressItemType.Building), t, t.Next) { Value = (t.Next as Pullenti.Ner.NumberToken).Value.ToString() };
-                                it = it0;
-                                res.Add(it);
-                                t = it.EndToken;
-                                Pullenti.Ner.Token tt = t.Next;
-                                if (((tt != null && !tt.IsWhitespaceBefore && tt.LengthChar == 1) && tt.Chars.IsLetter && !tt.IsWhitespaceAfter) && (tt.Next is Pullenti.Ner.NumberToken)) 
-                                {
-                                    ch = CorrectCharToken(tt);
-                                    if (ch == "К" || ch == "С") 
-                                    {
-                                        it = new AddressItemToken((ch == "К" ? AddressItemType.Corpus : AddressItemType.Building), tt, tt.Next) { Value = (tt.Next as Pullenti.Ner.NumberToken).Value.ToString() };
-                                        res.Add(it);
-                                        t = it.EndToken;
-                                    }
-                                }
-                                continue;
-                            }
-                        }
-                    }
-                    if (t.Morph.Class.IsPreposition) 
-                    {
-                        if ((((t.IsValue("У", null) || t.IsValue("ВОЗЛЕ", null) || t.IsValue("НАПРОТИВ", null)) || t.IsValue("НА", null) || t.IsValue("В", null)) || t.IsValue("ВО", null) || t.IsValue("ПО", null)) || t.IsValue("ОКОЛО", null)) 
-                        {
-                            if (it0 != null && it0.Typ == AddressItemType.Number) 
-                                break;
-                            continue;
-                        }
-                    }
-                    if (t.Morph.Class.IsNoun) 
-                    {
-                        if ((t.IsValue("ДВОР", null) || t.IsValue("ПОДЪЕЗД", null) || t.IsValue("КРЫША", null)) || t.IsValue("ПОДВАЛ", null)) 
-                            continue;
-                    }
-                    if (t.IsValue("ТЕРРИТОРИЯ", "ТЕРИТОРІЯ")) 
+                    else 
+                        res0.Value = string.Format("{0},{1}", res0.Value, nn.Value);
+                    res0.EndToken = nn.EndToken;
+                    if (tt.IsAnd) 
+                        break;
+                    tt = nn.EndToken;
+                    n0 = n;
+                }
+            }
+            if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res0)) 
+            {
+                for (Pullenti.Ner.Token tt = res0.EndToken.Next; tt != null; tt = tt.Next) 
+                {
+                    if (tt.IsValue("СОГЛАСНО", null) || tt.IsValue("ПО", null) || tt.LengthChar == 1) 
                         continue;
-                    if (t.IsChar('(') && t.Next != null) 
+                    if (tt.IsValue("ПЛ", null) || tt.IsValue("БТИ", null)) 
                     {
-                        it0 = TryParse(t.Next, pre, null, null);
-                        if (it0 != null && it0.EndToken.Next != null && it0.EndToken.Next.IsChar(')')) 
-                        {
-                            it0 = it0.Clone();
-                            it0.BeginToken = t;
-                            it0.EndToken = it0.EndToken.Next;
-                            it = it0;
-                            res.Add(it);
-                            t = it.EndToken;
-                            continue;
-                        }
-                        List<AddressItemToken> li0 = TryParseListInt(t.Next, 3);
-                        if ((li0 != null && li0.Count > 1 && li0[0].Typ != AddressItemType.Detail) && li0[li0.Count - 1].EndToken.Next != null && li0[li0.Count - 1].EndToken.Next.IsChar(')')) 
-                        {
-                            li0[0] = li0[0].Clone();
-                            li0[0].BeginToken = t;
-                            li0[li0.Count - 1] = li0[li0.Count - 1].Clone();
-                            li0[li0.Count - 1].EndToken = li0[li0.Count - 1].EndToken.Next;
-                            res.AddRange(li0);
-                            it = li0[li0.Count - 1];
-                            t = it.EndToken;
-                            continue;
-                        }
-                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br != null && (br.LengthChar < 100)) 
-                        {
-                            if (t.Next.IsValue("БЫВШИЙ", null) || t.Next.IsValue("БЫВШ", null)) 
-                            {
-                                it = new AddressItemToken(AddressItemType.Detail, t, br.EndToken);
-                                res.Add(it);
-                            }
-                            t = br.EndToken;
-                            continue;
-                        }
+                        res0.EndToken = tt;
+                        continue;
                     }
-                    bool checkKv = false;
-                    if (t.IsValue("КВ", null) || t.IsValue("KB", null)) 
+                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.ParsePreposition, 0, null);
+                    if (npt == null) 
+                        break;
+                    if ((npt.EndToken.IsValue("ПЛАН", null) || npt.EndToken.IsValue("ПРОЕКТ", null) || npt.EndToken.IsValue("КОПИЯ", null)) || npt.EndToken.IsValue("ПАСПОРТ", null)) 
                     {
-                        if (it.Typ == AddressItemType.Number && res.Count > 1 && res[res.Count - 2].Typ == AddressItemType.Street) 
-                            checkKv = true;
-                        else if ((it.Typ == AddressItemType.House || it.Typ == AddressItemType.Building || it.Typ == AddressItemType.Corpus) || it.Typ == AddressItemType.CorpusOrFlat) 
-                        {
-                            for (int jj = res.Count - 2; jj >= 0; jj--) 
-                            {
-                                if (res[jj].Typ == AddressItemType.Street || res[jj].Typ == AddressItemType.City) 
-                                    checkKv = true;
-                            }
-                        }
-                        if (checkKv) 
-                        {
-                            Pullenti.Ner.Token tt2 = t.Next;
-                            if (tt2 != null && tt2.IsChar('.')) 
-                                tt2 = tt2.Next;
-                            AddressItemToken it22 = TryParsePureItem(tt2, null, null);
-                            if (it22 != null && it22.Typ == AddressItemType.Number) 
-                            {
-                                it22 = it22.Clone();
-                                it22.BeginToken = t;
-                                it22.Typ = AddressItemType.Flat;
-                                res.Add(it22);
-                                t = it22.EndToken;
-                                continue;
-                            }
-                        }
-                    }
-                    if (res[res.Count - 1].Typ == AddressItemType.City) 
-                    {
-                        if (((t.IsHiphen || t.IsChar('_') || t.IsValue("НЕТ", null))) && t.Next != null && t.Next.IsComma) 
-                        {
-                            AddressItemToken att = TryParsePureItem(t.Next.Next, null, null);
-                            if (att != null) 
-                            {
-                                if (att.Typ == AddressItemType.House || att.Typ == AddressItemType.Building || att.Typ == AddressItemType.Corpus) 
-                                {
-                                    it = new AddressItemToken(AddressItemType.Street, t, t);
-                                    res.Add(it);
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-                    if (t.LengthChar == 2 && (t is Pullenti.Ner.TextToken) && t.Chars.IsAllUpper) 
-                    {
-                        string term = (t as Pullenti.Ner.TextToken).Term;
-                        if (!string.IsNullOrEmpty(term) && term[0] == 'Р') 
-                            continue;
+                        res0.EndToken = (tt = npt.EndToken);
+                        continue;
                     }
                     break;
                 }
-                if (t.WhitespacesBeforeCount > 15) 
+            }
+            return res0;
+        }
+        void _corrNum()
+        {
+            if (EndToken.IsChar(')')) 
+                return;
+            Pullenti.Ner.Token t1 = EndToken.Next;
+            if (t1 != null && t1.IsHiphen) 
+                t1 = t1.Next;
+            if (t1 == null) 
+                return;
+            if (((t1.IsCharOf("\\/") || t1.IsHiphen)) && t1.Next != null) 
+                t1 = t1.Next;
+            if (Typ == AddressItemType.Space || Typ == AddressItemType.Number) 
+            {
+                Pullenti.Ner.Core.TerminToken tok2 = m_Ontology.TryParse(t1, Pullenti.Ner.Core.TerminParseAttr.No);
+                if (tok2 == null && t1 != null && t1.IsChar('(')) 
                 {
-                    if (it0.Typ == AddressItemType.Street && last.Typ == AddressItemType.City) 
-                    {
-                    }
+                    tok2 = m_Ontology.TryParse(t1.Next, Pullenti.Ner.Core.TerminParseAttr.No);
+                    if (tok2 != null && tok2.EndToken.Next != null && tok2.EndToken.Next.IsChar(')')) 
+                        tok2.EndToken = tok2.EndToken.Next;
                     else 
-                        break;
+                        tok2 = null;
                 }
-                if (t.IsNewlineBefore && it0.Typ == AddressItemType.Street && it0.RefToken != null) 
+                if (tok2 != null && tok2.Termin.Tag != null && ((AddressItemType)tok2.Termin.Tag) == AddressItemType.Space) 
                 {
-                    if (!it0.RefTokenIsGsk) 
-                        break;
-                }
-                if (it0.Typ == AddressItemType.Street && t.IsValue("КВ", null)) 
-                {
-                    if (it != null) 
+                    EndToken = tok2.EndToken;
+                    Typ = AddressItemType.Space;
+                    if (tok2.Termin.Tag2 != null && DetailParam == null) 
                     {
-                        if (it.Typ == AddressItemType.House || it.Typ == AddressItemType.Building || it.Typ == AddressItemType.Corpus) 
+                        DetailParam = tok2.Termin.CanonicText;
+                        if (DetailParam.Length > 4) 
+                            DetailParam = DetailParam.ToLower();
+                    }
+                    if (tok2.BeginToken != t1 && EndToken.Next != null && EndToken.Next.IsChar(')')) 
+                        EndToken = EndToken.Next;
+                    t1 = EndToken.Next;
+                }
+                if (t1 is Pullenti.Ner.TextToken) 
+                {
+                    string vv = (t1 as Pullenti.Ner.TextToken).Term;
+                    if (vv == "НЧ" || vv == "Н" || vv == "H") 
+                    {
+                        Value += "Н";
+                        EndToken = t1;
+                    }
+                }
+                if (Typ == AddressItemType.Space && Value != null && Value.EndsWith("Н")) 
+                {
+                    DetailParam = "нежилое";
+                    Value = Value.Substring(0, Value.Length - 1);
+                    if (Value.Length == 0) 
+                        Value = "0";
+                }
+            }
+            else if ((Typ == AddressItemType.House || Typ == AddressItemType.Building || Typ == AddressItemType.Corpus) || Typ == AddressItemType.Plot) 
+            {
+                if (t1 is Pullenti.Ner.TextToken) 
+                {
+                    string vv = (t1 as Pullenti.Ner.TextToken).Term;
+                    if (vv == "ОБЩ" || vv == "ГЛФ" || vv == "СХ") 
+                        EndToken = t1;
+                }
+            }
+        }
+        static AddressItemToken _tryAttachVCH(Pullenti.Ner.Token t, AddressItemType ty)
+        {
+            if (t == null) 
+                return null;
+            Pullenti.Ner.Token tt = t;
+            if ((((tt.IsValue("В", null) || tt.IsValue("B", null))) && tt.Next != null && tt.Next.IsCharOf("./\\")) && (tt.Next.Next is Pullenti.Ner.TextToken) && tt.Next.Next.IsValue("Ч", null)) 
+            {
+                tt = tt.Next.Next;
+                if (tt.Next != null && tt.Next.IsChar('.')) 
+                    tt = tt.Next;
+                Pullenti.Ner.Token tt2 = Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tt.Next);
+                if (tt2 != null) 
+                    tt = tt2;
+                if (tt.Next != null && (tt.Next is Pullenti.Ner.NumberToken) && (tt.WhitespacesAfterCount < 2)) 
+                    tt = tt.Next;
+                return new AddressItemToken(ty, t, tt) { Value = "В/Ч" };
+            }
+            if (((tt.IsValue("ВОЙСКОВОЙ", null) || tt.IsValue("ВОИНСКИЙ", null))) && tt.Next != null && tt.Next.IsValue("ЧАСТЬ", null)) 
+            {
+                tt = tt.Next;
+                Pullenti.Ner.Token tt2 = Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tt.Next);
+                if (tt2 != null) 
+                    tt = tt2;
+                if (tt.Next != null && (tt.Next is Pullenti.Ner.NumberToken) && (tt.WhitespacesAfterCount < 2)) 
+                    tt = tt.Next;
+                return new AddressItemToken(ty, t, tt) { Value = "В/Ч" };
+            }
+            if (ty == AddressItemType.Flat || ty == AddressItemType.Space) 
+            {
+                if (tt.WhitespacesBeforeCount > 1) 
+                    return null;
+                if (!(tt is Pullenti.Ner.TextToken)) 
+                    return null;
+                if ((tt as Pullenti.Ner.TextToken).Term.StartsWith("ОБЩ") || (tt as Pullenti.Ner.TextToken).Term.StartsWith("ВЕД") || (tt as Pullenti.Ner.TextToken).Term.StartsWith("МОП")) 
+                {
+                    if (tt.Next != null && tt.Next.IsChar('.')) 
+                        tt = tt.Next;
+                    AddressItemToken re = _tryAttachVCH(tt.Next, ty);
+                    if (re != null) 
+                        return re;
+                    return new AddressItemToken(ty, t, tt) { Value = "0" };
+                }
+                if (tt.Chars.IsAllUpper && tt.LengthChar > 1) 
+                {
+                    if (Pullenti.Ner.Core.NumberHelper.TryParseRoman(tt) == null) 
+                    {
+                        AddressItemToken re = new AddressItemToken(ty, t, tt) { Value = (tt as Pullenti.Ner.TextToken).Term };
+                        if ((tt.WhitespacesAfterCount < 2) && (tt.Next is Pullenti.Ner.TextToken) && tt.Next.Chars.IsAllUpper) 
                         {
-                            AddressItemToken it2 = TryParsePureItem(t, null, null);
-                            if (it2 != null && it2.Typ == AddressItemType.Flat) 
-                                it0 = it2;
+                            tt = tt.Next;
+                            re.EndToken = tt;
+                            re.Value += (tt as Pullenti.Ner.TextToken).Term;
                         }
+                        return re;
                     }
                 }
-                if (it0.Typ == AddressItemType.Prefix) 
-                    break;
-                if (it0.Typ == AddressItemType.Number) 
+            }
+            return null;
+        }
+        static string _outDoubeKm(Pullenti.Ner.NumberToken n1, Pullenti.Ner.NumberToken n2)
+        {
+            if (n1.IntValue == null || n2.IntValue == null) 
+                return string.Format("{0}+{1}", n1.Value, n2.Value);
+            double v = n1.RealValue + ((n2.RealValue / 1000));
+            return Pullenti.Ner.Core.NumberHelper.DoubleToString(Math.Round(v, 3));
+        }
+        static AddressItemToken _tryAttachDetailRange(Pullenti.Ner.Token t)
+        {
+            Pullenti.Ner.Token t1 = t.Next;
+            if (t1 != null && t1.IsChar('.')) 
+                t1 = t1.Next;
+            if (!(t1 is Pullenti.Ner.NumberToken)) 
+                return null;
+            if (t1.Next == null || !t1.Next.IsChar('+') || !(t1.Next.Next is Pullenti.Ner.NumberToken)) 
+                return null;
+            AddressItemToken res = new AddressItemToken(AddressItemType.Detail, t, t1.Next.Next) { DetailType = Pullenti.Ner.Address.AddressDetailType.Range };
+            res.Value = string.Format("км{0}", _outDoubeKm(t1 as Pullenti.Ner.NumberToken, t1.Next.Next as Pullenti.Ner.NumberToken));
+            t1 = t1.Next.Next.Next;
+            if (t1 != null && t1.IsHiphen) 
+                t1 = t1.Next;
+            if (t1 != null && t1.IsValue("КМ", null)) 
+            {
+                t1 = t1.Next;
+                if (t1 != null && t1.IsChar('.')) 
+                    t1 = t1.Next;
+            }
+            if (!(t1 is Pullenti.Ner.NumberToken)) 
+                return null;
+            if (t1.Next == null || !t1.Next.IsChar('+') || !(t1.Next.Next is Pullenti.Ner.NumberToken)) 
+                return null;
+            res.Value = string.Format("{0}-км{1}", res.Value, _outDoubeKm(t1 as Pullenti.Ner.NumberToken, t1.Next.Next as Pullenti.Ner.NumberToken));
+            res.EndToken = t1.Next.Next;
+            return res;
+        }
+        static AddressItemToken _tryAttachDetail(Pullenti.Ner.Token t, Pullenti.Ner.Core.TerminToken tok)
+        {
+            if (t == null || (t is Pullenti.Ner.ReferentToken)) 
+                return null;
+            if (t.IsValue("КМ", null)) 
+            {
+                AddressItemToken ran = _tryAttachDetailRange(t);
+                if (ran != null) 
+                    return ran;
+            }
+            Pullenti.Ner.Token tt = t;
+            if (t.Chars.IsCapitalUpper && !t.Morph.Class.IsPreposition) 
+                return null;
+            if (tok == null) 
+                tok = m_Ontology.TryParse(t, Pullenti.Ner.Core.TerminParseAttr.No);
+            if (tok == null && t.Morph.Class.IsPreposition && t.Next != null) 
+            {
+                tt = t.Next;
+                if (tt is Pullenti.Ner.NumberToken) 
                 {
-                    if (string.IsNullOrEmpty(it0.Value)) 
-                        break;
-                    if (!char.IsDigit(it0.Value[0])) 
-                        break;
-                    if (it0.IsNewlineBefore && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it0) && res[res.Count - 1].Typ != AddressItemType.Street) 
-                        break;
-                    if (it0.BeginToken.IsValue("НОМЕР", null)) 
-                    {
-                    }
-                    else 
-                    {
-                        int cou = 0;
-                        for (int i = res.Count - 1; i >= 0; i--) 
-                        {
-                            if (res[i].Typ == AddressItemType.Number) 
-                                cou++;
-                            else 
-                                break;
-                        }
-                        if (cou > 5) 
-                            break;
-                        if (it.IsDoubt && t.IsNewlineBefore) 
-                            break;
-                    }
-                }
-                if (it0.Typ == AddressItemType.CorpusOrFlat && it != null && it.Typ == AddressItemType.Flat) 
-                    it0.Typ = AddressItemType.Room;
-                if ((it0.AltTyp == null && (((it0.Typ == AddressItemType.Floor || it0.Typ == AddressItemType.Potch || it0.Typ == AddressItemType.Block) || it0.Typ == AddressItemType.Kilometer)) && string.IsNullOrEmpty(it0.Value)) && it.Typ == AddressItemType.Number && it.EndToken.Next == it0.BeginToken) 
-                {
-                    it = it.Clone();
-                    res[res.Count - 1] = it;
-                    it.Typ = it0.Typ;
-                    it.EndToken = it0.EndToken;
-                }
-                else if ((it0.AltTyp == null && ((it.Typ == AddressItemType.Floor || it.Typ == AddressItemType.Potch)) && string.IsNullOrEmpty(it.Value)) && it0.Typ == AddressItemType.Number && it.EndToken.Next == it0.BeginToken) 
-                {
-                    it = it.Clone();
-                    res[res.Count - 1] = it;
-                    it.Value = it0.Value;
-                    it.EndToken = it0.EndToken;
                 }
                 else 
                 {
-                    it = it0;
-                    res.Add(it);
-                    while (it.AltTyp != null) 
+                    if (tt.Chars.IsCapitalUpper && !tt.Morph.Class.IsPreposition) 
+                        return null;
+                    tok = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
+                }
+            }
+            AddressItemToken res = null;
+            bool firstNum = false;
+            if (tok != null && tok.Termin.Tag2 != null && (tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType)) 
+            {
+                res = new AddressItemToken(AddressItemType.Detail, t, tok.EndToken);
+                res.DetailType = (Pullenti.Ner.Address.AddressDetailType)tok.Termin.Tag;
+                res.DetailParam = "часть";
+                return res;
+            }
+            if (tok == null) 
+            {
+                Pullenti.Morph.MorphClass mc = tt.GetMorphClassInDictionary();
+                if (mc.IsVerb) 
+                {
+                    AddressItemToken next = _tryAttachDetail(tt.Next, tok);
+                    if (next != null) 
                     {
-                        res.Add(it.AltTyp);
-                        it = it.AltTyp;
+                        next.BeginToken = t;
+                        return next;
                     }
                 }
-                t = it.EndToken;
-            }
-            if ((res.Count > 1 && res[0].Typ == AddressItemType.Detail && res[0].DetailType == Pullenti.Ner.Address.AddressDetailType.Cross) && res[1].Typ != AddressItemType.Street) 
-                return null;
-            if (res.Count > 0) 
-            {
-                it = res[res.Count - 1];
-                AddressItemToken it0 = (res.Count > 1 ? res[res.Count - 2] : null);
-                if (it.Typ == AddressItemType.Number && it0 != null && it0.RefToken != null) 
+                if (tt is Pullenti.Ner.NumberToken) 
                 {
-                    foreach (Pullenti.Ner.Slot s in it0.RefToken.Referent.Slots) 
+                    firstNum = true;
+                    Pullenti.Ner.Core.NumberExToken nex = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(tt);
+                    if (nex != null && ((nex.ExTyp == Pullenti.Ner.Core.NumberExType.Meter || nex.ExTyp == Pullenti.Ner.Core.NumberExType.Kilometer))) 
                     {
-                        if (s.TypeName == "TYPE") 
+                        res = new AddressItemToken(AddressItemType.Detail, t, nex.EndToken);
+                        Pullenti.Ner.Core.NumberExType tyy = Pullenti.Ner.Core.NumberExType.Meter;
+                        res.DetailMeters = (int)nex.NormalizeValue(ref tyy);
+                        Pullenti.Ner.Token tt2 = res.EndToken.Next;
+                        if (tt2 != null && tt2.IsHiphen) 
+                            tt2 = tt2.Next;
+                        Pullenti.Ner.Core.NumberExToken nex2 = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(tt2);
+                        if (nex2 != null && nex2.ExTyp == Pullenti.Ner.Core.NumberExType.Meter && nex2.IntValue != null) 
                         {
-                            string ss = s.Value as string;
-                            if (ss.Contains("гараж") || ((ss[0] == 'Г' && ss[ss.Length - 1] == 'К'))) 
-                            {
-                                if (it0.RefToken.Referent.FindSlot("NAME", "РОСАТОМ", true) != null) 
-                                    break;
-                                it.Typ = AddressItemType.Box;
-                                break;
-                            }
+                            res.EndToken = nex2.EndToken;
+                            res.DetailMeters += nex2.IntValue.Value;
                         }
                     }
                 }
-                if (it.Typ == AddressItemType.Number || it.Typ == AddressItemType.Zip) 
+                if (res == null) 
+                    return null;
+            }
+            else 
+            {
+                if (!(tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType)) 
+                    return null;
+                if (t.IsValue("У", null)) 
                 {
-                    bool del = false;
-                    if (it.BeginToken.Previous != null && it.BeginToken.Previous.Morph.Class.IsPreposition) 
+                    if (t.Next == null || t.Next.IsCharOf(",.;")) 
+                        return null;
+                }
+                res = new AddressItemToken(AddressItemType.Detail, t, tok.EndToken) { DetailType = (Pullenti.Ner.Address.AddressDetailType)tok.Termin.Tag };
+            }
+            for (tt = res.EndToken.Next; tt != null; tt = tt.Next) 
+            {
+                if (tt is Pullenti.Ner.ReferentToken) 
+                    break;
+                if (!tt.Morph.Class.IsPreposition) 
+                {
+                    if (tt.Chars.IsCapitalUpper || tt.Chars.IsAllUpper) 
+                        break;
+                }
+                tok = m_Ontology.TryParse(tt, Pullenti.Ner.Core.TerminParseAttr.No);
+                if (tok != null && (tok.Termin.Tag is Pullenti.Ner.Address.AddressDetailType)) 
+                {
+                    Pullenti.Ner.Address.AddressDetailType ty = (Pullenti.Ner.Address.AddressDetailType)tok.Termin.Tag;
+                    if (ty != Pullenti.Ner.Address.AddressDetailType.Undefined) 
                     {
-                        if (res.Count > 1 && res[res.Count - 2].EndToken.Next == it.BeginToken) 
+                        if (ty == Pullenti.Ner.Address.AddressDetailType.Near && res.DetailType != Pullenti.Ner.Address.AddressDetailType.Undefined && res.DetailType != ty) 
                         {
                         }
                         else 
-                            del = true;
+                            res.DetailType = ty;
                     }
-                    else if (it.Morph.Class.IsNoun && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
-                        del = true;
-                    if ((!del && it.EndToken.WhitespacesAfterCount == 1 && it.WhitespacesBeforeCount > 0) && it.Typ == AddressItemType.Number) 
-                    {
-                        Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Geo.Internal.MiscLocationHelper.TryParseNpt(it.EndToken.Next);
-                        if (npt != null) 
-                            del = true;
-                    }
-                    if (del) 
-                        res.RemoveAt(res.Count - 1);
-                    else if ((it.Typ == AddressItemType.Number && it0 != null && it0.Typ == AddressItemType.Street) && it0.RefToken == null) 
-                    {
-                        if (it.BeginToken.Previous.IsChar(',') || it.IsNewlineAfter) 
-                        {
-                            it = it.Clone();
-                            res[res.Count - 1] = it;
-                            it.Typ = AddressItemType.House;
-                            it.IsDoubt = true;
-                        }
-                    }
-                }
-            }
-            if (res.Count == 0) 
-                return null;
-            if ((res.Count == 1 && res[0].Typ == AddressItemType.Street && res[0].Chars.IsLatinLetter) && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
-                return null;
-            foreach (AddressItemToken r in res) 
-            {
-                if (r.Typ == AddressItemType.City || r.Typ == AddressItemType.Street) 
-                {
-                    AddressItemToken ty = _findAddrTyp(r.BeginToken, r.EndChar, 0);
-                    if (ty != null) 
-                    {
-                        if (r.DetailType == Pullenti.Ner.Address.AddressDetailType.Undefined) 
-                            r.DetailType = ty.DetailType;
-                        if (ty.DetailMeters > 0) 
-                            r.DetailMeters = ty.DetailMeters;
-                        if (ty.DetailParam != null) 
-                            r.DetailParam = ty.DetailParam;
-                    }
-                }
-            }
-            for (int i = 0; i < (res.Count - 2); i++) 
-            {
-                if (res[i].Typ == AddressItemType.Street && res[i + 1].Typ == AddressItemType.Number) 
-                {
-                    if ((res[i + 2].Typ == AddressItemType.Building || res[i + 2].Typ == AddressItemType.Corpus || res[i + 2].Typ == AddressItemType.Office) || res[i + 2].Typ == AddressItemType.Flat) 
-                    {
-                        res[i + 1] = res[i + 1].Clone();
-                        res[i + 1].Typ = AddressItemType.House;
-                    }
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == AddressItemType.Street && res[i + 1].Typ == AddressItemType.City && (res[i].Referent is Pullenti.Ner.Address.StreetReferent)) 
-                {
-                    Pullenti.Ner.Address.StreetReferent sr = res[i].Referent as Pullenti.Ner.Address.StreetReferent;
-                    if (sr.Slots.Count != 2 || sr.Kind != Pullenti.Ner.Address.StreetKind.Area || sr.Typs.Count != 1) 
-                        continue;
-                    if (i == 0 && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
-                    {
-                    }
-                    else if (i > 0 && res[i - 1].Typ == AddressItemType.City) 
-                    {
-                    }
-                    else 
-                        continue;
-                    Pullenti.Ner.Token tt = res[i + 1].BeginToken;
-                    if (tt is Pullenti.Ner.ReferentToken) 
-                        tt = (tt as Pullenti.Ner.ReferentToken).BeginToken;
-                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                    if (npt != null && npt.EndChar == res[i + 1].EndChar) 
-                    {
-                        res[i].EndToken = res[i + 1].EndToken;
-                        sr.AddSlot(Pullenti.Ner.Address.StreetReferent.ATTR_NAME, npt.GetNormalCaseText(null, Pullenti.Morph.MorphNumber.Undefined, Pullenti.Morph.MorphGender.Undefined, false), false, 0);
-                        res.RemoveAt(i + 1);
-                        break;
-                    }
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == AddressItemType.Building && res[i].BeginToken == res[i].EndToken && res[i].BeginToken.LengthChar == 1) 
-                {
-                    if (res[i + 1].Typ == AddressItemType.City) 
-                    {
-                        res.RemoveAt(i);
-                        i--;
-                    }
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == AddressItemType.Flat && res[i + 1].Typ == AddressItemType.Street && (res[i + 1].RefToken is Pullenti.Ner.Geo.Internal.OrgItemToken)) 
-                {
-                    string str = res[i + 1].RefToken.ToString().ToUpper();
-                    if (str.Contains("ЛЕСНИЧ")) 
-                    {
-                        res[i + 1].BeginToken = res[i].BeginToken;
-                        res[i + 1].Referent.AddSlot("NUMBER", res[i].Value, false, 0);
-                        res.RemoveAt(i);
-                        break;
-                    }
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if ((res[i].Typ == res[i + 1].Typ && (((res[i].Typ == AddressItemType.Room || res[i].Typ == AddressItemType.Flat || res[i].Typ == AddressItemType.Space) || res[i].Typ == AddressItemType.Office)) && res[i].Value != null) && res[i + 1].Value != null) 
-                {
-                    res[i] = res[i].Clone();
-                    if (res[i].Value != res[i + 1].Value) 
-                        res[i].Value = string.Format("{0},{1}", res[i].Value, res[i + 1].Value);
-                    res[i].EndToken = res[i + 1].EndToken;
-                    res.RemoveAt(i + 1);
-                    i--;
-                }
-                else if ((res[i].Typ == AddressItemType.Space && res[i].Value != null && res[i + 1].Typ == AddressItemType.Building) && res[i + 1].BuildingType == Pullenti.Ner.Address.AddressBuildingType.Liter) 
-                {
-                    res[i] = res[i].Clone();
-                    res[i].Value = string.Format("{0}{1}", res[i].Value, res[i + 1].Value);
-                    res[i].EndToken = res[i + 1].EndToken;
-                    res.RemoveAt(i + 1);
-                    i--;
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if ((res[i].Typ == AddressItemType.Street && (res[i].Referent is Pullenti.Ner.Address.StreetReferent) && res[i + 1].Typ == AddressItemType.Street) && (res[i + 1].RefToken is Pullenti.Ner.Geo.Internal.OrgItemToken)) 
-                {
-                    Pullenti.Ner.Address.StreetReferent ss = res[i].Referent as Pullenti.Ner.Address.StreetReferent;
-                    if (ss.Numbers == null || ss.Names.Count > 0) 
-                        continue;
-                    if (!ss.ToString().Contains("квартал")) 
-                        continue;
-                    string str = res[i + 1].RefToken.ToString().ToUpper();
-                    if (!str.Contains("ЛЕСНИЧ")) 
-                        continue;
-                    res[i + 1].BeginToken = res[i].BeginToken;
-                    res[i + 1].Referent.AddSlot("NUMBER", ss.Numbers, false, 0);
-                    res.RemoveAt(i);
-                    break;
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if ((res[i].Typ == AddressItemType.Street && res[i + 1].Typ == AddressItemType.Kilometer && (res[i].Referent is Pullenti.Ner.Address.StreetReferent)) && (res[i].Referent as Pullenti.Ner.Address.StreetReferent).Numbers == null) 
-                {
-                    res[i] = res[i].Clone();
-                    (res[i].Referent as Pullenti.Ner.Address.StreetReferent).Numbers = res[i + 1].Value + "км";
-                    res[i].EndToken = res[i + 1].EndToken;
-                    res.RemoveAt(i + 1);
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if ((res[i + 1].Typ == AddressItemType.Street && res[i].Typ == AddressItemType.Kilometer && (res[i + 1].Referent is Pullenti.Ner.Address.StreetReferent)) && (res[i + 1].Referent as Pullenti.Ner.Address.StreetReferent).Numbers == null) 
-                {
-                    res[i + 1] = res[i + 1].Clone();
-                    (res[i + 1].Referent as Pullenti.Ner.Address.StreetReferent).Numbers = res[i].Value + "км";
-                    res[i + 1].BeginToken = res[i].BeginToken;
-                    res.RemoveAt(i);
-                    break;
-                }
-            }
-            for (int i = 0; i < (res.Count - 1); i++) 
-            {
-                if (res[i].Typ == AddressItemType.Building && res[i + 1].Typ == AddressItemType.Building && (res[i].BeginToken is Pullenti.Ner.TextToken)) 
-                {
-                    if ((res[i].BeginToken as Pullenti.Ner.TextToken).Term.StartsWith("ЗД")) 
-                    {
-                        res[i] = res[i].Clone();
-                        res[i].Typ = AddressItemType.House;
-                    }
-                }
-            }
-            for (int i = 0; i < res.Count; i++) 
-            {
-                if (res[i].Typ == AddressItemType.Part) 
-                {
-                    if (i > 0 && ((res[i - 1].Typ == AddressItemType.House || res[i - 1].Typ == AddressItemType.Plot))) 
-                        continue;
-                    if (((i + 1) < res.Count) && ((res[i + 1].Typ == AddressItemType.House || res[i + 1].Typ == AddressItemType.Plot))) 
-                        continue;
-                    if (i == 0) 
-                        return null;
-                    res.RemoveRange(i, res.Count - i);
-                    break;
-                }
-                else if ((res[i].Typ == AddressItemType.NoNumber && i == (res.Count - 1) && i > 0) && res[i - 1].Typ == AddressItemType.City) 
-                {
-                    res[i] = res[i].Clone();
-                    res[i].Typ = AddressItemType.House;
-                }
-            }
-            for (int i = 0; i < res.Count; i++) 
-            {
-                if (res[i].AreaTerr != null) 
-                {
-                    Pullenti.Ner.Geo.GeoReferent ter = res[i].AreaTerr.Referent as Pullenti.Ner.Geo.GeoReferent;
-                    if ((ter.IsRegion && i > 0 && res[i - 1].Typ == AddressItemType.City) && ter.Higher == null) 
-                        ter.Higher = res[i - 1].Referent as Pullenti.Ner.Geo.GeoReferent;
-                    res.Insert(i, res[i].AreaTerr);
-                    i++;
-                }
-            }
-            if (res.Count > 0 && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
-            {
-                for (int i = 0; i < (res.Count - 1); i++) 
-                {
-                    for (int j = i + 1; j < res.Count; j++) 
-                    {
-                        if (res[j].IsNewlineBefore) 
-                            break;
-                        if (res[i].Typ == res[j].Typ && (res[i].Referent is Pullenti.Ner.Geo.GeoReferent) && res[j].Referent == res[i].Referent) 
-                        {
-                            res.RemoveAt(j);
-                            j--;
-                        }
-                    }
-                }
-            }
-            for (int i = 1; i < res.Count; i++) 
-            {
-                if (res[i].Typ == AddressItemType.Potch && res[i].Value != null) 
-                {
-                    bool ok = false;
-                    if (res[i - 1].Typ == AddressItemType.Street) 
-                        ok = true;
-                    else if (((i + 1) < res.Count) && res[i + 1].Typ == AddressItemType.Street) 
-                        ok = true;
-                    if (!ok) 
-                        continue;
-                    it = res[i];
-                    AddressItemToken rr = new AddressItemToken(AddressItemType.Street, it.BeginToken, it.EndToken);
-                    Pullenti.Ner.Address.StreetReferent sr = new Pullenti.Ner.Address.StreetReferent();
-                    sr.AddTyp("подъезд");
-                    sr.AddSlot(Pullenti.Ner.Address.StreetReferent.ATTR_NUMBER, it.Value, false, 0);
-                    rr.Referent = sr;
-                    res[i] = rr;
-                }
-            }
-            for (int i = res.Count - 1; i > 0; i--) 
-            {
-                if (res[i].Typ == AddressItemType.Number && res[i].Value != null && res[i].BeginToken.IsValue("НОМЕР", null)) 
-                {
-                    if (res[i - 1].Typ == AddressItemType.Space || res[i - 1].Typ == AddressItemType.Flat) 
-                        res[i].Typ = AddressItemType.Room;
-                    else if ((res[i - 1].Typ == AddressItemType.Floor || res[i - 1].Typ == AddressItemType.House || res[i - 1].Typ == AddressItemType.Corpus) || res[i - 1].Typ == AddressItemType.Building) 
-                        res[i].Typ = AddressItemType.Flat;
-                }
-            }
-            while (res.Count > 0) 
-            {
-                AddressItemToken last = res[res.Count - 1];
-                if (last.DetailType == Pullenti.Ner.Address.AddressDetailType.Org && !Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(it)) 
-                {
-                    res.RemoveAt(res.Count - 1);
+                    res.EndToken = (tt = tok.EndToken);
                     continue;
                 }
-                if (last.Typ == AddressItemType.Detail && last.DetailType == Pullenti.Ner.Address.AddressDetailType.Cross && last.LengthChar == 1) 
+                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                if (npt != null) 
+                    tt = npt.EndToken;
+                if (((tt.IsValue("ОРИЕНТИР", null) || tt.IsValue("НАПРАВЛЕНИЕ", null) || tt.IsValue("ОТ", null)) || tt.IsValue("В", null) || tt.IsValue("УСАДЬБА", null)) || tt.IsValue("ДВОР", null)) 
                 {
-                    res.RemoveAt(res.Count - 1);
+                    res.EndToken = tt;
                     continue;
                 }
-                if (last.Typ == AddressItemType.City && res.Count > 4) 
+                if (tt.IsValue("ЗДАНИЕ", null) || tt.IsValue("СТРОЕНИЕ", null) || tt.IsValue("ДОМ", null)) 
                 {
-                    bool ok = false;
-                    for (int ii = 0; ii < 3; ii++) 
+                    AddressItemToken ait = TryParsePureItem(tt, null, null);
+                    if (ait != null && ait.Value != null) 
+                        break;
+                    if (Pullenti.Ner.Geo.Internal.OrgItemToken.TryParse(tt.Next, null) != null) 
+                        break;
+                    res.EndToken = tt;
+                    continue;
+                }
+                if (npt != null && npt.InternalNoun != null) 
+                {
+                    res.EndToken = (tt = npt.EndToken);
+                    continue;
+                }
+                if (((tt.IsValue("ГРАНИЦА", null) || tt.IsValue("ПРЕДЕЛ", null))) && tt.Next != null) 
+                {
+                    if (tt.Next.IsValue("УЧАСТОК", null)) 
                     {
-                        if (res[ii].Typ == AddressItemType.City) 
-                        {
-                            Pullenti.Ner.Geo.GeoReferent geo1 = last.Referent as Pullenti.Ner.Geo.GeoReferent;
-                            Pullenti.Ner.Geo.GeoReferent geo0 = res[ii].Referent as Pullenti.Ner.Geo.GeoReferent;
-                            if ((geo1 != null && geo0 != null && geo0.Higher == null) && Pullenti.Ner.Geo.Internal.GeoOwnerHelper.CanBeHigher(geo1, geo0, null, null)) 
-                                break;
-                            ok = true;
-                        }
-                    }
-                    if (ok) 
-                    {
-                        res.RemoveAt(res.Count - 1);
+                        tt = tt.Next;
+                        res.EndToken = tt;
                         continue;
                     }
                 }
-                if (last.Typ != AddressItemType.Street || !(last.RefToken is Pullenti.Ner.Geo.Internal.OrgItemToken)) 
-                    break;
-                if ((last.RefToken as Pullenti.Ner.Geo.Internal.OrgItemToken).IsGsk || (last.RefToken as Pullenti.Ner.Geo.Internal.OrgItemToken).HasTerrKeyword) 
-                    break;
-                if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(last)) 
-                    break;
-                res.RemoveAt(res.Count - 1);
-            }
-            if (res.Count > 2 && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(res[0])) 
-            {
-                for (int i = 1; i < res.Count; i++) 
+                Pullenti.Morph.MorphClass mc = tt.GetMorphClassInDictionary();
+                if (mc.IsVerb && !mc.IsNoun) 
+                    continue;
+                if ((tt.IsComma || mc.IsPreposition || tt.IsHiphen) || tt.IsChar(':')) 
+                    continue;
+                if ((tt is Pullenti.Ner.NumberToken) && tt.Next != null) 
                 {
-                    if (((res[i - 1].Typ == AddressItemType.Street || res[i - 1].Typ == AddressItemType.City)) && res[i].Typ == AddressItemType.Street) 
+                    Pullenti.Ner.Core.NumberExToken nex = Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(tt);
+                    if (nex != null && ((nex.ExTyp == Pullenti.Ner.Core.NumberExType.Meter || nex.ExTyp == Pullenti.Ner.Core.NumberExType.Kilometer))) 
                     {
-                        Pullenti.Ner.Address.StreetReferent sr = res[i].Referent as Pullenti.Ner.Address.StreetReferent;
-                        if (sr == null) 
-                            continue;
-                        if ((sr.Numbers == null || sr.Names.Count > 0 || sr.Typs.Count != 1) || sr.Typs[0] != "улица") 
-                            continue;
-                        if ((i + 1) < res.Count) 
-                            continue;
-                        if (res[i - 1].Typ == AddressItemType.City) 
-                        {
-                            Pullenti.Ner.Geo.GeoReferent geo = res[i - 1].Referent as Pullenti.Ner.Geo.GeoReferent;
-                            if (geo == null) 
-                                continue;
-                            if (geo.Typs.Contains("город")) 
-                                continue;
-                        }
-                        res[i] = res[i].Clone();
-                        res[i].Typ = AddressItemType.House;
-                        res[i].Value = sr.Numbers;
-                        res[i].Referent = null;
+                        res.EndToken = (tt = nex.EndToken);
+                        Pullenti.Ner.Core.NumberExType tyy = Pullenti.Ner.Core.NumberExType.Meter;
+                        res.DetailMeters = (int)nex.NormalizeValue(ref tyy);
+                        continue;
                     }
                 }
+                break;
             }
-            for (int i = 0; i < (res.Count - 2); i++) 
+            if (firstNum && res.DetailType == Pullenti.Ner.Address.AddressDetailType.Undefined) 
+                return null;
+            if (res != null && res.EndToken.Next != null && res.EndToken.Next.Morph.Class.IsPreposition) 
             {
-                if (res[i].Typ == AddressItemType.Region && res[i + 1].Typ == AddressItemType.Number && res[i + 2].Typ == AddressItemType.City) 
-                {
-                    bool ok = false;
-                    for (int j = i + 3; j < res.Count; j++) 
-                    {
-                        if (res[j].Typ == AddressItemType.Street || res[j].Value != null) 
-                            ok = true;
-                    }
-                    if (ok) 
-                    {
-                        res.RemoveAt(i + 1);
-                        break;
-                    }
-                }
+                if (res.EndToken.WhitespacesAfterCount == 1 && res.EndToken.Next.WhitespacesAfterCount == 1) 
+                    res.EndToken = res.EndToken.Next;
+            }
+            if (res != null && res.EndToken.Next != null) 
+            {
+                if (res.EndToken.Next.IsHiphen || res.EndToken.Next.IsChar(':')) 
+                    res.EndToken = res.EndToken.Next;
             }
             return res;
         }

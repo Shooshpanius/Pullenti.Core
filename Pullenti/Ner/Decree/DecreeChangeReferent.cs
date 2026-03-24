@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -47,6 +47,10 @@ namespace Pullenti.Ner.Decree
         /// </summary>
         public const string ATTR_PARAM = "PARAM";
         /// <summary>
+        /// Имя атрибута - дополнительный параметр DecreeChangeValueReferent для содержимого, относительно которого идёт изменение
+        /// </summary>
+        public const string ATTR_LOCVALUE = "LOCVALUE";
+        /// <summary>
         /// Имя атрибута - разное
         /// </summary>
         public const string ATTR_MISC = "MISC";
@@ -59,6 +63,8 @@ namespace Pullenti.Ner.Decree
             {
                 res.AppendFormat("'{0}' ", o.ToStringEx(true, lang, 0));
             }
+            if (LocValue != null) 
+                res.AppendFormat("[{0}] ", LocValue.ToStringEx(true, lang, 0));
             if (Value != null) 
                 res.AppendFormat("{0} ", Value.ToStringEx(true, lang, 0));
             if (Param != null) 
@@ -96,7 +102,7 @@ namespace Pullenti.Ner.Decree
                     if (res is DecreeChangeKind) 
                         return (DecreeChangeKind)res;
                 }
-                catch(Exception ex1829) 
+                catch(Exception ex1893) 
                 {
                 }
                 return DecreeChangeKind.Undefined;
@@ -170,6 +176,20 @@ namespace Pullenti.Ner.Decree
                 this.AddSlot(ATTR_PARAM, value, true, 0);
             }
         }
+        /// <summary>
+        /// Дополнительный параметр (значение, относительно которого идёт изменение)
+        /// </summary>
+        public DecreeChangeValueReferent LocValue
+        {
+            get
+            {
+                return this.GetSlotValue(ATTR_LOCVALUE) as DecreeChangeValueReferent;
+            }
+            set
+            {
+                this.AddSlot(ATTR_LOCVALUE, value, true, 0);
+            }
+        }
         public override bool CanBeEquals(Pullenti.Ner.Referent obj, Pullenti.Ner.Core.ReferentsEqualType typ = Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)
         {
             return obj == this;
@@ -178,7 +198,7 @@ namespace Pullenti.Ner.Decree
         {
             if (Kind == DecreeChangeKind.Undefined) 
                 return false;
-            if ((Kind == DecreeChangeKind.Expire || Kind == DecreeChangeKind.Remove || Kind == DecreeChangeKind.Suspend) || Kind == DecreeChangeKind.Error) 
+            if (((Kind == DecreeChangeKind.Expire || Kind == DecreeChangeKind.ExpireChanges || Kind == DecreeChangeKind.Remove) || Kind == DecreeChangeKind.Suspend || Kind == DecreeChangeKind.Error) || Kind == DecreeChangeKind.Confidential) 
                 return true;
             if (Value == null) 
                 return false;

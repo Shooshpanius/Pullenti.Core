@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -36,9 +36,17 @@ namespace Pullenti.Ner.Resume
         /// </summary>
         public const string ATTR_REF = "REF";
         /// <summary>
+        /// Имя атрибуты - ссылка на временной диапазон (для времени работы)
+        /// </summary>
+        public const string ATTR_DATERANGE = "DATERANGE";
+        /// <summary>
         /// Имя атрибута - признак снятия резюме
         /// </summary>
         public const string ATTR_EXPIRED = "EXPIRED";
+        /// <summary>
+        /// Имя атрибута - разная мелочь, если есть
+        /// </summary>
+        public const string ATTR_MISC = "MISC";
         /// <summary>
         /// Тип элемента
         /// </summary>
@@ -53,7 +61,7 @@ namespace Pullenti.Ner.Resume
                 {
                     return (ResumeItemType)Enum.Parse(typeof(ResumeItemType), str, true);
                 }
-                catch(Exception ex5153) 
+                catch(Exception ex5278) 
                 {
                 }
                 return ResumeItemType.Undefined;
@@ -78,6 +86,20 @@ namespace Pullenti.Ner.Resume
             }
         }
         /// <summary>
+        /// Дополнительная инфа
+        /// </summary>
+        public string Misc
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_MISC);
+            }
+            set
+            {
+                this.AddSlot(ATTR_MISC, value, true, 0);
+            }
+        }
+        /// <summary>
         /// Ссылка на сущность, если есть
         /// </summary>
         public Pullenti.Ner.Referent Ref
@@ -89,6 +111,20 @@ namespace Pullenti.Ner.Resume
             set
             {
                 this.AddSlot(ATTR_REF, value, true, 0);
+            }
+        }
+        /// <summary>
+        /// Ссылка на диапазон или дату (для времени работы или учёбы)
+        /// </summary>
+        public Pullenti.Ner.Referent DateRange
+        {
+            get
+            {
+                return this.GetSlotValue(ATTR_DATERANGE) as Pullenti.Ner.Referent;
+            }
+            set
+            {
+                this.AddSlot(ATTR_DATERANGE, value, true, 0);
             }
         }
         /// <summary>
@@ -109,12 +145,21 @@ namespace Pullenti.Ner.Resume
         {
             StringBuilder tmp = new StringBuilder();
             tmp.AppendFormat("{0}: ", MetaResume.Types.ConvertInnerValueToOuterValue(this.GetStringValue(ATTR_TYPE), null));
-            if (Value != null) 
-                tmp.Append(Value);
-            else if (Ref != null) 
+            if (Ref != null) 
+            {
+                Pullenti.Ner.Referent dt = DateRange;
+                if (dt != null) 
+                    tmp.AppendFormat("{0}: ", dt.ToStringEx(true, null, 0));
                 tmp.Append(Ref.ToStringEx(shortVariant, lang, lev + 1));
+                if (Value != null) 
+                    tmp.AppendFormat(" ({0})", Value);
+            }
+            else if (Value != null) 
+                tmp.Append(Value);
             if (Expired) 
                 tmp.Append(" (не актуально)");
+            if (Misc != null) 
+                tmp.AppendFormat(" ({0})", Misc);
             return tmp.ToString();
         }
         public override Pullenti.Ner.Core.IntOntologyItem CreateOntologyItem()

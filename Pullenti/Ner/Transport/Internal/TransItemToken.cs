@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -920,6 +920,10 @@ namespace Pullenti.Ner.Transport.Internal
                 doubt++;
             TransItemToken res = new TransItemToken(t0, t) { Typ = Typs.Number, Kind = Pullenti.Ner.Transport.TransportKind.Auto };
             res.Value = string.Format("{0}{1}{2}", v1.CyrWord, nt.GetSourceText(), v2.CyrWord);
+            if (t.Next != null && t.Next.IsComma) 
+                t = t.Next;
+            if (t.Next != null && t.Next.IsValue("РЕГИОН", null)) 
+                t = t.Next;
             nt = t.Next as Pullenti.Ner.NumberToken;
             if (((nt != null && nt.IntValue != null && nt.Typ == Pullenti.Ner.NumberSpellingType.Digit) && !nt.Morph.Class.IsAdjective && nt.IntValue != null) && (nt.IntValue.Value < 1000) && (t.WhitespacesAfterCount < 2)) 
             {
@@ -928,6 +932,11 @@ namespace Pullenti.Ner.Transport.Internal
                     n = "0" + n;
                 res.AltValue = n;
                 res.EndToken = nt;
+                if (nt.Next != null && nt.Next.IsValue("РЕГИОН", null)) 
+                {
+                    res.EndToken = nt.Next;
+                    doubt = 0;
+                }
             }
             if (res.EndToken.Next != null && res.EndToken.Next.IsValue("RUS", null)) 
             {
@@ -1019,8 +1028,8 @@ namespace Pullenti.Ner.Transport.Internal
             {
                 m_Ontology.Add(new TransTermin(s, true) { Typ = Typs.Noun, Lang = Pullenti.Morph.MorphLang.UA, Kind = Pullenti.Ner.Transport.TransportKind.Space });
             }
-            _loadBrands(m_Cars, Pullenti.Ner.Transport.TransportKind.Auto);
-            _loadBrands(m_Flys, Pullenti.Ner.Transport.TransportKind.Fly);
+            LoadBrands(m_Cars, Pullenti.Ner.Transport.TransportKind.Auto);
+            LoadBrands(m_Flys, Pullenti.Ner.Transport.TransportKind.Fly);
         }
         class TransTermin : Pullenti.Ner.Core.Termin
         {
@@ -1033,9 +1042,9 @@ namespace Pullenti.Ner.Transport.Internal
             }
         }
 
-        static void _loadBrands(string str, Pullenti.Ner.Transport.TransportKind kind)
+        public static void LoadBrands(string str, Pullenti.Ner.Transport.TransportKind kind)
         {
-            string[] cars = str.Split(';');
+            string[] cars = (str.IndexOf(';') > 0 ? str.Split(';') : str.Split('\n'));
             List<string> vars = new List<string>();
             foreach (string c in cars) 
             {

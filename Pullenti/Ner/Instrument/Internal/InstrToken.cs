@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -169,7 +169,7 @@ namespace Pullenti.Ner.Instrument.Internal
                 InstrToken it = InstrToken.Parse(t, maxChar, (res.Count > 0 ? res[res.Count - 1] : null));
                 if (it == null) 
                     break;
-                if (res.Count == 43) 
+                if (res.Count == 50) 
                 {
                 }
                 if (it.LengthChar > 1000) 
@@ -321,7 +321,9 @@ namespace Pullenti.Ner.Instrument.Internal
                     isStartOfLine = true;
                 while (t != null) 
                 {
-                    if (t.IsTableControlChar && !t.IsChar((char)0x1F)) 
+                    if (t.IsChar((char)0x1F)) 
+                        return new InstrToken(t00, t) { NoWords = true };
+                    else if (t.IsTableControlChar) 
                     {
                         if (t.IsNewlineAfter && !isStartOfLine) 
                             isStartOfLine = true;
@@ -423,6 +425,8 @@ namespace Pullenti.Ner.Instrument.Internal
                         return new InstrToken(t00, t11 ?? t) { Typ = ILTypes.Person, Ref = t };
                 }
                 Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, null, false);
+                if ((dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number && prev != null) && prev.Typ == ILTypes.Appendix) 
+                    dt = null;
                 if (dt != null) 
                 {
                     if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ && !t.Chars.IsAllLower) 
@@ -678,13 +682,10 @@ namespace Pullenti.Ner.Instrument.Internal
                 if (isStartOfLine && !tte.Chars.IsAllLower && t == t0) 
                 {
                     Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tte, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                    if (npt != null && ((term == "ПРИЛОЖЕНИЯ" || term == "ДОДАТКИ"))) 
-                        // if (tte.Next != null && tte.Next.IsChar(':'))
-                        npt = null;
                     if (npt != null && npt.Morph.Case.IsNominative && (npt.EndToken is Pullenti.Ner.TextToken)) 
                     {
                         string term1 = (npt.EndToken as Pullenti.Ner.TextToken).Term;
-                        if (((term1 == "ПРИЛОЖЕНИЕ" || term1 == "ДОДАТОК" || term1 == "МНЕНИЕ") || term1 == "ДУМКА" || term1 == "АКТ") || term == "ЗАЯВКА") 
+                        if ((((term1 == "ПРИЛОЖЕНИЕ" || term1 == "ДОДАТОК" || term1 == "МНЕНИЕ") || term1 == "ДУМКА" || term1 == "АКТ") || term == "ЗАЯВКА" || term1 == "ПРИЛОЖЕНИЯ") || term == "ДОДАТКИ") 
                         {
                             Pullenti.Ner.Token tt1 = npt.EndToken.Next;
                             Pullenti.Ner.Decree.Internal.DecreeToken dt1 = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt1, null, false);
@@ -695,11 +696,17 @@ namespace Pullenti.Ner.Instrument.Internal
                             else if ((tt1 is Pullenti.Ner.TextToken) && tt1.LengthChar == 1 && tt1.Chars.IsLetter) 
                                 tt1 = tt1.Next;
                             bool ok = true;
+                            if (tt1 != null && tt1.IsHiphen && (tt1.Next is Pullenti.Ner.NumberToken)) 
+                                tt1 = tt1.Next.Next;
+                            else if (term1 == "ПРИЛОЖЕНИЯ" || term == "ДОДАТКИ") 
+                                ok = false;
                             if (tt1 == null) 
                                 ok = false;
                             else if (tt1.IsValue("В", "У")) 
                                 ok = false;
                             else if (tt1.IsValue("К", null) && tt1.IsNewlineBefore) 
+                                return new InstrToken(t, t) { Typ = ILTypes.Appendix, Value = term1 };
+                            else if (tt1.IsValue("УТРАТИТЬ", null)) 
                                 return new InstrToken(t, t) { Typ = ILTypes.Appendix, Value = term1 };
                             else if (!tt1.IsNewlineBefore && _checkEntered(tt1) != null) 
                                 ok = false;
@@ -716,6 +723,8 @@ namespace Pullenti.Ner.Instrument.Internal
                                         ok = true;
                                 }
                             }
+                            if (term1 == "ПРИЛОЖЕНИЯ" || term == "ДОДАТКИ") 
+                                ok = false;
                             if (ok) 
                             {
                                 Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tt1, Pullenti.Ner.Core.BracketParseAttr.No, 100);
@@ -841,6 +850,8 @@ namespace Pullenti.Ner.Instrument.Internal
                 t1 = t;
                 isStartOfLine = false;
             }
+            if (t1 == null) 
+                t1 = t;
             if (t1 == null) 
                 return null;
             InstrToken res = new InstrToken(t00, t1) { Typ = ILTypes.Undefined };

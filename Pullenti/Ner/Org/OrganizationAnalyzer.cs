@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -985,7 +985,7 @@ namespace Pullenti.Ner.Org
                                     {
                                         adj = Pullenti.Morph.MorphologyService.GetWordform(tt.Previous.GetSourceText().ToUpper(), new Pullenti.Morph.MorphBaseInfo() { Class = Pullenti.Morph.MorphClass.Adjective, Gender = gen, Language = tt.Previous.Morph.Language });
                                     }
-                                    catch(Exception ex4691) 
+                                    catch(Exception ex4788) 
                                     {
                                     }
                                     if (adj != null && !adj.StartsWith("УПОЛНОМОЧ") && !adj.StartsWith("ОПЕРУПОЛНОМОЧ")) 
@@ -1004,7 +1004,7 @@ namespace Pullenti.Ner.Org
                                                     {
                                                         adj = Pullenti.Morph.MorphologyService.GetWordform(adj, new Pullenti.Morph.MorphBaseInfo() { Class = Pullenti.Morph.MorphClass.Adjective, Gender = gen, Language = tt0.Morph.Language });
                                                     }
-                                                    catch(Exception ex4695) 
+                                                    catch(Exception ex4792) 
                                                     {
                                                     }
                                                 }
@@ -1296,11 +1296,79 @@ namespace Pullenti.Ner.Org
         }
         static Pullenti.Ner.ReferentToken TryAttachSpec(Pullenti.Ner.Token t)
         {
+            if (t == null) 
+                return null;
             Pullenti.Ner.ReferentToken rt = TryAttachPropNames(t);
             if (rt == null) 
                 rt = TryAttachPoliticParty(t, false);
             if (rt == null) 
                 rt = TryAttachArmy(t);
+            if (rt != null) 
+                return rt;
+            Pullenti.Ner.Token tt1 = null;
+            bool doubt = false;
+            if (t.IsValue("ОРГАНИЗАЦИЯ", null) && ((t.IsNewlineBefore || ((t.Previous != null && t.Previous.IsValue("В", null)))))) 
+                tt1 = t.Next;
+            else if ((t is Pullenti.Ner.NumberToken) && t.Next != null && ((t.Next.IsValue("ГОД", null) || t.Next.IsValue("ЛЕТ", null)))) 
+            {
+                Pullenti.Ner.Token tt = t.Next.Next;
+                if ((tt is Pullenti.Ner.NumberToken) && tt.Next != null && tt.Next.IsValue("МЕСЯЦ", null)) 
+                    tt = tt.Next.Next;
+                if (tt != null && tt.IsTableControlChar) 
+                    tt1 = tt;
+            }
+            else if (t.GetReferent() != null && t.GetReferent().TypeName == "DATERANGE" && ((t.IsNewlineBefore || t.Previous.IsTableControlChar))) 
+            {
+                tt1 = t.Next;
+                doubt = true;
+            }
+            if (tt1 != null) 
+            {
+                t = tt1;
+                for (; t != null; t = t.Next) 
+                {
+                    if (!t.IsChar(':') && !t.IsTableControlChar) 
+                        break;
+                }
+                if (t == null || t.Chars.IsAllLower) 
+                    return null;
+                Pullenti.Ner.Org.Internal.OrgItemNameToken nam = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t, null, true, true);
+                if (nam != null) 
+                {
+                    OrganizationReferent org = new OrganizationReferent();
+                    org.AddName(nam.Value, true, null);
+                    Pullenti.Ner.ReferentToken rt1 = new Pullenti.Ner.ReferentToken(org, t, nam.EndToken);
+                    Pullenti.Ner.Token tt = rt1.EndToken.Next;
+                    if (tt != null && tt.IsComma) 
+                        tt = tt.Next;
+                    if (tt != null && (tt.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                    {
+                        rt1.EndToken = tt;
+                        org.AddSlot(OrganizationReferent.ATTR_GEO, tt.GetReferent(), false, 0);
+                        tt = tt.Next;
+                    }
+                    Pullenti.Ner.Org.Internal.OrgItemTypeToken typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(tt, true);
+                    if (typ != null) 
+                    {
+                        org.AddType(typ, false);
+                        rt1.EndToken = typ.EndToken;
+                        doubt = false;
+                    }
+                    if (rt1.IsNewlineAfter || rt1.EndToken.Next.IsTableControlChar || rt1.EndToken.Next.IsHiphen) 
+                    {
+                        if (!doubt) 
+                            return rt1;
+                        for (t = rt1.EndToken.Next; t != null; t = t.Next) 
+                        {
+                            Pullenti.Ner.ReferentToken pp = t.Kit.ProcessReferent("PERSONPROPERTY", t, null);
+                            if (pp != null) 
+                                return rt1;
+                            if (t.LengthChar > 1) 
+                                break;
+                        }
+                    }
+                }
+            }
             return rt;
         }
         static void _doPostAnalyze(Pullenti.Ner.ReferentToken rt)
@@ -1388,9 +1456,10 @@ namespace Pullenti.Ner.Org
             }
             if (rt.EndToken.Next == null) 
                 return;
+            OrganizationReferent org = rt.Referent as OrganizationReferent;
             if (rt.BeginToken.Previous != null && rt.BeginToken.Previous.Morph.Class.IsAdjective && (rt.WhitespacesBeforeCount < 2)) 
             {
-                if ((rt.Referent as OrganizationReferent).GeoObjects.Count == 0) 
+                if (org.GeoObjects.Count == 0) 
                 {
                     object geo = IsGeo(rt.BeginToken.Previous, true);
                     if (geo != null) 
@@ -1407,6 +1476,16 @@ namespace Pullenti.Ner.Org
             {
                 br = true;
                 ttt = ttt.Next;
+            }
+            if ((ttt is Pullenti.Ner.TextToken) && (rt.WhitespacesAfterCount < 3) && (ttt as Pullenti.Ner.TextToken).Term == "ТУ") 
+            {
+                if (org.Profiles.Contains(OrgProfile.Education) || org.Types.Contains("институт")) 
+                {
+                    if (br && ttt.Next != null && ttt.Next.IsChar(')')) 
+                        rt.EndToken = (ttt = ttt.Next);
+                    else if (!br) 
+                        rt.EndToken = ttt;
+                }
             }
             List<Pullenti.Ner.Referent> refs = new List<Pullenti.Ner.Referent>();
             bool keyword = false;
@@ -2309,4556 +2388,6 @@ namespace Pullenti.Ner.Org
                 throw new Exception(ex.Message, ex);
             }
             Pullenti.Ner.ProcessorService.RegisterAnalyzer(new OrganizationAnalyzer());
-        }
-        static Pullenti.Ner.ReferentToken TryAttachDepBeforeOrg(Pullenti.Ner.Org.Internal.OrgItemTypeToken typ, Pullenti.Ner.ReferentToken rtOrg)
-        {
-            if (typ == null) 
-                return null;
-            OrganizationReferent org = (rtOrg == null ? null : rtOrg.Referent as OrganizationReferent);
-            Pullenti.Ner.Token t = typ.EndToken;
-            if (org == null) 
-            {
-                t = t.Next;
-                if (t != null && ((t.IsValue("ПРИ", null) || t.IsValue("AT", null) || t.IsValue("OF", null)))) 
-                    t = t.Next;
-                if (t == null) 
-                    return null;
-                org = t.GetReferent() as OrganizationReferent;
-            }
-            else 
-                t = rtOrg.EndToken;
-            if (org == null) 
-                return null;
-            Pullenti.Ner.Token t1 = t;
-            if (t1.Next is Pullenti.Ner.ReferentToken) 
-            {
-                Pullenti.Ner.Geo.GeoReferent geo0 = t1.Next.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
-                if (geo0 != null && geo0.Alpha2 == "RU") 
-                    t1 = t1.Next;
-            }
-            OrganizationReferent dep = new OrganizationReferent();
-            dep.AddType(typ, false);
-            if (typ.Name != null) 
-            {
-                string nam = typ.Name;
-                if (char.IsDigit(nam[0])) 
-                {
-                    int i = nam.IndexOf(' ');
-                    if (i > 0) 
-                    {
-                        dep.Number = nam.Substring(0, i);
-                        nam = nam.Substring(i + 1).Trim();
-                    }
-                }
-                dep.AddName(nam, true, null);
-            }
-            string ttt = (typ.Root != null ? typ.Root.CanonicText : typ.Typ.ToUpper());
-            if ((((ttt == "ОТДЕЛЕНИЕ" || ttt == "ИНСПЕКЦИЯ" || ttt == "ВІДДІЛЕННЯ") || ttt == "ІНСПЕКЦІЯ")) && !t1.IsNewlineAfter) 
-            {
-                Pullenti.Ner.Org.Internal.OrgItemNumberToken num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next, false, typ);
-                if (num != null) 
-                {
-                    dep.Number = num.Number;
-                    t1 = num.EndToken;
-                }
-            }
-            if (dep.Types.Contains("главное управление") || dep.Types.Contains("головне управління") || dep.TypeName.Contains("пограничное управление")) 
-            {
-                if (typ.BeginToken == typ.EndToken) 
-                {
-                    if (org.Kind != OrganizationKind.Govenment && org.Kind != OrganizationKind.Bank) 
-                        return null;
-                }
-            }
-            if (!Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org, dep, false) && ((typ.Root == null || !typ.Root.CanBeNormalDep))) 
-            {
-                if (dep.Types.Count > 0 && org.Types.Contains(dep.Types[0]) && dep.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
-                    dep.MergeSlots(org, false);
-                else if (typ.Typ == "управление" || typ.Typ == "управління") 
-                    dep.Higher = org;
-                else 
-                    return null;
-            }
-            else 
-                dep.Higher = org;
-            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(dep, typ.BeginToken, t1);
-            if ((res.BeginToken.Previous is Pullenti.Ner.ReferentToken) && org != null && org.CanBeEquals(res.BeginToken.Previous.GetReferent(), Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
-                res.BeginToken = res.BeginToken.Previous;
-            CorrectDepAttrs(res, typ, false);
-            if (typ.Root != null && !typ.Root.CanBeNormalDep && dep.Number == null) 
-            {
-                if (typ.Name != null && typ.Name.Contains(" ")) 
-                {
-                }
-                else if (dep.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
-                {
-                }
-                else if (typ.Root.Coeff > 0 && typ.Morph.Number != Pullenti.Morph.MorphNumber.Plural) 
-                {
-                }
-                else if (typ.Typ == "управління" && typ.Chars.IsCapitalUpper) 
-                {
-                }
-                else 
-                    return null;
-            }
-            return res;
-        }
-        static Pullenti.Ner.ReferentToken TryAttachDepAfterOrg(Pullenti.Ner.Org.Internal.OrgItemTypeToken typ)
-        {
-            if (typ == null) 
-                return null;
-            Pullenti.Ner.Token t = typ.BeginToken.Previous;
-            if (t != null && t.IsCharOf(":(")) 
-                t = t.Previous;
-            if (t == null) 
-                return null;
-            OrganizationReferent org = t.GetReferent() as OrganizationReferent;
-            if (org == null) 
-                return null;
-            Pullenti.Ner.Token t1 = typ.EndToken;
-            OrganizationReferent dep = new OrganizationReferent();
-            dep.AddType(typ, false);
-            if (typ.Name != null) 
-                dep.AddName(typ.Name, true, null);
-            if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org, dep, false)) 
-                dep.Higher = org;
-            else if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(dep, org, false) && org.Higher == null) 
-            {
-                org.Higher = dep;
-                t = t.Next;
-            }
-            else 
-                t = t.Next;
-            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(dep, t, t1);
-            CorrectDepAttrs(res, typ, false);
-            if (dep.FindSlot(OrganizationReferent.ATTR_GEO, null, true) == null) 
-            {
-                if (typ.Root.CanHasNumber && dep.Number != null && dep.Higher != null) 
-                {
-                }
-                else 
-                    return null;
-            }
-            return res;
-        }
-        static Pullenti.Ner.ReferentToken TryAttachDep(Pullenti.Ner.Org.Internal.OrgItemTypeToken typ, AttachType attachTyp, bool specWordBefore)
-        {
-            if (typ == null) 
-                return null;
-            OrganizationReferent afterOrg = null;
-            bool afterOrgTemp = false;
-            if ((typ.IsNewlineAfter && typ.Name == null && typ.Typ != "курс") && ((typ.Root == null || !typ.Root.CanBeNormalDep))) 
-            {
-                Pullenti.Ner.Token tt2 = typ.EndToken.Next;
-                if (!specWordBefore || tt2 == null) 
-                    return null;
-                if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(tt2, false, false)) 
-                {
-                }
-                else 
-                    return null;
-            }
-            if (typ.EndToken.Next != null && (typ.EndToken.WhitespacesAfterCount < 2)) 
-            {
-                if (typ.EndToken.Next.GetReferent() is OrganizationReferent) 
-                    afterOrg = typ.EndToken.Next.GetReferent() as OrganizationReferent;
-                else 
-                {
-                    Pullenti.Ner.Org.Internal.OrgItemNameToken na0 = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(typ.EndToken.Next, null, false, true);
-                    bool inBr = false;
-                    if (na0 != null) 
-                    {
-                        if (typ.Typ == "созыв" || typ.Typ == "курс") 
-                            return null;
-                    }
-                    if (na0 != null && ((na0.StdOrgNameNouns > 0 || na0.IsStdName))) 
-                    {
-                        if (typ.Typ == "управление" && na0.Morph != null && na0.Morph.Case.IsInstrumental) 
-                        {
-                        }
-                        else 
-                            specWordBefore = true;
-                    }
-                    else 
-                    {
-                        Pullenti.Ner.ReferentToken rt00 = TryAttachOrg(typ.EndToken.Next, AttachType.NormalAfterDep, null, false, -1);
-                        if (rt00 == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(typ.EndToken.Next, true, false)) 
-                        {
-                            rt00 = TryAttachOrg(typ.EndToken.Next.Next, AttachType.NormalAfterDep, null, false, -1);
-                            if (rt00 != null) 
-                            {
-                                inBr = true;
-                                if (rt00.EndToken.Next == null) 
-                                {
-                                }
-                                else if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt00.EndToken, true, null, false)) 
-                                {
-                                }
-                                else if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt00.EndToken.Next, true, null, false)) 
-                                    rt00.EndToken = rt00.EndToken.Next;
-                                else 
-                                    rt00 = null;
-                                if (rt00 != null) 
-                                    rt00.BeginToken = typ.EndToken.Next;
-                            }
-                        }
-                        if (rt00 != null) 
-                        {
-                            afterOrg = rt00.Referent as OrganizationReferent;
-                            specWordBefore = true;
-                            afterOrgTemp = true;
-                            if (afterOrg.ContainsProfile(OrgProfile.Unit) && inBr) 
-                            {
-                                afterOrg = null;
-                                afterOrgTemp = false;
-                            }
-                        }
-                        else if ((typ.EndToken.Next is Pullenti.Ner.TextToken) && typ.EndToken.Next.Chars.IsAllUpper) 
-                        {
-                            List<Pullenti.Ner.ReferentToken> rrr = TryAttachOrgs(typ.EndToken.Next, 0);
-                            if (rrr != null && rrr.Count == 1) 
-                            {
-                                afterOrg = rrr[0].Referent as OrganizationReferent;
-                                specWordBefore = true;
-                                afterOrgTemp = true;
-                            }
-                        }
-                    }
-                }
-            }
-            if ((((((((typ.Root != null && typ.Root.CanBeNormalDep && !specWordBefore) && typ.Typ != "отдел" && typ.Typ != "отделение") && typ.Typ != "инспекция" && typ.Typ != "филиал") && typ.Typ != "аппарат" && typ.Typ != "відділення") && typ.Typ != "інспекція" && typ.Typ != "філія") && typ.Typ != "апарат" && typ.Typ != "совет") && typ.Typ != "рада" && (typ.Typ.IndexOf(' ') < 0)) && attachTyp != AttachType.ExtOntology) 
-                return null;
-            if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural) 
-            {
-                if (!typ.BeginToken.IsValue("ОСП", null)) 
-                    return null;
-            }
-            OrganizationReferent dep = null;
-            Pullenti.Ner.Token t0 = typ.BeginToken;
-            Pullenti.Ner.Token t1 = typ.EndToken;
-            dep = new OrganizationReferent();
-            dep.AddTypeStr(typ.Typ.ToLower());
-            dep.AddProfile(OrgProfile.Unit);
-            if (typ.Number != null) 
-                dep.Number = typ.Number;
-            else if (typ.Typ == "курс" && !typ.IsNewlineBefore) 
-            {
-                Pullenti.Ner.NumberToken nnn = Pullenti.Ner.Core.NumberHelper.TryParseRomanBack(typ.BeginToken.Previous);
-                if (nnn != null && nnn.IntValue != null) 
-                {
-                    if (nnn.IntValue.Value >= 1 && nnn.IntValue.Value <= 6) 
-                    {
-                        dep.Number = nnn.Value.ToString();
-                        t0 = nnn.BeginToken;
-                    }
-                }
-            }
-            Pullenti.Ner.Token t = typ.EndToken.Next;
-            t1 = typ.EndToken;
-            if ((typ.Number == null && ((typ.Typ == "отдел" || typ.Typ == "лаборатория")) && (typ.EndToken.Next is Pullenti.Ner.NumberToken)) && specWordBefore && (typ.WhitespacesAfterCount < 3)) 
-            {
-                t1 = typ.EndToken.Next;
-                dep.Number = (t1 as Pullenti.Ner.NumberToken).Value;
-                typ.Coef += 2;
-            }
-            if ((t is Pullenti.Ner.TextToken) && afterOrg == null && (((Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "аппарат") || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "апарат") || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "совет")) || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "рада")))) 
-            {
-                Pullenti.Ner.Token tt1 = t;
-                if (tt1.IsValue("ПРИ", null)) 
-                    tt1 = tt1.Next;
-                Pullenti.Ner.ReferentToken pr1 = t.Kit.ProcessReferent("PERSON", tt1, null);
-                if (pr1 != null && pr1.Referent.TypeName == "PERSONPROPERTY") 
-                {
-                    dep.AddSlot(OrganizationReferent.ATTR_OWNER, pr1.Referent, true, 0);
-                    pr1.SetDefaultLocalOnto(t.Kit.Processor);
-                    dep.AddExtReferent(pr1);
-                    if (Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "рат")) 
-                        return new Pullenti.Ner.ReferentToken(dep, t0, pr1.EndToken);
-                    t1 = pr1.EndToken;
-                    t = t1.Next;
-                }
-            }
-            Pullenti.Ner.Referent beforeOrg = null;
-            for (Pullenti.Ner.Token ttt = typ.BeginToken.Previous; ttt != null; ttt = ttt.Previous) 
-            {
-                if (ttt.GetReferent() is OrganizationReferent) 
-                {
-                    beforeOrg = ttt.GetReferent();
-                    break;
-                }
-                else if (!(ttt is Pullenti.Ner.TextToken)) 
-                    break;
-                else if (ttt.Chars.IsLetter) 
-                    break;
-            }
-            Pullenti.Ner.Org.Internal.OrgItemNumberToken num = null;
-            List<Pullenti.Ner.Org.Internal.OrgItemNameToken> names = null;
-            Pullenti.Ner.Core.BracketSequenceToken br = null;
-            Pullenti.Ner.Core.BracketSequenceToken br00 = null;
-            Pullenti.Ner.Org.Internal.OrgItemNameToken pr = null;
-            Pullenti.Ner.Org.Internal.OrgItemTypeToken ty0;
-            bool isPureOrg = false;
-            bool isPureDep = false;
-            if (typ.Typ == "операционное управление" || typ.Typ == "операційне управління") 
-                isPureDep = true;
-            Pullenti.Ner.Token afterOrgTok = null;
-            Pullenti.Ner.Core.BracketSequenceToken brName = null;
-            float coef = typ.Coef;
-            for (; t != null; t = t.Next) 
-            {
-                if (afterOrgTemp) 
-                    break;
-                if (t.IsChar(':')) 
-                {
-                    if (t.IsNewlineAfter) 
-                        break;
-                    if (names != null || typ.Name != null) 
-                        break;
-                    continue;
-                }
-                if ((((num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t, false, typ)))) != null) 
-                {
-                    if (t.IsNewlineBefore || typ.Number != null) 
-                        break;
-                    if (typ.Root != null && !typ.Root.CanHasNumber) 
-                        break;
-                    if ((typ.BeginToken.Previous is Pullenti.Ner.NumberToken) && (typ.WhitespacesBeforeCount < 2)) 
-                    {
-                        Pullenti.Ner.Org.Internal.OrgItemTypeToken typ2 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(num.EndToken.Next, true);
-                        if (typ2 != null && typ2.Root != null && ((typ2.Root.CanHasNumber || typ2.IsDep))) 
-                        {
-                            typ.BeginToken = typ.BeginToken.Previous;
-                            typ.Number = (typ.BeginToken as Pullenti.Ner.NumberToken).Value;
-                            dep.Number = typ.Number;
-                            num = null;
-                            coef += 1;
-                            break;
-                        }
-                    }
-                    t1 = num.EndToken;
-                    t = num.EndToken.Next;
-                    break;
-                }
-                else if ((((ty0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t, true)))) != null && ty0.Morph.Number != Pullenti.Morph.MorphNumber.Plural && !ty0.IsDoubtRootWord) 
-                    break;
-                else if ((((br00 = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100)))) != null && names == null) 
-                {
-                    br = br00;
-                    if (!br.IsQuoteType || brName != null) 
-                        br = null;
-                    else if (t.IsNewlineBefore && !specWordBefore) 
-                        br = null;
-                    else 
-                    {
-                        bool ok1 = true;
-                        for (Pullenti.Ner.Token tt = br.BeginToken; tt != br.EndToken; tt = tt.Next) 
-                        {
-                            if (tt is Pullenti.Ner.ReferentToken) 
-                            {
-                                ok1 = false;
-                                break;
-                            }
-                        }
-                        if (ok1) 
-                        {
-                            brName = br;
-                            t1 = br.EndToken;
-                            t = t1.Next;
-                        }
-                        else 
-                            br = null;
-                    }
-                    break;
-                }
-                else 
-                {
-                    Pullenti.Ner.Referent r = t.GetReferent();
-                    if ((r == null && t.Morph.Class.IsPreposition && t.Next != null) && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
-                    {
-                        dep.AddGeoObject(t.Next.GetReferent());
-                        t = t.Next;
-                        break;
-                    }
-                    if (r != null) 
-                    {
-                        if (r is OrganizationReferent) 
-                        {
-                            afterOrg = r as OrganizationReferent;
-                            afterOrgTok = t;
-                            if (names == null && (t.WhitespacesAfterCount < 3) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next, true, false)) 
-                                continue;
-                            break;
-                        }
-                        if ((r is Pullenti.Ner.Geo.GeoReferent) && names != null && t.Previous != null) 
-                        {
-                            bool isName = false;
-                            if (t.Previous.IsValue("СУБЪЕКТ", null) || t.Previous.IsValue("СУБЄКТ", null)) 
-                                isName = true;
-                            if (!isName) 
-                                break;
-                        }
-                        else 
-                            break;
-                    }
-                    Pullenti.Ner.Org.Internal.OrgItemEponymToken epo = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t, true);
-                    if (epo != null) 
-                    {
-                        foreach (string e in epo.Eponyms) 
-                        {
-                            dep.AddEponym(e);
-                        }
-                        t1 = epo.EndToken;
-                        break;
-                    }
-                    if (!typ.Chars.IsAllUpper && t.Chars.IsAllUpper) 
-                    {
-                        Pullenti.Ner.Org.Internal.OrgItemNameToken na1 = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t, pr, attachTyp == AttachType.ExtOntology, false);
-                        if (na1 != null && ((na1.IsStdName || na1.StdOrgNameNouns > 0))) 
-                        {
-                        }
-                        else 
-                            break;
-                    }
-                    if ((t is Pullenti.Ner.NumberToken) && typ.Root != null && dep.Number == null) 
-                    {
-                        if (t.WhitespacesBeforeCount > 1 || !typ.Root.CanHasNumber) 
-                            break;
-                        if ((typ.BeginToken.Previous is Pullenti.Ner.NumberToken) && (typ.WhitespacesBeforeCount < 2)) 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ2 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, true);
-                            if (typ2 != null && typ2.Root != null && ((typ2.Root.CanHasNumber || typ2.IsDep))) 
-                            {
-                                typ.BeginToken = typ.BeginToken.Previous;
-                                dep.Number = (typ.Number = (typ.BeginToken as Pullenti.Ner.NumberToken).Value);
-                                coef += 1;
-                                break;
-                            }
-                        }
-                        dep.Number = (t as Pullenti.Ner.NumberToken).Value.ToString();
-                        t1 = t;
-                        continue;
-                    }
-                    if (isPureDep) 
-                        break;
-                    if (!t.Chars.IsAllLower) 
-                    {
-                        Pullenti.Ner.ReferentToken rtp = t.Kit.ProcessReferent("PERSON", t, null);
-                        if (rtp != null && rtp.Referent.TypeName == "PERSONPROPERTY") 
-                        {
-                            if (rtp.Morph.Case.IsGenitive && t == typ.EndToken.Next && (t.WhitespacesBeforeCount < 4)) 
-                                rtp = null;
-                        }
-                        if (rtp != null) 
-                            break;
-                    }
-                    if (typ.Typ == "генеральный штаб" || typ.Typ == "генеральний штаб") 
-                    {
-                        Pullenti.Ner.ReferentToken rtp = t.Kit.ProcessReferent("PERSONPROPERTY", t, null);
-                        if (rtp != null) 
-                            break;
-                    }
-                    Pullenti.Ner.Org.Internal.OrgItemNameToken na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t, pr, attachTyp == AttachType.ExtOntology, names == null);
-                    if (t.IsValue("ПО", null) && t.Next != null) 
-                    {
-                        Pullenti.Ner.Token tt = t.Next;
-                        if (tt.IsValue("ОБСЛУЖИВАНИЕ", null) && tt.Next != null) 
-                            tt = tt.Next;
-                        if (tt.IsValue("РАЙОН", null) || tt.IsValue("МИКРОРАЙОН", null)) 
-                            na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(tt.Next, pr, attachTyp == AttachType.ExtOntology, true);
-                    }
-                    if (t.Morph.Class.IsPreposition && ((t.IsValue("ПРИ", null) || t.IsValue("OF", null) || t.IsValue("AT", null)))) 
-                    {
-                        if ((t.Next is Pullenti.Ner.ReferentToken) && (t.Next.GetReferent() is OrganizationReferent)) 
-                        {
-                            afterOrg = t.Next.GetReferent() as OrganizationReferent;
-                            break;
-                        }
-                        Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t.Next, AttachType.NormalAfterDep, null, false, -1);
-                        if (rt0 != null) 
-                        {
-                            afterOrg = rt0.Referent as OrganizationReferent;
-                            afterOrgTemp = true;
-                            break;
-                        }
-                    }
-                    if (na == null) 
-                        break;
-                    if (names == null) 
-                    {
-                        if (t.IsNewlineBefore) 
-                            break;
-                        if (Pullenti.Ner.Core.NumberHelper.TryParseRoman(t) != null) 
-                            break;
-                        Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t, AttachType.NormalAfterDep, null, false, -1);
-                        if (rt0 != null) 
-                        {
-                            afterOrg = rt0.Referent as OrganizationReferent;
-                            afterOrgTemp = true;
-                            break;
-                        }
-                        names = new List<Pullenti.Ner.Org.Internal.OrgItemNameToken>();
-                    }
-                    else 
-                    {
-                        if (t.WhitespacesBeforeCount > 2 && !na.Chars.Equals(pr.Chars)) 
-                            break;
-                        if (t.NewlinesBeforeCount > 2) 
-                            break;
-                    }
-                    names.Add(na);
-                    pr = na;
-                    t1 = (t = na.EndToken);
-                }
-            }
-            if (afterOrg == null) 
-            {
-                for (Pullenti.Ner.Token ttt = t; ttt != null; ttt = ttt.Next) 
-                {
-                    if (ttt.GetReferent() is OrganizationReferent) 
-                    {
-                        afterOrg = ttt.GetReferent() as OrganizationReferent;
-                        break;
-                    }
-                    else if (!(ttt is Pullenti.Ner.TextToken)) 
-                        break;
-                    else if ((ttt.Chars.IsLetter && !ttt.IsValue("ПРИ", null) && !ttt.IsValue("В", null)) && !ttt.IsValue("OF", null) && !ttt.IsValue("AT", null)) 
-                        break;
-                    else if (ttt.IsChar(';') && attachTyp == AttachType.ExtOntology) 
-                        break;
-                }
-            }
-            if ((afterOrg == null && t != null && t != t0) && (t.WhitespacesBeforeCount < 2)) 
-            {
-                Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t, AttachType.NormalAfterDep, null, false, -1);
-                if (rt0 == null && (((t.IsValue("В", null) || t.IsValue("ПРИ", null) || t.IsValue("OF", null)) || t.IsValue("AT", null)))) 
-                    rt0 = TryAttachOrg(t.Next, AttachType.NormalAfterDep, null, false, -1);
-                if (rt0 != null) 
-                {
-                    afterOrg = rt0.Referent as OrganizationReferent;
-                    afterOrgTemp = true;
-                }
-            }
-            if (typ.Chars.IsCapitalUpper) 
-                coef += 0.5F;
-            else if (!typ.Chars.IsAllLower && typ.BeginToken.Chars.IsCapitalUpper) 
-                coef += 0.5F;
-            if (br != null && names == null) 
-            {
-                string nam = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
-                if (!string.IsNullOrEmpty(nam)) 
-                {
-                    if (nam.Length > 100) 
-                        return null;
-                    coef += 3;
-                    Pullenti.Ner.Org.Internal.OrgItemNameToken na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(br.BeginToken.Next, null, false, true);
-                    if (na != null && na.IsStdName) 
-                    {
-                        coef += 1;
-                        if (typ.Typ == "группа") 
-                        {
-                            dep.Slots.Clear();
-                            typ.Typ = "группа компаний";
-                            isPureOrg = true;
-                        }
-                        else if (typ.Typ == "група") 
-                        {
-                            dep.Slots.Clear();
-                            typ.Typ = "група компаній";
-                            isPureOrg = true;
-                        }
-                    }
-                    if (isPureOrg) 
-                    {
-                        dep.AddType(typ, false);
-                        dep.AddName(nam, true, null);
-                    }
-                    else 
-                        dep.AddNameStr(nam, typ, 1);
-                }
-            }
-            else if (names != null) 
-            {
-                int j;
-                if (afterOrg != null || attachTyp == AttachType.High) 
-                {
-                    coef += 3;
-                    j = names.Count;
-                }
-                else 
-                    for (j = 0; j < names.Count; j++) 
-                    {
-                        if (((names[j].IsNewlineBefore && !typ.IsNewlineBefore && !names[j].IsAfterConjunction)) || ((!names[j].Chars.Equals(names[0].Chars) && names[j].StdOrgNameNouns == 0))) 
-                            break;
-                        else 
-                        {
-                            if (names[j].Chars.Equals(typ.Chars) && !typ.Chars.IsAllLower) 
-                                coef += ((float)0.5);
-                            if (names[j].IsStdName) 
-                                coef += 2;
-                            if (names[j].StdOrgNameNouns > 0) 
-                            {
-                                if (!typ.Chars.IsAllLower) 
-                                    coef += names[j].StdOrgNameNouns;
-                            }
-                        }
-                    }
-                if (names[j - 1].EndChar > t1.EndChar) 
-                    t1 = names[j - 1].EndToken;
-                string s = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, t1, Pullenti.Ner.Core.GetTextAttr.No);
-                if (!string.IsNullOrEmpty(s)) 
-                {
-                    if (s.Length > 150 && attachTyp != AttachType.ExtOntology) 
-                        return null;
-                    dep.AddNameStr(s, typ, 1);
-                }
-                if (num != null) 
-                {
-                    dep.Number = num.Number;
-                    coef += 2;
-                    t1 = num.EndToken;
-                }
-            }
-            else if (num != null) 
-            {
-                dep.Number = num.Number;
-                coef += 2;
-                t1 = num.EndToken;
-                if (typ != null && ((typ.Typ == "лаборатория" || typ.Typ == "лабораторія"))) 
-                    coef += 1;
-                if (typ.Name != null) 
-                    dep.AddNameStr(null, typ, 1);
-            }
-            else if (typ.Name != null) 
-            {
-                if (typ.Typ == "курс" && char.IsDigit(typ.Name[0])) 
-                    dep.Number = typ.Name.Substring(0, typ.Name.IndexOf(' '));
-                else 
-                    dep.AddNameStr(null, typ, 1);
-            }
-            else if (typ.Typ == "кафедра" || typ.Typ == "факультет") 
-            {
-                t = typ.EndToken.Next;
-                if (t != null && t.IsChar(':')) 
-                    t = t.Next;
-                if ((t != null && (t is Pullenti.Ner.TextToken) && !t.IsNewlineBefore) && t.Morph.Class.IsAdjective) 
-                {
-                    if (typ.Morph.Gender == t.Morph.Gender) 
-                    {
-                        string s = t.GetNormalCaseText(Pullenti.Morph.MorphClass.Adjective, Pullenti.Morph.MorphNumber.Undefined, Pullenti.Morph.MorphGender.Undefined, false);
-                        if (s != null) 
-                        {
-                            dep.AddNameStr(string.Format("{0} {1}", s, typ.Typ.ToUpper()), null, 1);
-                            coef += 2;
-                            t1 = t;
-                        }
-                    }
-                }
-            }
-            else if (typ.Typ == "курс") 
-            {
-                t = typ.EndToken.Next;
-                if (t != null && t.IsChar(':')) 
-                    t = t.Next;
-                if (t != null && !t.IsNewlineBefore) 
-                {
-                    int val = 0;
-                    if (t is Pullenti.Ner.NumberToken) 
-                    {
-                        if (!t.Morph.Class.IsNoun && (t as Pullenti.Ner.NumberToken).IntValue != null) 
-                        {
-                            if (t.IsWhitespaceAfter || t.Next.IsCharOf(";,")) 
-                                val = (t as Pullenti.Ner.NumberToken).IntValue.Value;
-                        }
-                    }
-                    else 
-                    {
-                        Pullenti.Ner.NumberToken nt = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t);
-                        if (nt != null && nt.IntValue != null) 
-                        {
-                            val = nt.IntValue.Value;
-                            t = nt.EndToken;
-                        }
-                    }
-                    if (val > 0 && (val < 8)) 
-                    {
-                        dep.Number = val.ToString();
-                        t1 = t;
-                        coef += 4;
-                    }
-                }
-                if (dep.Number == null) 
-                {
-                    t = typ.BeginToken.Previous;
-                    if (t != null && !t.IsNewlineAfter) 
-                    {
-                        int val = 0;
-                        if (t is Pullenti.Ner.NumberToken) 
-                        {
-                            if (!t.Morph.Class.IsNoun && (t as Pullenti.Ner.NumberToken).IntValue != null) 
-                            {
-                                if (t.IsWhitespaceBefore || t.Previous.IsCharOf(",")) 
-                                    val = (t as Pullenti.Ner.NumberToken).IntValue.Value;
-                            }
-                        }
-                        else 
-                        {
-                            Pullenti.Ner.NumberToken nt = Pullenti.Ner.Core.NumberHelper.TryParseRomanBack(t);
-                            if (nt != null && nt.IntValue != null) 
-                            {
-                                val = nt.IntValue.Value;
-                                t = nt.BeginToken;
-                            }
-                        }
-                        if (val > 0 && (val < 8)) 
-                        {
-                            dep.Number = val.ToString();
-                            t0 = t;
-                            coef += 4;
-                        }
-                    }
-                }
-            }
-            else if (typ.Root != null && typ.Root.CanBeNormalDep && afterOrg != null) 
-            {
-                coef += 3;
-                if (!afterOrgTemp) 
-                    dep.Higher = afterOrg as OrganizationReferent;
-                else 
-                    dep.m_TempParentOrg = afterOrg as OrganizationReferent;
-                if (afterOrgTok != null) 
-                    t1 = afterOrgTok;
-            }
-            else if (typ.Typ == "генеральный штаб" || typ.Typ == "генеральний штаб") 
-                coef += 3;
-            if (beforeOrg != null) 
-                coef += 1;
-            if (afterOrg != null) 
-            {
-                coef += 2;
-                if (((typ.Name != null || ((typ.Root != null && typ.Root.CanBeNormalDep)))) && Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(afterOrg as OrganizationReferent, dep, false)) 
-                {
-                    coef += 1;
-                    if (!typ.Chars.IsAllLower) 
-                        coef += 0.5F;
-                }
-            }
-            if (typ.Typ == "курс" || typ.Typ == "группа" || typ.Typ == "група") 
-            {
-                if (dep.Number == null) 
-                    coef = 0;
-                else if (typ.Typ == "курс") 
-                {
-                    int n;
-                    if (int.TryParse(dep.Number, out n)) 
-                    {
-                        if (n > 0 && (n < 9)) 
-                            coef += 2;
-                    }
-                }
-            }
-            if (t1.Next != null && t1.Next.IsChar('(')) 
-            {
-                Pullenti.Ner.Token ttt = t1.Next.Next;
-                if ((ttt != null && ttt.Next != null && ttt.Next.IsChar(')')) && (ttt is Pullenti.Ner.TextToken)) 
-                {
-                    if (dep.NameVars.ContainsKey((ttt as Pullenti.Ner.TextToken).Term)) 
-                    {
-                        coef += 2;
-                        dep.AddName((ttt as Pullenti.Ner.TextToken).Term, true, ttt);
-                        t1 = ttt.Next;
-                    }
-                }
-            }
-            Pullenti.Ner.Org.Internal.OrgItemEponymToken ep = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t1.Next, false);
-            if (ep != null) 
-            {
-                coef += 2;
-                foreach (string e in ep.Eponyms) 
-                {
-                    dep.AddEponym(e);
-                }
-                t1 = ep.EndToken;
-            }
-            if (brName != null) 
-            {
-                string str1 = Pullenti.Ner.Core.MiscHelper.GetTextValue(brName.BeginToken.Next, brName.EndToken.Previous, Pullenti.Ner.Core.GetTextAttr.No);
-                if (str1 != null) 
-                    dep.AddName(str1, true, null);
-            }
-            if (dep.Slots.Count == 0) 
-                return null;
-            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(dep, t0, t1);
-            CorrectDepAttrs(res, typ, afterOrgTemp);
-            if (afterOrg != null && dep.Higher == null && !afterOrgTemp) 
-            {
-                if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(afterOrg, dep, false)) 
-                    dep.Higher = afterOrg;
-            }
-            if (dep.Number != null) 
-                coef += 2;
-            if (isPureDep) 
-                coef += 2;
-            if (specWordBefore) 
-            {
-                if (dep.FindSlot(OrganizationReferent.ATTR_NAME, null, true) != null) 
-                    coef += 2;
-            }
-            if ((typ != null && typ.Root != null && typ.Root.CanBeNormalDep) && typ.Name != null && typ.Name.IndexOf(' ') > 0) 
-                coef += 4;
-            if (((typ != null && typ.Root != null && !typ.Root.CanBeNormalDep) && dep.Higher == null && !afterOrgTemp) && afterOrg == null && dep.Number == null) 
-            {
-                if (typ.Typ == "руководство") 
-                    return null;
-            }
-            if (coef > 3 || attachTyp == AttachType.ExtOntology) 
-                return res;
-            else 
-                return null;
-        }
-        static void CorrectDepAttrs(Pullenti.Ner.ReferentToken res, Pullenti.Ner.Org.Internal.OrgItemTypeToken typ, bool afterTempOrg = false)
-        {
-            Pullenti.Ner.Token t0 = res.BeginToken;
-            OrganizationReferent dep = res.Referent as OrganizationReferent;
-            bool isUnit = false;
-            foreach (string ty in dep.Types) 
-            {
-                if ((((((ty.Contains("офис") || ty.Contains("офіс") || ty.Contains("отдел")) || ty.Contains("отделение") || ty.Contains("инспекция")) || ty.Contains("лаборатория") || ty.Contains("управление")) || ty.Contains("управління") || ty.Contains("відділ")) || ty.Contains("відділення") || ty.Contains("інспекція")) || ty.Contains("лабораторія")) 
-                    isUnit = true;
-            }
-            if (((typ != null && typ.Root != null && typ.Root.CanHasNumber)) || isUnit) 
-            {
-                if ((t0.Previous is Pullenti.Ner.NumberToken) && (t0.WhitespacesBeforeCount < 3) && t0.Previous.IsWhitespaceBefore) 
-                {
-                    if (t0.Previous.Morph.Class.IsNoun && !t0.Previous.Morph.Class.IsAdjective) 
-                    {
-                    }
-                    else 
-                    {
-                        bool ok = true;
-                        int cou = 3;
-                        for (Pullenti.Ner.Token tt1 = t0.Previous.Previous; tt1 != null && cou >= 0; tt1 = tt1.Previous,cou--) 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ00 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(tt1, false);
-                            if (typ00 != null && typ00.Root != null && typ00.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.DepAdd) 
-                            {
-                                ok = false;
-                                break;
-                            }
-                        }
-                        if (ok) 
-                        {
-                            string nn = (t0.Previous as Pullenti.Ner.NumberToken).Value.ToString();
-                            if (dep.Number == null || dep.Number == nn) 
-                            {
-                                dep.Number = nn;
-                                t0 = t0.Previous;
-                                res.BeginToken = t0;
-                            }
-                        }
-                    }
-                }
-                if (Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(res.EndToken.Next) != null && (res.EndToken.WhitespacesAfterCount < 3) && dep.Number == null) 
-                {
-                    Pullenti.Ner.Org.Internal.OrgItemNumberToken num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(res.EndToken.Next, false, typ);
-                    if (num != null) 
-                    {
-                        dep.Number = num.Number;
-                        res.EndToken = num.EndToken;
-                    }
-                }
-            }
-            if (dep.Types.Contains("управление") || dep.Types.Contains("департамент") || dep.Types.Contains("управління")) 
-            {
-                foreach (Pullenti.Ner.Slot s in dep.Slots) 
-                {
-                    if (s.TypeName == OrganizationReferent.ATTR_GEO && (s.Value is Pullenti.Ner.Geo.GeoReferent)) 
-                    {
-                        Pullenti.Ner.Geo.GeoReferent g = s.Value as Pullenti.Ner.Geo.GeoReferent;
-                        if (g.IsState && g.Alpha2 == "RU") 
-                        {
-                            dep.Slots.Remove(s);
-                            break;
-                        }
-                    }
-                }
-            }
-            Pullenti.Ner.Token t1 = res.EndToken;
-            if (t1.Next == null || afterTempOrg) 
-                return;
-            Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-            if (br != null && (t1.WhitespacesAfterCount < 2) && br.IsQuoteType) 
-            {
-                object g = IsGeo(br.BeginToken.Next, false);
-                if (g is Pullenti.Ner.ReferentToken) 
-                {
-                    if ((g as Pullenti.Ner.ReferentToken).EndToken.Next == br.EndToken) 
-                    {
-                        dep.AddGeoObject(g);
-                        t1 = (res.EndToken = br.EndToken);
-                    }
-                }
-                else if ((g is Pullenti.Ner.Referent) && br.BeginToken.Next.Next == br.EndToken) 
-                {
-                    dep.AddGeoObject(g);
-                    t1 = (res.EndToken = br.EndToken);
-                }
-                else if (br.BeginToken.Next.IsValue("О", null) || br.BeginToken.Next.IsValue("ОБ", null)) 
-                {
-                }
-                else 
-                {
-                    string nam = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
-                    if (nam != null) 
-                    {
-                        dep.AddName(nam, true, br.BeginToken.Next);
-                        t1 = (res.EndToken = br.EndToken);
-                    }
-                }
-            }
-            bool prep = false;
-            if (t1.Next != null) 
-            {
-                if (t1.Next.Morph.Class.IsPreposition) 
-                {
-                    if (t1.Next.IsValue("В", null) || t1.Next.IsValue("ПО", null)) 
-                    {
-                        t1 = t1.Next;
-                        prep = true;
-                    }
-                }
-                if (t1.Next != null && (t1.Next.WhitespacesBeforeCount < 3)) 
-                {
-                    if (t1.Next.IsValue("НА", null) && t1.Next.Next != null && t1.Next.Next.IsValue("ТРАНСПОРТ", null)) 
-                        res.EndToken = (t1 = t1.Next.Next);
-                }
-            }
-            for (int k = 0; k < 2; k++) 
-            {
-                if (t1.Next == null) 
-                    return;
-                Pullenti.Ner.Geo.GeoReferent geo = t1.Next.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
-                bool ge = false;
-                if (geo != null) 
-                {
-                    if (!dep.AddGeoObject(geo)) 
-                        return;
-                    res.EndToken = t1.Next;
-                    ge = true;
-                }
-                else 
-                {
-                    Pullenti.Ner.ReferentToken rgeo = t1.Kit.ProcessReferent("GEO", t1.Next, null);
-                    if (rgeo != null) 
-                    {
-                        if (!rgeo.Morph.Class.IsAdjective) 
-                        {
-                            if (!dep.AddGeoObject(rgeo)) 
-                                return;
-                            res.EndToken = rgeo.EndToken;
-                            ge = true;
-                        }
-                    }
-                }
-                if (!ge) 
-                    return;
-                t1 = res.EndToken;
-                if (t1.Next == null) 
-                    return;
-                bool isAnd = false;
-                if (t1.Next.IsAnd) 
-                    t1 = t1.Next;
-                if (t1 == null) 
-                    return;
-            }
-        }
-        const int MaxOrgName = 200;
-        static Pullenti.Ner.ReferentToken TryAttachOrg(Pullenti.Ner.Token t, AttachType attachTyp, Pullenti.Ner.Org.Internal.OrgItemTypeToken multTyp = null, bool isAdditionalAttach = false, int step = -1)
-        {
-            Pullenti.Ner.Org.Internal.OrgAnalyzerData ad = OrganizationAnalyzer.GetData(t);
-            if (ad == null) 
-                return null;
-            if (ad.Level > 4) 
-                return null;
-            ad.Level++;
-            Pullenti.Ner.ReferentToken res = _TryAttachOrgInt(t, attachTyp, multTyp, isAdditionalAttach, step);
-            ad.Level--;
-            return res;
-        }
-        static Pullenti.Ner.ReferentToken _TryAttachOrgInt(Pullenti.Ner.Token t, AttachType attachTyp, Pullenti.Ner.Org.Internal.OrgItemTypeToken multTyp, bool isAdditionalAttach, int step)
-        {
-            if (t == null) 
-                return null;
-            if (t.Chars.IsLatinLetter && Pullenti.Ner.Core.MiscHelper.IsEngArticle(t)) 
-            {
-                Pullenti.Ner.ReferentToken re = TryAttachOrg(t.Next, attachTyp, multTyp, isAdditionalAttach, step);
-                if (re != null) 
-                {
-                    re.BeginToken = t;
-                    return re;
-                }
-            }
-            OrganizationReferent org = null;
-            List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> types = null;
-            if (multTyp != null) 
-            {
-                types = new List<Pullenti.Ner.Org.Internal.OrgItemTypeToken>();
-                types.Add(multTyp);
-            }
-            Pullenti.Ner.Token t0 = t;
-            Pullenti.Ner.Token t1 = t;
-            List<Pullenti.Ner.Core.IntOntologyToken> otExLi = null;
-            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ = null;
-            bool hiph = false;
-            bool specWordBefore = false;
-            bool ok;
-            bool inBrackets = false;
-            Pullenti.Ner.ReferentToken rt0 = null;
-            Pullenti.Ner.Org.Internal.OrgAnalyzerData ad = OrganizationAnalyzer.GetData(t);
-            for (; t != null; t = t.Next) 
-            {
-                if (t.GetReferent() is OrganizationReferent) 
-                    break;
-                rt0 = AttachGlobalOrg(t, attachTyp, null);
-                if ((rt0 == null && typ != null && typ.Geo != null) && typ.BeginToken.Next == typ.EndToken) 
-                {
-                    rt0 = AttachGlobalOrg(typ.EndToken, attachTyp, typ.Geo);
-                    if (rt0 != null) 
-                        rt0.BeginToken = typ.BeginToken;
-                }
-                if (rt0 != null) 
-                {
-                    if (attachTyp == AttachType.Multiple) 
-                    {
-                        if (types == null || types.Count == 0) 
-                            return null;
-                        if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypeAccords(rt0.Referent as OrganizationReferent, types[0])) 
-                            return null;
-                        (rt0.Referent as OrganizationReferent).AddType(types[0], false);
-                        if ((rt0.BeginToken.BeginChar - types[0].EndToken.Next.EndChar) < 3) 
-                            rt0.BeginToken = types[0].BeginToken;
-                        break;
-                    }
-                    if (typ != null && !typ.EndToken.Morph.Class.IsVerb) 
-                    {
-                        if (_isMvdOrg(rt0.Referent as OrganizationReferent) != null && typ.Typ != null && typ.Typ.Contains("служба")) 
-                        {
-                            rt0 = null;
-                            break;
-                        }
-                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypeAccords(rt0.Referent as OrganizationReferent, typ)) 
-                        {
-                            rt0.BeginToken = typ.BeginToken;
-                            (rt0.Referent as OrganizationReferent).AddType(typ, false);
-                        }
-                    }
-                    break;
-                }
-                if (t.IsHiphen) 
-                {
-                    if (t == t0 || types == null) 
-                    {
-                        if (otExLi != null) 
-                            break;
-                        return null;
-                    }
-                    if (t.IsWhitespaceBefore && t.IsWhitespaceAfter) 
-                    {
-                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false) != null) 
-                            break;
-                    }
-                    if ((typ != null && typ.Root != null && typ.Root.CanHasNumber) && (t.Next is Pullenti.Ner.NumberToken)) 
-                    {
-                    }
-                    else 
-                        hiph = true;
-                    continue;
-                }
-                if (ad != null && otExLi == null) 
-                {
-                    bool ok1 = false;
-                    Pullenti.Ner.Token tt = t;
-                    if (t.InnerBool) 
-                        ok1 = true;
-                    else if (t.Chars.IsAllLower) 
-                    {
-                    }
-                    else if (t.Chars.IsLetter) 
-                        ok1 = true;
-                    else if (t.Previous != null && Pullenti.Ner.Core.BracketHelper.IsBracket(t.Previous, false)) 
-                        ok1 = true;
-                    else if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false) && t.Next != null) 
-                    {
-                        ok1 = true;
-                        tt = t.Next;
-                    }
-                    if (ok1 && tt != null) 
-                    {
-                        otExLi = ad.LocOrgs.TryAttach(tt, null, false);
-                        if (otExLi == null && t.Kit.Ontology != null) 
-                        {
-                            if ((((otExLi = t.Kit.Ontology.AttachToken(OrganizationReferent.OBJ_TYPENAME, tt)))) != null) 
-                            {
-                            }
-                        }
-                        if ((otExLi == null && tt.LengthChar == 2 && tt.Chars.IsAllUpper) && (ad.LocalOntology.Items.Count < 1000)) 
-                        {
-                            otExLi = ad.LocalOntology.TryAttach(tt, null, false);
-                            if (otExLi != null) 
-                            {
-                                if (tt.Kit.Sofa.Text.Length > 300) 
-                                    otExLi = null;
-                            }
-                        }
-                    }
-                    if (otExLi != null) 
-                        t.InnerBool = true;
-                }
-                if ((step >= 0 && !t.InnerBool && t == t0) && (t is Pullenti.Ner.TextToken)) 
-                    typ = null;
-                else 
-                {
-                    typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t, attachTyp == AttachType.ExtOntology);
-                    if (typ == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
-                    {
-                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br != null) 
-                        {
-                            typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, attachTyp == AttachType.ExtOntology);
-                            if (typ != null && typ.EndToken == br.EndToken.Previous && ((Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(br.EndToken.Next, true, false) || t.IsChar('(')))) 
-                            {
-                                typ = typ.Clone();
-                                typ.EndToken = br.EndToken;
-                                typ.BeginToken = t;
-                            }
-                            else 
-                                typ = null;
-                        }
-                    }
-                }
-                if (typ == null) 
-                    break;
-                if (types == null) 
-                {
-                    if ((((typ.Typ == "главное управление" || typ.Typ == "главное территориальное управление" || typ.Typ == "головне управління") || typ.Typ == "головне територіальне управління" || typ.Typ == "пограничное управление")) && otExLi != null) 
-                        break;
-                    types = new List<Pullenti.Ner.Org.Internal.OrgItemTypeToken>();
-                    t0 = typ.BeginToken;
-                    if (typ.IsNotTyp && typ.EndToken.Next != null) 
-                        t0 = typ.EndToken.Next;
-                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(typ.BeginToken.Previous)) 
-                        specWordBefore = true;
-                }
-                else 
-                {
-                    ok = true;
-                    foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                    {
-                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(ty, typ)) 
-                        {
-                            ok = false;
-                            break;
-                        }
-                    }
-                    if (!ok) 
-                        break;
-                    if (typ.IsDep) 
-                        break;
-                    if (inBrackets) 
-                        break;
-                    Pullenti.Ner.Org.Internal.OrgItemTypeToken typ0 = _lastTyp(types);
-                    if (hiph && ((t.WhitespacesBeforeCount > 0 && ((typ0 != null && typ0.IsDoubtRootWord))))) 
-                        break;
-                    if (typ.EndToken == typ.BeginToken) 
-                    {
-                        if (typ.IsValue("ОРГАНИЗАЦИЯ", "ОРГАНІЗАЦІЯ") || typ.IsValue("УПРАВЛІННЯ", "")) 
-                            break;
-                    }
-                    if (typ0.Typ == "банк" && typ.Root != null && typ.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
-                    {
-                        Pullenti.Ner.ReferentToken rt = TryAttachOrg(typ.BeginToken, attachTyp, null, false, -1);
-                        if (rt != null && rt.Referent.ToString().Contains("Сбербанк")) 
-                            return null;
-                    }
-                    if (typ0.IsDep || typ0.Typ == "департамент") 
-                        break;
-                    if ((typ0.Root != null && typ0.Root.IsPurePrefix && typ.Root != null) && !typ.Root.IsPurePrefix && !typ.BeginToken.Chars.IsAllLower) 
-                    {
-                        if (typ0.Typ.Contains("НИИ")) 
-                            break;
-                    }
-                    bool pref0 = typ0.Root != null && typ0.Root.IsPurePrefix;
-                    bool pref = typ.Root != null && typ.Root.IsPurePrefix;
-                    if (!pref0 && !pref) 
-                    {
-                        if (typ0.Name != null && typ0.Name.Length != typ0.Typ.Length) 
-                        {
-                            if (t.WhitespacesBeforeCount > 1) 
-                                break;
-                        }
-                        if (!typ0.Morph.Case.IsUndefined && !typ.Morph.Case.IsUndefined) 
-                        {
-                            if (!((typ0.Morph.Case & typ.Morph.Case)).IsNominative && !hiph) 
-                            {
-                                if (!typ.Morph.Case.IsNominative) 
-                                    break;
-                            }
-                        }
-                        if (typ0.Morph.Number != Pullenti.Morph.MorphNumber.Undefined && typ.Morph.Number != Pullenti.Morph.MorphNumber.Undefined) 
-                        {
-                            if (((typ0.Morph.Number & typ.Morph.Number)) == Pullenti.Morph.MorphNumber.Undefined) 
-                                break;
-                        }
-                    }
-                    if (!pref0 && pref && !hiph) 
-                    {
-                        bool nom = false;
-                        foreach (Pullenti.Morph.MorphBaseInfo m in typ.Morph.Items) 
-                        {
-                            if (m.Number == Pullenti.Morph.MorphNumber.Singular && m.Case.IsNominative) 
-                            {
-                                nom = true;
-                                break;
-                            }
-                        }
-                        if (!nom) 
-                        {
-                            if (Pullenti.Morph.LanguageHelper.EndsWith(typ0.Typ, "фракция") || Pullenti.Morph.LanguageHelper.EndsWith(typ0.Typ, "фракція") || typ0.Typ == "банк") 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                    }
-                    foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                    {
-                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(ty, typ)) 
-                            return null;
-                    }
-                }
-                types.Add(typ);
-                inBrackets = false;
-                if (typ.Name != null) 
-                {
-                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(typ.BeginToken.Previous, true, false) && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(typ.EndToken.Next, false, null, false)) 
-                    {
-                        typ = typ.Clone();
-                        typ.BeginToken = typ.BeginToken.Previous;
-                        typ.EndToken = typ.EndToken.Next;
-                        if (typ.BeginToken.EndChar < t0.BeginChar) 
-                            t0 = typ.BeginToken;
-                        inBrackets = true;
-                    }
-                }
-                t = typ.EndToken;
-                hiph = false;
-            }
-            if ((types == null && otExLi == null && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) && rt0 == null) 
-            {
-                ok = false;
-                if (!ok) 
-                {
-                    if (t0 != null && t0.Morph.Class.IsAdjective && t0.Next != null) 
-                    {
-                        if ((((rt0 = TryAttachOrg(t0.Next, attachTyp, multTyp, isAdditionalAttach, step)))) != null) 
-                        {
-                            if (rt0.BeginToken == t0) 
-                                return rt0;
-                        }
-                    }
-                    if (attachTyp == AttachType.Normal) 
-                    {
-                        if ((((rt0 = TryAttachOrgMed(t)))) != null) 
-                            return rt0;
-                    }
-                    if ((((t0 is Pullenti.Ner.TextToken) && t0.Previous != null && t0.LengthChar > 2) && !t0.Chars.IsAllLower && !t0.IsNewlineAfter) && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(t0)) 
-                    {
-                        typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t0.Next, false);
-                        if (typ != null) 
-                        {
-                            Pullenti.Ner.ReferentToken rrr = TryAttachOrg(t0.Next, attachTyp, multTyp, isAdditionalAttach, step);
-                            if (rrr == null) 
-                            {
-                                if (specWordBefore || t0.Previous.IsValue("ТЕРРИТОРИЯ", null)) 
-                                {
-                                    OrganizationReferent org0 = new OrganizationReferent();
-                                    org0.AddType(typ, false);
-                                    org0.AddName((t0 as Pullenti.Ner.TextToken).Term, false, t0);
-                                    t1 = typ.EndToken;
-                                    t1 = AttachTailAttributes(org0, t1.Next, false, AttachType.Normal, false) ?? t1;
-                                    return new Pullenti.Ner.ReferentToken(org0, t0, t1);
-                                }
-                            }
-                        }
-                    }
-                    for (Pullenti.Ner.Token tt = t; tt != null; tt = tt.Next) 
-                    {
-                        if (tt.IsAnd) 
-                        {
-                            if (tt == t) 
-                                break;
-                            continue;
-                        }
-                        if ((((tt is Pullenti.Ner.TextToken) && tt.Chars.IsLetter && !tt.Chars.IsAllLower) && !tt.Chars.IsCapitalUpper && tt.LengthChar > 1) && (tt.WhitespacesAfterCount < 2)) 
-                        {
-                            string term = (tt as Pullenti.Ner.TextToken).Term;
-                            if (term == "СНВ") 
-                                break;
-                            Pullenti.Morph.MorphClass mc = tt.GetMorphClassInDictionary();
-                            if (mc.IsUndefined) 
-                            {
-                            }
-                            else if (((tt.LengthChar < 5) && !mc.IsConjunction && !mc.IsPreposition) && !mc.IsNoun) 
-                            {
-                            }
-                            else if ((tt.LengthChar <= 3 && (tt.Previous is Pullenti.Ner.TextToken) && tt.Previous.Chars.IsLetter) && !tt.Previous.Chars.IsAllUpper) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        else 
-                            break;
-                        if ((tt.Next is Pullenti.Ner.ReferentToken) && (tt.Next.GetReferent() is OrganizationReferent)) 
-                        {
-                            Pullenti.Ner.Token ttt = t.Previous;
-                            if ((((ttt is Pullenti.Ner.TextToken) && tt.Chars.IsLetter && !ttt.Chars.IsAllLower) && !ttt.Chars.IsCapitalUpper && ttt.LengthChar > 1) && ttt.GetMorphClassInDictionary().IsUndefined && (ttt.WhitespacesAfterCount < 2)) 
-                                break;
-                            Pullenti.Ner.Token tt0 = t;
-                            for (t = t.Previous; t != null; t = t.Previous) 
-                            {
-                                if (!(t is Pullenti.Ner.TextToken) || t.WhitespacesAfterCount > 2) 
-                                    break;
-                                else if (t.IsAnd) 
-                                {
-                                }
-                                else if ((t.Chars.IsLetter && !t.Chars.IsAllLower && !t.Chars.IsCapitalUpper) && t.LengthChar > 1 && t.GetMorphClassInDictionary().IsUndefined) 
-                                    tt0 = t;
-                                else 
-                                    break;
-                            }
-                            string nam = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, tt, Pullenti.Ner.Core.GetTextAttr.No);
-                            if (nam == "СЭД" || nam == "ЕОСЗ") 
-                                break;
-                            OrganizationReferent own = tt.Next.GetReferent() as OrganizationReferent;
-                            if (own.Profiles.Contains(OrgProfile.Unit)) 
-                                break;
-                            if (own.ToString().ToUpper().Contains("СОЮЗ")) 
-                                break;
-                            if (nam == "НК" || nam == "ГК") 
-                                return new Pullenti.Ner.ReferentToken(own, tt0, tt.Next);
-                            OrganizationReferent org0 = new OrganizationReferent();
-                            org0.AddProfile(OrgProfile.Unit);
-                            org0.AddName(nam, true, null);
-                            if (nam.IndexOf(' ') > 0) 
-                                org0.AddName(nam.Replace(" ", ""), true, null);
-                            org0.Higher = own;
-                            t1 = tt.Next;
-                            Pullenti.Ner.Token ttt1 = AttachTailAttributes(org0, t1, true, attachTyp, false);
-                            if (tt0.Kit.Ontology != null) 
-                            {
-                                List<Pullenti.Ner.Core.IntOntologyToken> li = tt0.Kit.Ontology.AttachToken(OrganizationReferent.OBJ_TYPENAME, tt0);
-                                if (li != null) 
-                                {
-                                    foreach (Pullenti.Ner.Core.IntOntologyToken v in li) 
-                                    {
-                                    }
-                                }
-                            }
-                            return new Pullenti.Ner.ReferentToken(org0, tt0, ttt1 ?? t1);
-                        }
-                    }
-                    if (((t is Pullenti.Ner.TextToken) && t.IsNewlineBefore && t.LengthChar > 1) && !t.Chars.IsAllLower && t.GetMorphClassInDictionary().IsUndefined) 
-                    {
-                        t1 = t.Next;
-                        if (t1 != null && !t1.IsNewlineBefore && (t1 is Pullenti.Ner.TextToken)) 
-                            t1 = t1.Next;
-                        if (t1 != null && t1.IsNewlineBefore) 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
-                            if ((typ0 != null && typ0.Root != null && typ0.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) && typ0.IsNewlineAfter) 
-                            {
-                                if (TryAttachOrg(t1, AttachType.Normal, null, false, -1) == null) 
-                                {
-                                    org = new OrganizationReferent();
-                                    org.AddType(typ0, false);
-                                    org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
-                                    t1 = typ0.EndToken;
-                                    Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                                    return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
-                                }
-                            }
-                            if (t1.IsChar('(')) 
-                            {
-                                if ((((typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false)))) != null) 
-                                {
-                                    if (typ0.EndToken.Next != null && typ0.EndToken.Next.IsChar(')') && typ0.EndToken.Next.IsNewlineAfter) 
-                                    {
-                                        org = new OrganizationReferent();
-                                        org.AddType(typ0, false);
-                                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
-                                        t1 = typ0.EndToken.Next;
-                                        Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                                        return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if ((t is Pullenti.Ner.TextToken) && t.IsNewlineBefore && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
-                    {
-                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br != null && br.IsNewlineAfter && (br.LengthChar < 100)) 
-                        {
-                            t1 = br.EndToken.Next;
-                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
-                            if ((typ0 != null && typ0.Root != null && typ0.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) && typ0.IsNewlineAfter) 
-                            {
-                                if (TryAttachOrg(t1, AttachType.Normal, null, false, -1) == null) 
-                                {
-                                    org = new OrganizationReferent();
-                                    org.AddType(typ0, false);
-                                    org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
-                                    t1 = typ0.EndToken;
-                                    Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                                    return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
-                                }
-                            }
-                            if (t1 != null && t1.IsChar('(')) 
-                            {
-                                if ((((typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false)))) != null) 
-                                {
-                                    if (typ0.EndToken.Next != null && typ0.EndToken.Next.IsChar(')') && typ0.EndToken.Next.IsNewlineAfter) 
-                                    {
-                                        org = new OrganizationReferent();
-                                        org.AddType(typ0, false);
-                                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
-                                        t1 = typ0.EndToken.Next;
-                                        Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                                        return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    return null;
-                }
-            }
-            if (types != null && types.Count > 1 && attachTyp != AttachType.ExtOntology) 
-            {
-                if (types[0].Typ == "предприятие" || types[0].Typ == "підприємство") 
-                {
-                    types.RemoveAt(0);
-                    t0 = types[0].BeginToken;
-                }
-            }
-            if (rt0 == null) 
-            {
-                rt0 = _TryAttachOrg_(t0, t, types, specWordBefore, attachTyp, multTyp, isAdditionalAttach);
-                if (rt0 != null && otExLi != null) 
-                {
-                    foreach (Pullenti.Ner.Core.IntOntologyToken ot in otExLi) 
-                    {
-                        if ((ot.EndChar > rt0.EndChar && ot.Item != null && ot.Item.Owner != null) && ot.Item.Owner.IsExtOntology) 
-                        {
-                            rt0 = null;
-                            break;
-                        }
-                        else if (ot.EndChar < rt0.BeginChar) 
-                        {
-                            otExLi = null;
-                            break;
-                        }
-                        else if (ot.EndChar < rt0.EndChar) 
-                        {
-                            if (ot.EndToken.Next.GetMorphClassInDictionary().IsPreposition) 
-                            {
-                                rt0 = null;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (rt0 != null) 
-                {
-                    if (types != null && rt0.BeginToken == types[0].BeginToken) 
-                    {
-                        foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                        {
-                            (rt0.Referent as OrganizationReferent).AddType(ty, true);
-                        }
-                    }
-                    if ((rt0.BeginToken == t0 && t0.Previous != null && t0.Previous.Morph.Class.IsAdjective) && (t0.WhitespacesBeforeCount < 2)) 
-                    {
-                        if ((rt0.Referent as OrganizationReferent).GeoObjects.Count == 0) 
-                        {
-                            object geo = IsGeo(t0.Previous, true);
-                            if (geo != null) 
-                            {
-                                if ((rt0.Referent as OrganizationReferent).AddGeoObject(geo)) 
-                                    rt0.BeginToken = t0.Previous;
-                            }
-                        }
-                    }
-                }
-            }
-            if (otExLi != null && rt0 == null && (otExLi.Count < 10)) 
-            {
-                foreach (Pullenti.Ner.Core.IntOntologyToken ot in otExLi) 
-                {
-                    OrganizationReferent org0 = ot.Item.Referent as OrganizationReferent;
-                    if (org0 == null) 
-                        continue;
-                    if (org0.Names.Count == 0 && org0.Eponyms.Count == 0) 
-                        continue;
-                    Pullenti.Ner.Org.Internal.OrgItemTypeToken tyty = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(ot.BeginToken, true);
-                    if (tyty != null && tyty.BeginToken == ot.EndToken) 
-                        continue;
-                    Pullenti.Ner.Token ts = ot.BeginToken;
-                    Pullenti.Ner.Token te = ot.EndToken;
-                    bool isQuots = false;
-                    bool isVeryDoubt = false;
-                    bool nameEq = false;
-                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(ts.Previous, false, false) && Pullenti.Ner.Core.BracketHelper.IsBracket(ts.Previous, false)) 
-                    {
-                        if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(te.Next, false, null, false)) 
-                        {
-                            if (ot.LengthChar < 2) 
-                                continue;
-                            if (ot.LengthChar == 2 && !org0.Names.Contains(te.GetSourceText())) 
-                            {
-                            }
-                            else 
-                            {
-                                isQuots = true;
-                                ts = ts.Previous;
-                                te = te.Next;
-                            }
-                        }
-                        else 
-                            continue;
-                    }
-                    ok = types != null;
-                    if (ot.EndToken.Next != null && (ot.EndToken.Next.GetReferent() is OrganizationReferent)) 
-                        ok = true;
-                    else if (ot.EndToken != ot.BeginToken) 
-                    {
-                        if (step == 0) 
-                        {
-                            if (!ot.Kit.MiscData.ContainsKey("o2step")) 
-                                ot.Kit.MiscData.Add("o2step", null);
-                            continue;
-                        }
-                        if (!ot.BeginToken.Chars.IsAllLower) 
-                            ok = true;
-                        else if (specWordBefore || isQuots) 
-                            ok = true;
-                    }
-                    else if (ot.BeginToken is Pullenti.Ner.TextToken) 
-                    {
-                        if (step == 0) 
-                        {
-                            if (!ot.Kit.MiscData.ContainsKey("o2step")) 
-                                ot.Kit.MiscData.Add("o2step", null);
-                            continue;
-                        }
-                        ok = false;
-                        int len = ot.BeginToken.LengthChar;
-                        if (!ot.Chars.IsAllLower) 
-                        {
-                            if (!ot.Chars.IsAllUpper && ot.Morph.Class.IsPreposition) 
-                                continue;
-                            foreach (string n in org0.Names) 
-                            {
-                                if (ot.BeginToken.IsValue(n, null)) 
-                                {
-                                    nameEq = true;
-                                    break;
-                                }
-                            }
-                            Pullenti.Ner.TextAnnotation ano = org0.FindNearOccurence(ot.BeginToken);
-                            if (ano == null) 
-                            {
-                                if (!ot.Item.Owner.IsExtOntology) 
-                                {
-                                    if (len < 3) 
-                                        continue;
-                                    else 
-                                        isVeryDoubt = true;
-                                }
-                            }
-                            else 
-                            {
-                                if (len == 2 && !t.Chars.IsAllUpper) 
-                                    continue;
-                                int d = ano.BeginChar - ot.BeginToken.BeginChar;
-                                if (d < 0) 
-                                    d = -d;
-                                if (d > 2000) 
-                                {
-                                    if (len < 3) 
-                                        continue;
-                                    else if (len < 5) 
-                                        isVeryDoubt = true;
-                                }
-                                else if (d > 300) 
-                                {
-                                    if (len < 3) 
-                                        continue;
-                                }
-                                else if (len < 3) 
-                                {
-                                    if (d > 100 || !ot.BeginToken.Chars.IsAllUpper) 
-                                        isVeryDoubt = true;
-                                }
-                            }
-                            if (((ot.BeginToken.Chars.IsAllUpper || ot.BeginToken.Chars.IsLastLower)) && ((len > 3 || ((len == 3 && ((nameEq || ano != null))))))) 
-                                ok = true;
-                            else if ((specWordBefore || types != null || isQuots) || nameEq) 
-                                ok = true;
-                            else if ((ot.LengthChar < 3) && isVeryDoubt) 
-                                continue;
-                            else if (ot.Item.Owner.IsExtOntology && ot.BeginToken.GetMorphClassInDictionary().IsUndefined && ((len > 3 || ((len == 3 && ((nameEq || ano != null))))))) 
-                                ok = true;
-                            else if (ot.BeginToken.Chars.IsLatinLetter) 
-                                ok = true;
-                            else if ((nameEq && !ot.Chars.IsAllLower && !ot.Item.Owner.IsExtOntology) && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(ot.BeginToken)) 
-                                ok = true;
-                        }
-                    }
-                    else if (ot.BeginToken is Pullenti.Ner.ReferentToken) 
-                    {
-                        Pullenti.Ner.Referent r = ot.BeginToken.GetReferent();
-                        if (r.TypeName != "DENOMINATION" && !isQuots) 
-                            ok = false;
-                    }
-                    if (!ok) 
-                    {
-                    }
-                    if (ok) 
-                    {
-                        ok = false;
-                        org = new OrganizationReferent();
-                        if (types != null) 
-                        {
-                            foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                            {
-                                org.AddType(ty, false);
-                            }
-                            if (!org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
-                                continue;
-                        }
-                        else 
-                            foreach (string ty in org0.Types) 
-                            {
-                                org.AddTypeStr(ty);
-                            }
-                        if (org0.Number != null && (ot.BeginToken.Previous is Pullenti.Ner.NumberToken) && org.Number == null) 
-                        {
-                            if (org0.Number != (ot.BeginToken.Previous as Pullenti.Ner.NumberToken).Value.ToString() && (ot.BeginToken.WhitespacesBeforeCount < 2)) 
-                            {
-                                if (org.Names.Count > 0 || org.Higher != null) 
-                                {
-                                    isVeryDoubt = false;
-                                    ok = true;
-                                    org.Number = (ot.BeginToken.Previous as Pullenti.Ner.NumberToken).Value.ToString();
-                                    if (org0.Higher != null) 
-                                        org.Higher = org0.Higher;
-                                    t0 = ot.BeginToken.Previous;
-                                }
-                            }
-                        }
-                        if (org.Number == null) 
-                        {
-                            Pullenti.Ner.Token ttt = ot.EndToken.Next;
-                            Pullenti.Ner.Org.Internal.OrgItemNumberToken nnn = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ttt, (org0.Number != null || !ot.IsWhitespaceAfter), null);
-                            if (nnn == null && !ot.IsWhitespaceAfter && ttt != null) 
-                            {
-                                if (ttt.IsHiphen && ttt.Next != null) 
-                                    ttt = ttt.Next;
-                                if (ttt is Pullenti.Ner.NumberToken) 
-                                    nnn = new Pullenti.Ner.Org.Internal.OrgItemNumberToken(ot.EndToken.Next, ttt) { Number = (ttt as Pullenti.Ner.NumberToken).Value.ToString() };
-                            }
-                            if (nnn != null) 
-                            {
-                                org.Number = nnn.Number;
-                                te = nnn.EndToken;
-                            }
-                        }
-                        bool norm = (ot.EndToken.EndChar - ot.BeginToken.BeginChar) > 5;
-                        Pullenti.Ner.Token tt0 = ot.BeginToken;
-                        if (types != null && types[0].Root != null && types[0].Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
-                            tt0 = types[0].EndToken.Next;
-                        string s = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, ot.EndToken, ((norm ? Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative : Pullenti.Ner.Core.GetTextAttr.No)) | Pullenti.Ner.Core.GetTextAttr.IgnoreArticles);
-                        org.AddName(s, true, (norm ? null : ot.BeginToken));
-                        if (types == null || types.Count == 0) 
-                        {
-                            string s1 = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(ot, Pullenti.Ner.Core.GetTextAttr.IgnoreArticles);
-                            if (s1 != s && norm) 
-                                org.AddName(s1, true, ot.BeginToken);
-                        }
-                        t1 = te;
-                        if (t1.IsChar(')') && t1.IsNewlineAfter) 
-                        {
-                        }
-                        else 
-                        {
-                            t1 = AttachMiddleAttributes(org, t1.Next) ?? t1;
-                            if (attachTyp != AttachType.NormalAfterDep) 
-                                t1 = AttachTailAttributes(org, t1.Next, false, AttachType.Normal, false) ?? t1;
-                        }
-                        OrganizationReferent hi = null;
-                        if (t1.Next != null) 
-                            hi = t1.Next.GetReferent() as OrganizationReferent;
-                        if (org0.Higher != null && hi != null && otExLi.Count == 1) 
-                        {
-                            if (hi.CanBeEquals(org0.Higher, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
-                            {
-                                org.Higher = hi;
-                                t1 = t1.Next;
-                            }
-                        }
-                        if ((org.Eponyms.Count == 0 && org.Number == null && isVeryDoubt) && !nameEq && types == null) 
-                            continue;
-                        if (!org.CanBeEqualsEx(org0, true, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
-                        {
-                            if (t != null && Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(t.Previous)) 
-                                ok = true;
-                            else if (!isVeryDoubt && ok) 
-                            {
-                            }
-                            else 
-                            {
-                                if (!isVeryDoubt) 
-                                {
-                                    if (org.Eponyms.Count > 0 || org.Number != null || org.Higher != null) 
-                                        ok = true;
-                                }
-                                ok = false;
-                            }
-                        }
-                        else if (org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.DifferentTexts)) 
-                        {
-                            org.MergeSlots(org0, false);
-                            ok = true;
-                        }
-                        else if (org0.Higher == null || org.Higher != null || ot.Item.Owner.IsExtOntology) 
-                        {
-                            ok = true;
-                            org.MergeSlots(org0, false);
-                        }
-                        else if (!ot.Item.Owner.IsExtOntology && org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
-                        {
-                            if (org0.Higher == null) 
-                                org.MergeSlots(org0, false);
-                            ok = true;
-                        }
-                        if (!ok) 
-                            continue;
-                        if (ts.BeginChar < t0.BeginChar) 
-                            t0 = ts;
-                        rt0 = new Pullenti.Ner.ReferentToken(org, t0, t1);
-                        if (org.Kind == OrganizationKind.Department) 
-                            CorrectDepAttrs(rt0, typ, false);
-                        _correctAfter(rt0);
-                        if (ot.Item.Owner.IsExtOntology) 
-                        {
-                            foreach (Pullenti.Ner.Slot sl in org.Slots) 
-                            {
-                                if (sl.Value is Pullenti.Ner.Referent) 
-                                {
-                                    bool ext = false;
-                                    foreach (Pullenti.Ner.Slot ss in org0.Slots) 
-                                    {
-                                        if (ss.Value == sl.Value) 
-                                        {
-                                            ext = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!ext) 
-                                        continue;
-                                    Pullenti.Ner.Referent rr = (sl.Value as Pullenti.Ner.Referent).Clone();
-                                    rr.Occurrence.Clear();
-                                    org.UploadSlot(sl, rr);
-                                    Pullenti.Ner.ReferentToken rtEx = new Pullenti.Ner.ReferentToken(rr, t0, t1);
-                                    rtEx.SetDefaultLocalOnto(t0.Kit.Processor);
-                                    org.AddExtReferent(rtEx);
-                                    foreach (Pullenti.Ner.Slot sss in rr.Slots) 
-                                    {
-                                        if (sss.Value is Pullenti.Ner.Referent) 
-                                        {
-                                            Pullenti.Ner.Referent rrr = (sss.Value as Pullenti.Ner.Referent).Clone();
-                                            rrr.Occurrence.Clear();
-                                            rr.UploadSlot(sss, rrr);
-                                            Pullenti.Ner.ReferentToken rtEx2 = new Pullenti.Ner.ReferentToken(rrr, t0, t1);
-                                            rtEx2.SetDefaultLocalOnto(t0.Kit.Processor);
-                                            (sl.Value as Pullenti.Ner.Referent).AddExtReferent(rtEx2);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        _correctAfter(rt0);
-                        return rt0;
-                    }
-                }
-            }
-            if ((rt0 == null && types != null && types.Count == 1) && types[0].Name == null) 
-            {
-                Pullenti.Ner.Token tt0 = null;
-                if (Pullenti.Ner.Core.MiscHelper.IsEngArticle(types[0].BeginToken)) 
-                    tt0 = types[0].BeginToken;
-                else if (Pullenti.Ner.Core.MiscHelper.IsEngAdjSuffix(types[0].EndToken.Next)) 
-                    tt0 = types[0].BeginToken;
-                else 
-                {
-                    Pullenti.Ner.Token tt00 = types[0].BeginToken.Previous;
-                    if (tt00 != null && (tt00.WhitespacesAfterCount < 2) && tt00.Chars.IsLatinLetter == types[0].Chars.IsLatinLetter) 
-                    {
-                        if (Pullenti.Ner.Core.MiscHelper.IsEngArticle(tt00)) 
-                            tt0 = tt00;
-                        else if (tt00.Morph.Class.IsPreposition || tt00.Morph.Class.IsPronoun) 
-                            tt0 = tt00.Next;
-                    }
-                }
-                int cou = 100;
-                if (tt0 != null) 
-                {
-                    OrganizationReferent accortTypeRef = null;
-                    for (Pullenti.Ner.Token tt00 = tt0.Previous; tt00 != null && cou > 0; tt00 = tt00.Previous,cou--) 
-                    {
-                        if (tt00.GetReferent() is OrganizationReferent) 
-                        {
-                            OrganizationReferent oo = tt00.GetReferent() as OrganizationReferent;
-                            if (oo.Types.Contains(types[0].Typ)) 
-                            {
-                                rt0 = new Pullenti.Ner.ReferentToken(oo, tt0, types[0].EndToken);
-                                break;
-                            }
-                            if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypeAccords(oo, types[0])) 
-                            {
-                                if ((types[0].WhitespacesAfterCount < 3) && Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(types[0].EndToken.Next, true) != null) 
-                                {
-                                }
-                                else if (accortTypeRef == null) 
-                                    accortTypeRef = oo;
-                            }
-                        }
-                    }
-                    if (rt0 == null && accortTypeRef != null) 
-                        rt0 = new Pullenti.Ner.ReferentToken(accortTypeRef, tt0, types[0].EndToken);
-                }
-            }
-            if (rt0 != null) 
-                CorrectOwnerBefore(rt0);
-            if (hiph && !inBrackets && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) 
-            {
-                bool ok1 = false;
-                if (rt0 != null && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt0.EndToken, true, null, false)) 
-                {
-                    if (types.Count > 0) 
-                    {
-                        Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = types[types.Count - 1];
-                        if (ty.EndToken.Next != null && ty.EndToken.Next.IsHiphen && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(ty.EndToken.Next.Next, true, false)) 
-                            ok1 = true;
-                    }
-                }
-                else if (rt0 != null && rt0.EndToken.Next != null && rt0.EndToken.Next.IsHiphen) 
-                {
-                    Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(rt0.EndToken.Next.Next, false);
-                    if (ty == null) 
-                        ok1 = true;
-                }
-                if (!ok1) 
-                    return null;
-            }
-            if (attachTyp == AttachType.Multiple && t != null) 
-            {
-                if (t.Chars.IsAllLower) 
-                    return null;
-            }
-            if (rt0 == null) 
-                return rt0;
-            bool doubt = rt0.Tag != null;
-            org = rt0.Referent as OrganizationReferent;
-            if (doubt && ad != null && (ad.LocalOntology.Items.Count < 1000)) 
-            {
-                List<Pullenti.Ner.Referent> rli = ad.LocalOntology.TryAttachByReferent(org, null, true);
-                if (rli != null && rli.Count > 0) 
-                    doubt = false;
-                else 
-                    foreach (Pullenti.Ner.Core.IntOntologyItem it in ad.LocalOntology.Items) 
-                    {
-                        if (it.Referent != null) 
-                        {
-                            if (it.Referent.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
-                            {
-                                doubt = false;
-                                break;
-                            }
-                        }
-                    }
-            }
-            if ((t != null && t.Kit.Ontology != null && attachTyp == AttachType.Normal) && doubt) 
-            {
-                List<Pullenti.Ner.ExtOntologyItem> rli = t.Kit.Ontology.AttachReferent(org);
-                if (rli != null) 
-                {
-                    if (rli.Count >= 1) 
-                        doubt = false;
-                }
-            }
-            if (doubt) 
-                return null;
-            _correctAfter(rt0);
-            return rt0;
-        }
-        static void _correctAfter(Pullenti.Ner.ReferentToken rt0)
-        {
-            if (rt0 == null) 
-                return;
-            if (!rt0.IsNewlineAfter && rt0.EndToken.Next != null && rt0.EndToken.Next.IsChar('(')) 
-            {
-                Pullenti.Ner.Token tt = rt0.EndToken.Next.Next;
-                if (tt is Pullenti.Ner.TextToken) 
-                {
-                    if (tt.IsChar(')')) 
-                        rt0.EndToken = tt;
-                    else if ((tt.LengthChar > 2 && (tt.LengthChar < 7) && tt.Chars.IsLatinLetter) && tt.Chars.IsAllUpper) 
-                    {
-                        string act = tt.GetSourceText().ToUpper();
-                        if ((tt.Next is Pullenti.Ner.NumberToken) && !tt.IsWhitespaceAfter && (tt.Next as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit) 
-                        {
-                            tt = tt.Next;
-                            act += tt.GetSourceText();
-                        }
-                        if (tt.Next != null && tt.Next.IsChar(')')) 
-                        {
-                            rt0.Referent.AddSlot(OrganizationReferent.ATTR_MISC, act, false, 0);
-                            rt0.EndToken = tt.Next;
-                        }
-                    }
-                    else 
-                    {
-                        OrganizationReferent org = rt0.Referent as OrganizationReferent;
-                        if (org.Kind == OrganizationKind.Bank && tt.Chars.IsLatinLetter) 
-                        {
-                        }
-                        Pullenti.Ner.ReferentToken rt1 = TryAttachOrg(tt, AttachType.Normal, null, false, -1);
-                        if (rt1 != null && rt1.EndToken.Next != null && rt1.EndToken.Next.IsChar(')')) 
-                        {
-                            if (org.CanBeEquals(rt1.Referent, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
-                            {
-                                org.MergeSlots(rt1.Referent, true);
-                                rt0.EndToken = rt1.EndToken.Next;
-                            }
-                        }
-                    }
-                }
-            }
-            if (rt0.IsNewlineBefore && rt0.IsNewlineAfter && rt0.EndToken.Next != null) 
-            {
-                Pullenti.Ner.Token t1 = rt0.EndToken.Next;
-                Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
-                if ((typ1 != null && typ1.IsNewlineAfter && typ1.Root != null) && typ1.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
-                {
-                    if (TryAttachOrg(t1, AttachType.Normal, null, false, -1) == null) 
-                    {
-                        (rt0.Referent as OrganizationReferent).AddType(typ1, false);
-                        rt0.EndToken = typ1.EndToken;
-                    }
-                }
-                if (t1.IsChar('(')) 
-                {
-                    if ((((typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false)))) != null) 
-                    {
-                        if ((typ1.Root != null && typ1.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix && typ1.EndToken.Next != null) && typ1.EndToken.Next.IsChar(')') && typ1.EndToken.Next.IsNewlineAfter) 
-                        {
-                            (rt0.Referent as OrganizationReferent).AddType(typ1, false);
-                            rt0.EndToken = typ1.EndToken.Next;
-                        }
-                    }
-                }
-            }
-        }
-        static Pullenti.Ner.Org.Internal.OrgItemTypeToken _lastTyp(List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> types)
-        {
-            if (types == null) 
-                return null;
-            for (int i = types.Count - 1; i >= 0; i--) 
-            {
-                return types[i];
-            }
-            return null;
-        }
-        static Pullenti.Ner.ReferentToken _TryAttachOrg_(Pullenti.Ner.Token t0, Pullenti.Ner.Token t, List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> types, bool specWordBefore, AttachType attachTyp, Pullenti.Ner.Org.Internal.OrgItemTypeToken multTyp, bool isAdditionalAttach)
-        {
-            if (t0 == null) 
-                return null;
-            Pullenti.Ner.Token t1 = t;
-            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ = _lastTyp(types);
-            if (typ != null) 
-            {
-                if (typ.IsDep) 
-                {
-                    Pullenti.Ner.ReferentToken rt0 = TryAttachDep(typ, attachTyp, specWordBefore);
-                    if (rt0 != null) 
-                        return rt0;
-                    if (typ.Typ == "группа" || typ.Typ == "група") 
-                    {
-                        typ = typ.Clone();
-                        typ.IsDep = false;
-                    }
-                    else 
-                        return null;
-                }
-                if (typ.IsNewlineAfter && typ.Name == null) 
-                {
-                    if (t1 != null && (t1.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && typ.Profiles.Contains(OrgProfile.State)) 
-                    {
-                    }
-                    else if (typ.Root != null && ((typ.Root.Coeff >= 3 || typ.Root.IsPurePrefix))) 
-                    {
-                    }
-                    else if (typ.Coef >= 4) 
-                    {
-                    }
-                    else if ((typ.Coef >= 3 && (typ.NewlinesAfterCount < 2) && typ.EndToken.Next != null) && typ.EndToken.Next.Morph.Class.IsPreposition) 
-                    {
-                    }
-                    else if (specWordBefore) 
-                    {
-                    }
-                    else 
-                        return null;
-                }
-                if (typ != multTyp && ((typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural && !char.IsUpper(typ.Typ[0])))) 
-                {
-                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false)) 
-                    {
-                    }
-                    else if (typ.EndToken.IsValue("ВЛАСТЬ", null)) 
-                    {
-                    }
-                    else 
-                        return null;
-                }
-                if (attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
-                {
-                    if (((typ.Typ == "предприятие" || typ.Typ == "підприємство")) && !specWordBefore && types.Count == 1) 
-                        return null;
-                }
-            }
-            OrganizationReferent org = new OrganizationReferent();
-            if (types != null) 
-            {
-                foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                {
-                    org.AddType(ty, false);
-                }
-            }
-            if (typ != null && typ.Root != null && typ.Root.IsPurePrefix) 
-            {
-                if ((t is Pullenti.Ner.TextToken) && t.Chars.IsAllUpper && !t.IsNewlineAfter) 
-                {
-                    Pullenti.Ner.Core.BracketSequenceToken b = Pullenti.Ner.Core.BracketHelper.TryParse(t.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                    if (b != null && b.IsQuoteType) 
-                    {
-                        org.AddTypeStr((t as Pullenti.Ner.TextToken).Term);
-                        t = t.Next;
-                    }
-                    else 
-                    {
-                        string s = (t as Pullenti.Ner.TextToken).Term;
-                        if (s.Length == 2 && s[s.Length - 1] == 'К') 
-                        {
-                            org.AddTypeStr(s);
-                            t = t.Next;
-                        }
-                        else if (((t.GetMorphClassInDictionary().IsUndefined && t.Next != null && (t.Next is Pullenti.Ner.TextToken)) && t.Next.Chars.IsCapitalUpper && t.Next.Next != null) && !t.Next.IsNewlineAfter) 
-                        {
-                            if (t.Next.Next.IsCharOf(",.;") || Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t.Next.Next, false, null, false)) 
-                            {
-                                org.AddTypeStr(s);
-                                t = t.Next;
-                            }
-                        }
-                    }
-                }
-                else if ((t is Pullenti.Ner.TextToken) && t.Morph.Class.IsAdjective && !t.Chars.IsAllLower) 
-                {
-                    Pullenti.Ner.ReferentToken rtg = IsGeo(t, true) as Pullenti.Ner.ReferentToken;
-                    if (rtg != null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(rtg.EndToken.Next, false, false)) 
-                    {
-                        org.AddGeoObject(rtg);
-                        t = rtg.EndToken.Next;
-                    }
-                }
-                else if ((t != null && (t.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && t.Next != null) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next, true, false)) 
-                {
-                    org.AddGeoObject(t.GetReferent());
-                    t = t.Next;
-                }
-            }
-            Pullenti.Ner.Token te = null;
-            OrganizationKind ki0 = org.Kind;
-            if (((((ki0 == OrganizationKind.Govenment || ki0 == OrganizationKind.Airport || ki0 == OrganizationKind.Factory) || ki0 == OrganizationKind.Seaport || ki0 == OrganizationKind.Party) || ki0 == OrganizationKind.Justice || ki0 == OrganizationKind.Military)) && t != null) 
-            {
-                object g = IsGeo(t, false);
-                if (g == null && t.Morph.Class.IsPreposition && t.Next != null) 
-                    g = IsGeo(t.Next, false);
-                if (g != null) 
-                {
-                    if (org.AddGeoObject(g)) 
-                    {
-                        te = (t1 = GetGeoEndToken(g, t));
-                        t = t1.Next;
-                        List<Pullenti.Ner.Core.IntOntologyToken> gt = Pullenti.Ner.Org.Internal.OrgGlobal.GlobalOrgs.TryAttach(t, null, false);
-                        if (gt == null && t != null && t.Kit.BaseLanguage.IsUa) 
-                            gt = Pullenti.Ner.Org.Internal.OrgGlobal.GlobalOrgsUa.TryAttach(t, null, false);
-                        if (gt != null && gt.Count == 1) 
-                        {
-                            if (org.CanBeEquals(gt[0].Item.Referent, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
-                            {
-                                org.MergeSlots(gt[0].Item.Referent, false);
-                                return new Pullenti.Ner.ReferentToken(org, t0, gt[0].EndToken);
-                            }
-                        }
-                    }
-                }
-            }
-            if (typ != null && typ.Root != null && ((typ.Root.CanBeSingleGeo && !typ.Root.CanHasSingleName))) 
-            {
-                if (org.GeoObjects.Count > 0 && te != null) 
-                    return new Pullenti.Ner.ReferentToken(org, t0, te);
-                object r = null;
-                te = (t1 = (typ != multTyp ? typ.EndToken : t0.Previous));
-                if (t != null && t1.Next != null) 
-                {
-                    r = IsGeo(t1.Next, false);
-                    if (r == null && t1.Next.Morph.Class.IsPreposition) 
-                        r = IsGeo(t1.Next.Next, false);
-                }
-                if (r != null) 
-                {
-                    if (!org.AddGeoObject(r)) 
-                        return null;
-                    te = GetGeoEndToken(r, t1.Next);
-                }
-                if (org.GeoObjects.Count > 0 && te != null) 
-                {
-                    Pullenti.Ner.Core.NounPhraseToken npt11 = Pullenti.Ner.Core.NounPhraseHelper.TryParse(te.Next, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                    if (npt11 != null && (te.WhitespacesAfterCount < 2) && npt11.Noun.IsValue("ДЕПУТАТ", null)) 
-                    {
-                    }
-                    else 
-                    {
-                        if (t0.BeginChar > te.BeginChar) 
-                            return null;
-                        Pullenti.Ner.ReferentToken res11 = new Pullenti.Ner.ReferentToken(org, t0, te);
-                        if (org.FindSlot(OrganizationReferent.ATTR_TYPE, "посольство", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "консульство", true) != null) 
-                        {
-                            if (te.Next != null && te.Next.IsValue("В", null)) 
-                            {
-                                r = IsGeo(te.Next.Next, false);
-                                if (org.AddGeoObject(r)) 
-                                    res11.EndToken = GetGeoEndToken(r, te.Next.Next);
-                            }
-                        }
-                        if (typ.Root.CanHasNumber) 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgItemNumberToken num11 = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(res11.EndToken.Next, false, null);
-                            if (num11 != null) 
-                            {
-                                res11.EndToken = num11.EndToken;
-                                org.Number = num11.Number;
-                            }
-                        }
-                        return res11;
-                    }
-                }
-            }
-            if (typ != null && (((typ.Typ == "милиция" || typ.Typ == "полиция" || typ.Typ == "міліція") || typ.Typ == "поліція"))) 
-            {
-                if (org.GeoObjects.Count > 0 && te != null) 
-                    return new Pullenti.Ner.ReferentToken(org, t0, te);
-                else 
-                    return null;
-            }
-            if (t != null && t.Morph.Class.IsProperName) 
-            {
-                Pullenti.Ner.ReferentToken rt1 = t.Kit.ProcessReferent("PERSON", t, null);
-                if (rt1 != null && (rt1.WhitespacesAfterCount < 2)) 
-                {
-                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(rt1.EndToken.Next, true, false)) 
-                        t = rt1.EndToken.Next;
-                    else if (rt1.EndToken.Next != null && rt1.EndToken.Next.IsHiphen && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(rt1.EndToken.Next.Next, true, false)) 
-                        t = rt1.EndToken.Next.Next;
-                }
-            }
-            else if ((t != null && t.Chars.IsCapitalUpper && t.Morph.Class.IsProperSurname) && t.Next != null && (t.WhitespacesAfterCount < 2)) 
-            {
-                if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next, true, false)) 
-                    t = t.Next;
-                else if (((t.Next.IsCharOf(":") || t.Next.IsHiphen)) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next.Next, true, false)) 
-                    t = t.Next.Next;
-            }
-            Pullenti.Ner.Token tMax = null;
-            Pullenti.Ner.Core.BracketSequenceToken br = null;
-            if (t != null) 
-            {
-                br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                if (typ != null && br == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
-                {
-                    if (t.Next != null && (t.Next.GetReferent() is OrganizationReferent)) 
-                    {
-                        OrganizationReferent org0 = t.Next.GetReferent() as OrganizationReferent;
-                        if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0)) 
-                        {
-                            org0.MergeSlots(org, false);
-                            return new Pullenti.Ner.ReferentToken(org0, t0, t.Next);
-                        }
-                    }
-                    if (((typ.Typ == "компания" || typ.Typ == "предприятие" || typ.Typ == "организация") || typ.Typ == "компанія" || typ.Typ == "підприємство") || typ.Typ == "організація") 
-                    {
-                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 1)) 
-                            return null;
-                    }
-                    Pullenti.Ner.Org.Internal.OrgItemTypeToken ty2 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false);
-                    if (ty2 != null) 
-                    {
-                        List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> typs2 = new List<Pullenti.Ner.Org.Internal.OrgItemTypeToken>();
-                        typs2.Add(ty2);
-                        Pullenti.Ner.ReferentToken rt2 = _TryAttachOrg_(t.Next, ty2.EndToken.Next, typs2, true, AttachType.High, null, isAdditionalAttach);
-                        if (rt2 != null) 
-                        {
-                            OrganizationReferent org0 = rt2.Referent as OrganizationReferent;
-                            if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0)) 
-                            {
-                                org0.MergeSlots(org, false);
-                                rt2.BeginToken = t0;
-                                if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt2.EndToken.Next, false, null, false)) 
-                                    rt2.EndToken = rt2.EndToken.Next;
-                                return rt2;
-                            }
-                        }
-                    }
-                }
-            }
-            if ((typ != null && br == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) && Pullenti.Ner.Core.BracketHelper.IsBracket(t, true)) 
-                br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.NearCloseBracket, 100);
-            if (br != null && typ != null && org.Kind == OrganizationKind.Govenment) 
-            {
-                if (typ.Root != null && !typ.Root.CanHasSingleName) 
-                    br = null;
-            }
-            if (br != null && br.IsQuoteType) 
-            {
-                if (br.BeginToken.Next.IsValue("О", null) || br.BeginToken.Next.IsValue("ОБ", null)) 
-                    br = null;
-                else if (br.BeginToken.Previous != null && br.BeginToken.Previous.IsChar(':')) 
-                    br = null;
-            }
-            if (br != null && br.IsQuoteType && ((br.OpenChar != '<' || ((typ != null && typ.Root != null && typ.Root.IsPurePrefix)) || (((types != null && types.Count > 0 && types[0].Root != null) && types[0].Root.IsPurePrefix))))) 
-            {
-                if (t.IsNewlineBefore && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) 
-                {
-                    if (!br.IsNewlineAfter) 
-                    {
-                        if (typ == null) 
-                            return null;
-                        if (typ.IsNewlineBefore || ((typ.BeginToken.Previous != null && typ.BeginToken.Previous.IsTableControlChar))) 
-                        {
-                        }
-                        else 
-                            return null;
-                    }
-                }
-                if (org.FindSlot(OrganizationReferent.ATTR_TYPE, "организация", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "організація", true) != null) 
-                {
-                    if (typ.BeginToken == typ.EndToken) 
-                    {
-                        if (!specWordBefore) 
-                            return null;
-                    }
-                }
-                if (typ != null && ((((typ.Typ == "компания" || typ.Typ == "предприятие" || typ.Typ == "организация") || typ.Typ == "компанія" || typ.Typ == "підприємство") || typ.Typ == "організація"))) 
-                {
-                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 1)) 
-                        return null;
-                }
-                Pullenti.Ner.Org.Internal.OrgItemNameToken nn = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t.Next, null, false, true);
-                if (nn != null && nn.IsIgnoredPart) 
-                    t = nn.EndToken;
-                OrganizationReferent org0 = t.Next.GetReferent() as OrganizationReferent;
-                if (org0 != null) 
-                {
-                    if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0) && t.Next.Next != null) 
-                    {
-                        if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t.Next.Next, false, null, false)) 
-                        {
-                            org0.MergeSlots(org, false);
-                            return new Pullenti.Ner.ReferentToken(org0, t0, t.Next.Next);
-                        }
-                        if ((t.Next.Next.GetReferent() is OrganizationReferent) && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t.Next.Next.Next, false, null, false)) 
-                        {
-                            org0.MergeSlots(org, false);
-                            return new Pullenti.Ner.ReferentToken(org0, t0, t.Next);
-                        }
-                    }
-                    return null;
-                }
-                Pullenti.Ner.Org.Internal.OrgItemNameToken na0 = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(br.BeginToken.Next, null, false, true);
-                if (na0 != null && na0.IsEmptyWord && na0.EndToken.Next == br.EndToken) 
-                    return null;
-                Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t.Next, attachTyp, null, isAdditionalAttach, -1);
-                if (br.Internal.Count > 1) 
-                {
-                    if (rt0 != null && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt0.EndToken, false, null, false)) 
-                        br.EndToken = rt0.EndToken;
-                    else 
-                        return null;
-                }
-                string abbr = null;
-                Pullenti.Ner.Token tt00 = (rt0 == null ? null : rt0.BeginToken);
-                if (((rt0 == null && t.Next != null && (t.Next is Pullenti.Ner.TextToken)) && t.Next.Chars.IsAllUpper && t.Next.LengthChar > 2) && t.Next.Chars.IsCyrillicLetter) 
-                {
-                    rt0 = TryAttachOrg(t.Next.Next, attachTyp, null, isAdditionalAttach, -1);
-                    if (rt0 != null && rt0.BeginToken == t.Next.Next) 
-                    {
-                        tt00 = t.Next;
-                        abbr = t.Next.GetSourceText();
-                    }
-                    else 
-                        rt0 = null;
-                }
-                bool ok2 = false;
-                if (rt0 != null) 
-                {
-                    if (rt0.EndToken == br.EndToken.Previous || rt0.EndToken == br.EndToken) 
-                        ok2 = true;
-                    else if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt0.EndToken, false, null, false) && rt0.EndChar > br.EndChar) 
-                    {
-                        Pullenti.Ner.Core.BracketSequenceToken br2 = Pullenti.Ner.Core.BracketHelper.TryParse(br.EndToken.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br2 != null && rt0.EndToken == br2.EndToken) 
-                            ok2 = true;
-                    }
-                }
-                if (ok2 && (rt0.Referent is OrganizationReferent)) 
-                {
-                    org0 = rt0.Referent as OrganizationReferent;
-                    if (typ != null && typ.Typ == "служба" && ((org0.Kind == OrganizationKind.Media || org0.Kind == OrganizationKind.Press))) 
-                    {
-                        if (br.BeginToken == rt0.BeginToken && br.EndToken == rt0.EndToken) 
-                            return rt0;
-                    }
-                    Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = null;
-                    if (tt00 != t.Next) 
-                    {
-                        typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false);
-                        if (typ1 != null && typ1.EndToken.Next == tt00) 
-                            org.AddType(typ1, false);
-                    }
-                    bool hi = false;
-                    if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org0, org, true)) 
-                    {
-                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org0, org)) 
-                            hi = true;
-                    }
-                    if (hi) 
-                    {
-                        org.Higher = org0;
-                        rt0.SetDefaultLocalOnto(t.Kit.Processor);
-                        org.AddExtReferent(rt0);
-                        if (typ1 != null) 
-                            org.AddType(typ1, true);
-                        if (abbr != null) 
-                            org.AddName(abbr, true, null);
-                    }
-                    else if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org0, org)) 
-                    {
-                        if (typ != null && typ.Root != null && typ.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
-                        {
-                            if (org0.ContainsProfile(OrgProfile.Unit)) 
-                            {
-                                org0.AddSlot(OrganizationReferent.ATTR_PROFILE, null, true, 0);
-                                org0.AddSlot(OrganizationReferent.ATTR_TYPE, null, true, 0);
-                            }
-                        }
-                        org.MergeSlots(org0, true);
-                        if (abbr != null) 
-                        {
-                            foreach (Pullenti.Ner.Slot s in org.Slots) 
-                            {
-                                if (s.TypeName == OrganizationReferent.ATTR_NAME) 
-                                    org.UploadSlot(s, string.Format("{0} {1}", abbr, s.Value));
-                            }
-                        }
-                    }
-                    else 
-                        rt0 = null;
-                    if (rt0 != null) 
-                    {
-                        Pullenti.Ner.Token t11 = br.EndToken;
-                        if (rt0.EndChar > t11.EndChar) 
-                            t11 = rt0.EndToken;
-                        Pullenti.Ner.Org.Internal.OrgItemEponymToken ep11 = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t11.Next, true);
-                        if (ep11 != null) 
-                        {
-                            t11 = ep11.EndToken;
-                            foreach (string e in ep11.Eponyms) 
-                            {
-                                org.AddEponym(e);
-                            }
-                        }
-                        t1 = AttachTailAttributes(org, t11.Next, true, attachTyp, false);
-                        if (t1 == null) 
-                            t1 = t11;
-                        if (typ != null) 
-                        {
-                            if ((typ.Name != null && typ.Geo == null && org.Names.Count > 0) && !org.Names.Contains(typ.Name)) 
-                                org.AddTypeStr(typ.Name.ToLower());
-                        }
-                        return new Pullenti.Ner.ReferentToken(org, t0, t1);
-                    }
-                }
-                if (rt0 != null && (rt0.EndChar < br.EndToken.Previous.EndChar)) 
-                {
-                    Pullenti.Ner.ReferentToken rt1 = TryAttachOrg(rt0.EndToken.Next, attachTyp, null, isAdditionalAttach, -1);
-                    if (rt1 != null && rt1.EndToken.Next == br.EndToken) 
-                        return rt1;
-                    OrganizationReferent org1 = rt0.EndToken.Next.GetReferent() as OrganizationReferent;
-                    if (org1 != null && br.EndToken.Previous == rt0.EndToken) 
-                    {
-                    }
-                }
-                for (int step = 0; step < 2; step++) 
-                {
-                    Pullenti.Ner.Token tt0 = t.Next;
-                    Pullenti.Ner.Token tt1 = null;
-                    bool pref = true;
-                    int notEmpty = 0;
-                    for (t1 = t.Next; t1 != null && t1 != br.EndToken; t1 = t1.Next) 
-                    {
-                        if (t1.IsChar('(')) 
-                        {
-                            if (notEmpty == 0) 
-                                break;
-                            Pullenti.Ner.Referent r = null;
-                            if (t1.Next != null) 
-                                r = t1.Next.GetReferent();
-                            if (r != null && t1.Next.Next != null && t1.Next.Next.IsChar(')')) 
-                            {
-                                if (r.TypeName == GEONAME) 
-                                {
-                                    org.AddGeoObject(r);
-                                    break;
-                                }
-                            }
-                            Pullenti.Ner.ReferentToken rt = TryAttachOrg(t1.Next, AttachType.High, null, false, -1);
-                            if (rt != null && rt.EndToken.Next != null && rt.EndToken.Next.IsChar(')')) 
-                            {
-                                if (!OrganizationReferent.CanBeSecondDefinition(org, rt.Referent as OrganizationReferent)) 
-                                    break;
-                                org.MergeSlots(rt.Referent, false);
-                            }
-                            break;
-                        }
-                        else if ((((org0 = t1.GetReferent() as OrganizationReferent))) != null) 
-                        {
-                            if (((t1.Previous is Pullenti.Ner.NumberToken) && t1.Previous.Previous == br.BeginToken && !Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0)) && org0.Number == null) 
-                            {
-                                org0.Number = (t1.Previous as Pullenti.Ner.NumberToken).Value.ToString();
-                                org0.MergeSlots(org, false);
-                                if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t1.Next, false, null, false)) 
-                                    t1 = t1.Next;
-                                return new Pullenti.Ner.ReferentToken(org0, t0, t1);
-                            }
-                            Pullenti.Ner.Org.Internal.OrgItemNameToken ne = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(br.BeginToken.Next, null, attachTyp == AttachType.ExtOntology, true);
-                            if (ne != null && ne.IsIgnoredPart && ne.EndToken.Next == t1) 
-                            {
-                                org0.MergeSlots(org, false);
-                                if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t1.Next, false, null, false)) 
-                                    t1 = t1.Next;
-                                return new Pullenti.Ner.ReferentToken(org0, t0, t1);
-                            }
-                            return null;
-                        }
-                        else 
-                        {
-                            typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
-                            if (typ != null && types != null) 
-                            {
-                                foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                                {
-                                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(ty, typ)) 
-                                    {
-                                        typ = null;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (typ != null) 
-                            {
-                                if (typ.IsDoubtRootWord && ((typ.EndToken.Next == br.EndToken || ((typ.EndToken.Next != null && typ.EndToken.Next.IsHiphen))))) 
-                                    typ = null;
-                                else if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural) 
-                                    typ = null;
-                                else if (!typ.Morph.Case.IsUndefined && !typ.Morph.Case.IsNominative) 
-                                    typ = null;
-                                else if (typ.Typ == "управление") 
-                                    typ = null;
-                                else if (typ.BeginToken == typ.EndToken) 
-                                {
-                                    Pullenti.Ner.Token ttt = typ.EndToken.Next;
-                                    if (ttt != null && ttt.IsHiphen) 
-                                        ttt = ttt.Next;
-                                    if (ttt != null) 
-                                    {
-                                        if (ttt.IsValue("БАНК", null)) 
-                                            typ = null;
-                                    }
-                                }
-                            }
-                            Pullenti.Ner.Org.Internal.OrgItemEponymToken ep = null;
-                            if (typ == null) 
-                                ep = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t1, false);
-                            Pullenti.Ner.Org.Internal.OrgItemNumberToken nu = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1, false, null);
-                            if (nu != null && !(t1 is Pullenti.Ner.NumberToken)) 
-                            {
-                                org.Number = nu.Number;
-                                tt1 = t1.Previous;
-                                t1 = nu.EndToken;
-                                notEmpty += 2;
-                                continue;
-                            }
-                            bool brSpec = false;
-                            if ((br.Internal.Count == 0 && (br.EndToken.Next is Pullenti.Ner.TextToken) && ((!br.EndToken.Next.Chars.IsAllLower && br.EndToken.Next.Chars.IsLetter))) && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(br.EndToken.Next.Next, true, null, false)) 
-                                brSpec = true;
-                            if (typ != null && ((pref || !typ.IsDep))) 
-                            {
-                                if (notEmpty > 1) 
-                                {
-                                    Pullenti.Ner.ReferentToken rrr = TryAttachOrg(typ.BeginToken, AttachType.Normal, null, false, -1);
-                                    if (rrr != null) 
-                                    {
-                                        br.EndToken = (t1 = typ.BeginToken.Previous);
-                                        break;
-                                    }
-                                }
-                                if (((attachTyp == AttachType.ExtOntology || attachTyp == AttachType.High)) && ((typ.Root == null || !typ.Root.IsPurePrefix))) 
-                                    pref = false;
-                                else if (typ.Name == null) 
-                                {
-                                    if (typ.BeginToken == br.BeginToken.Next && typ.EndToken.Next == br.EndToken && Pullenti.Ner.Core.BracketHelper.IsBracket(br.EndToken, true)) 
-                                    {
-                                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(typ, Pullenti.Ner.Core.GetTextAttr.No), true, null);
-                                        t1 = typ.EndToken;
-                                        break;
-                                    }
-                                    org.AddType(typ, false);
-                                    if (pref) 
-                                        tt0 = typ.EndToken.Next;
-                                    else if (typ.Root != null && typ.Root.IsPurePrefix) 
-                                    {
-                                        tt1 = typ.BeginToken.Previous;
-                                        break;
-                                    }
-                                }
-                                else if (typ.EndToken.Next != br.EndToken) 
-                                {
-                                    org.AddType(typ, false);
-                                    if (typ.Typ == "банк") 
-                                        pref = false;
-                                    else 
-                                    {
-                                        org.AddTypeStr(typ.Name.ToLower());
-                                        org.AddTypeStr(typ.AltTyp);
-                                        if (pref) 
-                                            tt0 = typ.EndToken.Next;
-                                    }
-                                }
-                                else if (brSpec) 
-                                {
-                                    org.AddType(typ, false);
-                                    org.AddTypeStr(typ.Name.ToLower());
-                                    notEmpty += 2;
-                                    tt0 = br.EndToken.Next;
-                                    t1 = tt0.Next;
-                                    br.EndToken = t1;
-                                    break;
-                                }
-                                if (typ != multTyp) 
-                                {
-                                    t1 = typ.EndToken;
-                                    if (typ.Geo != null) 
-                                        org.AddType(typ, false);
-                                }
-                            }
-                            else if (ep != null) 
-                            {
-                                foreach (string e in ep.Eponyms) 
-                                {
-                                    org.AddEponym(e);
-                                }
-                                notEmpty += 3;
-                                t1 = ep.BeginToken.Previous;
-                                break;
-                            }
-                            else if (t1 == t.Next && (t1 is Pullenti.Ner.TextToken) && t1.Chars.IsAllLower) 
-                                return null;
-                            else if (t1.Chars.IsLetter || (t1 is Pullenti.Ner.NumberToken)) 
-                            {
-                                if (brSpec) 
-                                {
-                                    tt0 = br.BeginToken;
-                                    t1 = br.EndToken.Next.Next;
-                                    string ss = Pullenti.Ner.Core.MiscHelper.GetTextValue(br.EndToken, t1, Pullenti.Ner.Core.GetTextAttr.No);
-                                    if (!string.IsNullOrEmpty(ss)) 
-                                    {
-                                        org.AddName(ss, true, br.EndToken.Next);
-                                        br.EndToken = t1;
-                                    }
-                                    break;
-                                }
-                                pref = false;
-                                notEmpty++;
-                            }
-                        }
-                    }
-                    bool canHasNum = false;
-                    bool canHasLatinName = false;
-                    if (types != null) 
-                    {
-                        foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                        {
-                            if (ty.Root != null) 
-                            {
-                                if (ty.Root.CanHasNumber) 
-                                    canHasNum = true;
-                                if (ty.Root.CanHasLatinName) 
-                                    canHasLatinName = true;
-                            }
-                        }
-                    }
-                    te = tt1 ?? t1;
-                    if (te != null && tt0 != null && (tt0.BeginChar < te.BeginChar)) 
-                    {
-                        for (Pullenti.Ner.Token ttt = tt0; ttt != te && ttt != null; ttt = ttt.Next) 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgItemNameToken oin = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(ttt, null, attachTyp == AttachType.ExtOntology, ttt == tt0);
-                            if (oin != null) 
-                            {
-                                if (oin.IsIgnoredPart && ttt == tt0) 
-                                {
-                                    tt0 = oin.EndToken.Next;
-                                    if (tt0 == null) 
-                                        break;
-                                    ttt = tt0.Previous;
-                                    continue;
-                                }
-                                if (oin.IsStdTail) 
-                                {
-                                    Pullenti.Ner.Org.Internal.OrgItemEngItem ei = Pullenti.Ner.Org.Internal.OrgItemEngItem.TryAttach(oin.BeginToken, false);
-                                    if (ei == null && oin.BeginToken.IsComma) 
-                                        ei = Pullenti.Ner.Org.Internal.OrgItemEngItem.TryAttach(oin.BeginToken.Next, false);
-                                    if (ei != null) 
-                                    {
-                                        org.AddTypeStr(ei.FullValue);
-                                        if (ei.ShortValue != null) 
-                                            org.AddTypeStr(ei.ShortValue);
-                                    }
-                                    te = ttt.Previous;
-                                    break;
-                                }
-                            }
-                            if ((ttt != tt0 && (ttt is Pullenti.Ner.ReferentToken) && ttt.Next == te) && (ttt.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
-                            {
-                                if (ttt.Previous != null && ttt.Previous.GetMorphClassInDictionary().IsAdjective) 
-                                    continue;
-                                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(ttt.Previous, Pullenti.Ner.Core.NounPhraseParseAttr.ReferentCanBeNoun, 0, null);
-                                if (npt != null && npt.EndToken == ttt) 
-                                {
-                                }
-                                else 
-                                {
-                                    te = ttt.Previous;
-                                    if (te.Morph.Class.IsPreposition && te.Previous != null) 
-                                        te = te.Previous;
-                                }
-                                org.AddGeoObject(ttt.GetReferent());
-                                break;
-                            }
-                        }
-                    }
-                    if (te != null && tt0 != null && (tt0.BeginChar < te.BeginChar)) 
-                    {
-                        if ((te.Previous is Pullenti.Ner.NumberToken) && canHasNum) 
-                        {
-                            bool err = false;
-                            Pullenti.Ner.NumberToken num1 = te.Previous as Pullenti.Ner.NumberToken;
-                            if (org.Number != null && org.Number != num1.Value.ToString()) 
-                                err = true;
-                            else if (te.Previous.Previous == null) 
-                                err = true;
-                            else if (!te.Previous.Previous.IsHiphen && !te.Previous.Previous.Chars.IsLetter) 
-                                err = true;
-                            else if (num1.Value == "0") 
-                                err = true;
-                            if (!err) 
-                            {
-                                org.Number = num1.Value.ToString();
-                                te = te.Previous.Previous;
-                                if (te != null && ((te.IsHiphen || te.IsValue("N", null) || te.IsValue("№", null)))) 
-                                    te = te.Previous;
-                            }
-                        }
-                    }
-                    string s = (te == null ? null : Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, te, Pullenti.Ner.Core.GetTextAttr.No));
-                    string s1 = (te == null ? null : Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, te, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative));
-                    if ((te != null && (te.Previous is Pullenti.Ner.NumberToken) && canHasNum) && org.Number == null) 
-                    {
-                        org.Number = (te.Previous as Pullenti.Ner.NumberToken).Value.ToString();
-                        Pullenti.Ner.Token tt11 = te.Previous;
-                        if (tt11.Previous != null && tt11.Previous.IsHiphen) 
-                            tt11 = tt11.Previous;
-                        if (tt11.Previous != null) 
-                        {
-                            s = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, tt11.Previous, Pullenti.Ner.Core.GetTextAttr.No);
-                            s1 = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, tt11.Previous, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
-                        }
-                    }
-                    if (!string.IsNullOrEmpty(s)) 
-                    {
-                        if (tt0.Morph.Class.IsPreposition && tt0 != br.BeginToken.Next) 
-                        {
-                            foreach (string ty in org.Types) 
-                            {
-                                if (!ty.Contains(" ") && char.IsLower(ty[0])) 
-                                {
-                                    s = string.Format("{0} {1}", ty.ToUpper(), s);
-                                    s1 = null;
-                                    break;
-                                }
-                            }
-                        }
-                        if (s.Length > MaxOrgName) 
-                            return null;
-                        if (s1 != null && s1 != s && s1.Length <= s.Length) 
-                            org.AddName(s1, true, null);
-                        org.AddName(s, true, tt0);
-                        typ = _lastTyp(types);
-                        if (typ != null && typ.Root != null && typ.Root.CanonicText.StartsWith("ИНДИВИДУАЛЬН")) 
-                        {
-                            Pullenti.Ner.ReferentToken pers = typ.Kit.ProcessReferent("PERSON", tt0, null);
-                            if (pers != null && pers.EndToken.Next == te) 
-                            {
-                                org.AddExtReferent(pers);
-                                org.AddSlot(OrganizationReferent.ATTR_OWNER, pers.Referent, false, 0);
-                            }
-                        }
-                        bool ok1 = false;
-                        foreach (char c in s) 
-                        {
-                            if (char.IsLetterOrDigit(c)) 
-                            {
-                                ok1 = true;
-                                break;
-                            }
-                        }
-                        if (!ok1) 
-                            return null;
-                        if (br.BeginToken.Next.Chars.IsAllLower) 
-                            return null;
-                        if (org.Types.Count == 0) 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = _lastTyp(types);
-                            if (ty != null && ty.Coef >= 4) 
-                            {
-                            }
-                            else 
-                            {
-                                if (attachTyp == AttachType.Normal) 
-                                    return null;
-                                if (org.Names.Count == 1 && (org.Names[0].Length < 2) && (br.LengthChar < 5)) 
-                                    return null;
-                            }
-                        }
-                    }
-                    else if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t1, false, false)) 
-                    {
-                        Pullenti.Ner.Core.BracketSequenceToken br1 = Pullenti.Ner.Core.BracketHelper.TryParse(t1, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br1 == null) 
-                            break;
-                        t = br1.BeginToken;
-                        br = br1;
-                        continue;
-                    }
-                    else if (((org.Number != null || org.Eponyms.Count > 0)) && t1 == br.EndToken) 
-                    {
-                    }
-                    else if (org.GeoObjects.Count > 0 && org.Types.Count > 2) 
-                    {
-                    }
-                    else if (org.Types.Count > 2) 
-                    {
-                    }
-                    else 
-                        return null;
-                    t1 = br.EndToken;
-                    if (org.Number == null && t1.Next != null && (t1.WhitespacesAfterCount < 2)) 
-                    {
-                        Pullenti.Ner.Org.Internal.OrgItemNumberToken num1 = (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 1) ? null : Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next, false, typ));
-                        if (num1 != null) 
-                        {
-                            org.Number = num1.Number;
-                            t1 = num1.EndToken;
-                        }
-                        else 
-                            t1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                    }
-                    else 
-                        t1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                    if (t1 == null) 
-                        t1 = br.EndToken;
-                    bool ok0 = false;
-                    if (types != null) 
-                    {
-                        foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
-                        {
-                            if (ty.Name != null) 
-                                org.AddTypeStr(ty.Name.ToLower());
-                            if (attachTyp != AttachType.Multiple && (ty.BeginChar < t0.BeginChar) && !ty.IsNotTyp) 
-                                t0 = ty.BeginToken;
-                            if (!ty.IsDoubtRootWord || ty.Coef > 0 || ty.Geo != null) 
-                                ok0 = true;
-                            else if (ty.Typ == "движение" && ((!br.BeginToken.Next.Chars.IsAllLower || !ty.Chars.IsAllLower))) 
-                            {
-                                if (!br.BeginToken.Next.Morph.Case.IsGenitive) 
-                                    ok0 = true;
-                            }
-                            else if (ty.Typ == "АО") 
-                            {
-                                if (ty.BeginToken.Chars.IsAllUpper && (ty.WhitespacesAfterCount < 2) && Pullenti.Ner.Core.BracketHelper.IsBracket(ty.EndToken.Next, true)) 
-                                    ok0 = true;
-                                else 
-                                    for (Pullenti.Ner.Token tt2 = t1.Next; tt2 != null; tt2 = tt2.Next) 
-                                    {
-                                        if (tt2.IsComma) 
-                                            continue;
-                                        if (tt2.IsValue("ИМЕНОВАТЬ", null)) 
-                                            ok0 = true;
-                                        if (tt2.IsValue("В", null) && tt2.Next != null) 
-                                        {
-                                            if (tt2.Next.IsValue("ЛИЦО", null) || tt2.Next.IsValue("ДАЛЬШЕЙШЕМ", null) || tt2.Next.IsValue("ДАЛЕЕ", null)) 
-                                                ok0 = true;
-                                        }
-                                        break;
-                                    }
-                            }
-                        }
-                    }
-                    if (org.Eponyms.Count == 0 && (t1.WhitespacesAfterCount < 2)) 
-                    {
-                        Pullenti.Ner.Org.Internal.OrgItemEponymToken ep = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t1.Next, false);
-                        if (ep != null) 
-                        {
-                            foreach (string e in ep.Eponyms) 
-                            {
-                                org.AddEponym(e);
-                            }
-                            ok0 = true;
-                            t1 = ep.EndToken;
-                        }
-                    }
-                    if (org.Names.Count == 0) 
-                    {
-                        s = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
-                        s1 = (te == null ? null : Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative));
-                        org.AddName(s, true, br.BeginToken.Next);
-                        org.AddName(s1, true, null);
-                    }
-                    if (!ok0) 
-                    {
-                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(t0.Previous)) 
-                            ok0 = true;
-                    }
-                    if (!ok0 && attachTyp != AttachType.Normal) 
-                        ok0 = true;
-                    typ = _lastTyp(types);
-                    if (typ != null && typ.BeginToken != typ.EndToken) 
-                        ok0 = true;
-                    if (ok0) 
-                        return new Pullenti.Ner.ReferentToken(org, t0, t1);
-                    else 
-                        return new Pullenti.Ner.ReferentToken(org, t0, t1) { Tag = org };
-                }
-            }
-            Pullenti.Ner.Org.Internal.OrgItemNumberToken num = null;
-            Pullenti.Ner.Org.Internal.OrgItemNumberToken _num;
-            Pullenti.Ner.Org.Internal.OrgItemEponymToken epon = null;
-            Pullenti.Ner.Org.Internal.OrgItemEponymToken _epon;
-            List<Pullenti.Ner.Org.Internal.OrgItemNameToken> names = null;
-            Pullenti.Ner.Org.Internal.OrgItemNameToken pr = null;
-            Pullenti.Ner.ReferentToken ownOrg = null;
-            if (t1 == null) 
-                t1 = t0;
-            else if (t != null && t.Previous != null && t.Previous.BeginChar >= t0.BeginChar) 
-                t1 = t.Previous;
-            br = null;
-            bool ok = false;
-            for (; t != null; t = t.Next) 
-            {
-                if (t.GetReferent() is OrganizationReferent) 
-                {
-                }
-                Pullenti.Ner.ReferentToken rt;
-                if ((((rt = AttachGlobalOrg(t, attachTyp, null)))) != null) 
-                {
-                    if (t == t0) 
-                    {
-                        if (!t.Chars.IsAllLower) 
-                            return rt;
-                        return null;
-                    }
-                    rt = TryAttachOrg(t, attachTyp, multTyp, isAdditionalAttach, -1);
-                    if (rt != null) 
-                        return rt;
-                }
-                if ((t.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && t.Chars.IsCyrillicLetter) 
-                {
-                    if (org.FindSlot(null, t.GetReferent(), true) != null && (t.WhitespacesBeforeCount < 3)) 
-                    {
-                        t1 = t;
-                        continue;
-                    }
-                }
-                if ((((_num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t, typ != null && typ.Root != null && typ.Root.CanHasNumber, typ)))) != null) 
-                {
-                    if ((typ == null || typ.Root == null || !typ.Root.CanHasNumber) || num != null) 
-                        break;
-                    if (t.WhitespacesBeforeCount > 2) 
-                    {
-                        if (typ.EndToken.Next == t && Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(t) != null) 
-                        {
-                        }
-                        else 
-                            break;
-                    }
-                    if (typ.Root.CanonicText == "СУД" && typ.Name != null) 
-                    {
-                        if ((((typ.Name.StartsWith("ВЕРХОВНЫЙ") || typ.Name.StartsWith("АРБИТРАЖНЫЙ") || typ.Name.StartsWith("ВЫСШИЙ")) || typ.Name.StartsWith("КОНСТИТУЦИОН") || typ.Name.StartsWith("ВЕРХОВНИЙ")) || typ.Name.StartsWith("АРБІТРАЖНИЙ") || typ.Name.StartsWith("ВИЩИЙ")) || typ.Name.StartsWith("КОНСТИТУЦІЙН")) 
-                        {
-                            typ.Coef = 3;
-                            break;
-                        }
-                    }
-                    num = _num;
-                    t1 = (t = num.EndToken);
-                    continue;
-                }
-                if ((((_epon = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t, false)))) != null) 
-                {
-                    epon = _epon;
-                    t1 = (t = epon.EndToken);
-                    continue;
-                }
-                if ((((typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t, false)))) != null) 
-                {
-                    if (typ.Morph.Case.IsGenitive) 
-                    {
-                        if (typ.EndToken.IsValue("СЛУЖБА", null) || typ.EndToken.IsValue("УПРАВЛЕНИЕ", "УПРАВЛІННЯ") || typ.EndToken.IsValue("ХОЗЯЙСТВО", null)) 
-                            typ = null;
-                    }
-                    if (typ != null) 
-                    {
-                        if (!typ.IsDoubtRootWord && attachTyp != AttachType.ExtOntology) 
-                            break;
-                        if (types == null && t0 == t) 
-                            break;
-                        if (_lastTyp(types) != null && attachTyp != AttachType.ExtOntology) 
-                        {
-                            if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(typ, _lastTyp(types))) 
-                            {
-                                if (names != null && ((typ.Morph.Case.IsGenitive || typ.Morph.Case.IsInstrumental)) && (t.WhitespacesBeforeCount < 2)) 
-                                {
-                                }
-                                else 
-                                    break;
-                            }
-                        }
-                    }
-                }
-                if ((((br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100)))) != null) 
-                {
-                    if (ownOrg != null && !(ownOrg.Referent as OrganizationReferent).IsFromGlobalOntos) 
-                        break;
-                    if (t.IsNewlineBefore && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) 
-                        break;
-                    typ = _lastTyp(types);
-                    if ((org.FindSlot(OrganizationReferent.ATTR_TYPE, "организация", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "движение", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "організація", true) != null) || org.FindSlot(OrganizationReferent.ATTR_TYPE, "рух", true) != null) 
-                    {
-                        if (((typ == null || (typ.Coef < 2))) && !specWordBefore) 
-                            return null;
-                    }
-                    if (br.IsQuoteType) 
-                    {
-                        if (br.OpenChar == '<' || br.WhitespacesBeforeCount > 1) 
-                            break;
-                        rt = TryAttachOrg(t, AttachType.High, null, false, -1);
-                        if (rt == null) 
-                            break;
-                        OrganizationReferent org0 = rt.Referent as OrganizationReferent;
-                        if (names != null && names.Count == 1) 
-                        {
-                            if (((!names[0].IsNounPhrase && names[0].Chars.IsAllUpper)) || org0.Names.Count > 0) 
-                            {
-                                if (!names[0].BeginToken.Morph.Class.IsPreposition) 
-                                {
-                                    if (org0.Names.Count == 0) 
-                                        org.AddTypeStr(names[0].Value);
-                                    else if (org0.Names.Count < 6) 
-                                    {
-                                        foreach (string n in org0.Names) 
-                                        {
-                                            org.AddName(string.Format("{0} {1}", names[0].Value, n), true, null);
-                                            if (typ != null && typ.Root != null && typ.Root.Typ != Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
-                                                org.AddName(string.Format("{0} {1} {2}", typ.Typ.ToUpper(), Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(names[0], Pullenti.Ner.Core.GetTextAttr.No), n), true, null);
-                                        }
-                                        if (typ != null) 
-                                            typ.Coef = 4;
-                                    }
-                                    names = null;
-                                }
-                            }
-                        }
-                        if (names != null && names.Count > 0 && !specWordBefore) 
-                        {
-                            Pullenti.Ner.Token tt2 = rt.EndToken.Next;
-                            if (tt2 != null && tt2.IsComma) 
-                                tt2 = tt2.Next;
-                            if (tt2 != null && tt2.IsValue("ИМЕНУЕМЫЙ", null)) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        if (!org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
-                            break;
-                        org.MergeSlots(org0, true);
-                        t1 = (tMax = (t = rt.EndToken));
-                        ok = true;
-                        continue;
-                    }
-                    else if (br.OpenChar == '(') 
-                    {
-                        if (t.Next.GetReferent() != null && t.Next.Next == br.EndToken) 
-                        {
-                            Pullenti.Ner.Referent r = t.Next.GetReferent();
-                            if (r.TypeName == GEONAME) 
-                            {
-                                org.AddGeoObject(r);
-                                tMax = (t1 = (t = br.EndToken));
-                                continue;
-                            }
-                        }
-                        else if (((t.Next is Pullenti.Ner.TextToken) && t.Next.Chars.IsLetter && !t.Next.Chars.IsAllLower) && t.Next.Next == br.EndToken) 
-                        {
-                            typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, true);
-                            if (typ != null) 
-                            {
-                                OrganizationReferent or0 = new OrganizationReferent();
-                                or0.AddType(typ, false);
-                                if (or0.Kind != OrganizationKind.Undefined && org.Kind != OrganizationKind.Undefined) 
-                                {
-                                    if (org.Kind != or0.Kind) 
-                                        break;
-                                }
-                                if (Pullenti.Ner.Core.MiscHelper.TestAcronym(t.Next, t0, t.Previous)) 
-                                    org.AddName(t.Next.GetSourceText(), true, null);
-                                else 
-                                    org.AddType(typ, false);
-                                t1 = (t = (tMax = br.EndToken));
-                                continue;
-                            }
-                            else 
-                            {
-                                Pullenti.Ner.Org.Internal.OrgItemNameToken nam = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t.Next, null, attachTyp == AttachType.ExtOntology, true);
-                                if (nam != null && nam.IsEmptyWord) 
-                                    break;
-                                if (attachTyp == AttachType.Normal) 
-                                {
-                                    OrganizationReferent org0 = new OrganizationReferent();
-                                    org0.AddName((t.Next as Pullenti.Ner.TextToken).Term, true, t.Next);
-                                    if (!OrganizationReferent.CanBeSecondDefinition(org, org0)) 
-                                        break;
-                                }
-                                org.AddName((t.Next as Pullenti.Ner.TextToken).Term, true, t.Next);
-                                tMax = (t1 = (t = br.EndToken));
-                                continue;
-                            }
-                        }
-                    }
-                    break;
-                }
-                if (ownOrg != null) 
-                {
-                    if (names == null && t.IsValue("ПО", null) && !t.IsValue2("ПО", "ИТОГ")) 
-                    {
-                    }
-                    else if (names != null && t.IsCommaAnd) 
-                    {
-                    }
-                    else 
-                        break;
-                }
-                typ = _lastTyp(types);
-                if (typ != null && typ.Root != null && typ.Root.IsPurePrefix) 
-                {
-                    if (pr == null && names == null) 
-                    {
-                        pr = new Pullenti.Ner.Org.Internal.OrgItemNameToken(t, t);
-                        pr.Morph.Case = Pullenti.Morph.MorphCase.Nominative;
-                    }
-                }
-                Pullenti.Ner.Org.Internal.OrgItemNameToken na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t, pr, attachTyp == AttachType.ExtOntology, names == null);
-                if (na == null && t != null) 
-                {
-                    if (org.Kind == OrganizationKind.Church || ((typ != null && typ.Typ != null && typ.Typ.Contains("фермер")))) 
-                    {
-                        Pullenti.Ner.ReferentToken prt = t.Kit.ProcessReferent("PERSON", t, null);
-                        if (prt != null) 
-                        {
-                            na = new Pullenti.Ner.Org.Internal.OrgItemNameToken(t, prt.EndToken) { IsStdName = true };
-                            na.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(na, Pullenti.Ner.Core.GetTextAttr.No);
-                            na.Chars = new Pullenti.Morph.CharsInfo() { IsCapitalUpper = true };
-                            na.Morph = prt.Morph;
-                            string sur = prt.Referent.GetStringValue("LASTNAME");
-                            if (sur != null) 
-                            {
-                                for (Pullenti.Ner.Token tt = t; tt != null && tt.EndChar <= prt.EndChar; tt = tt.Next) 
-                                {
-                                    if (tt.IsValue(sur, null)) 
-                                    {
-                                        na.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt, tt, Pullenti.Ner.Core.GetTextAttr.No);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (na == null) 
-                {
-                    if (attachTyp == AttachType.ExtOntology) 
-                    {
-                        if (t.IsChar(',') || t.IsAnd) 
-                            continue;
-                    }
-                    if (t.GetReferent() is OrganizationReferent) 
-                    {
-                        ownOrg = t as Pullenti.Ner.ReferentToken;
-                        continue;
-                    }
-                    if (t.IsValue("ПРИ", null) && (t.Next is Pullenti.Ner.ReferentToken) && (t.Next.GetReferent() is OrganizationReferent)) 
-                    {
-                        t = t.Next;
-                        ownOrg = t as Pullenti.Ner.ReferentToken;
-                        continue;
-                    }
-                    if ((((names == null && t.IsChar('/') && (t.Next is Pullenti.Ner.TextToken)) && !t.IsWhitespaceAfter && t.Next.Chars.IsAllUpper) && t.Next.LengthChar >= 3 && (t.Next.Next is Pullenti.Ner.TextToken)) && !t.Next.IsWhitespaceAfter && t.Next.Next.IsChar('/')) 
-                        na = new Pullenti.Ner.Org.Internal.OrgItemNameToken(t, t.Next.Next) { Value = t.Next.GetSourceText().ToUpper(), Chars = t.Next.Chars };
-                    else if (names == null && typ != null && ((typ.Typ == "движение" || org.Kind == OrganizationKind.Party))) 
-                    {
-                        Pullenti.Ner.Token tt1 = null;
-                        if (t.IsValue("ЗА", null) || t.IsValue("ПРОТИВ", null)) 
-                            tt1 = t.Next;
-                        else if (t.IsValue("В", null) && t.Next != null) 
-                        {
-                            if (t.Next.IsValue("ЗАЩИТА", null) || t.Next.IsValue("ПОДДЕРЖКА", null)) 
-                                tt1 = t.Next;
-                        }
-                        else if (typ.Chars.IsCapitalUpper && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(typ.BeginToken)) 
-                        {
-                            Pullenti.Morph.MorphClass mc = t.GetMorphClassInDictionary();
-                            if ((mc.IsAdverb || mc.IsPronoun || mc.IsPersonalPronoun) || mc.IsVerb || mc.IsConjunction) 
-                            {
-                            }
-                            else if (t.Chars.IsLetter) 
-                                tt1 = t;
-                            else if (typ.BeginToken != typ.EndToken) 
-                                typ.Coef += 3;
-                        }
-                        if (tt1 != null) 
-                        {
-                            na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(tt1, pr, true, false);
-                            if (na != null) 
-                            {
-                                na.BeginToken = t;
-                                typ.Coef += 3;
-                            }
-                        }
-                    }
-                    if (na == null) 
-                        break;
-                }
-                if (num != null || epon != null) 
-                    break;
-                if (attachTyp == AttachType.Multiple || attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
-                {
-                    if (!na.IsStdTail && !na.Chars.IsLatinLetter && na.StdOrgNameNouns == 0) 
-                    {
-                        if (t.Morph.Class.IsProperName && !t.Chars.IsAllUpper) 
-                            break;
-                        Pullenti.Morph.MorphClass cla = t.GetMorphClassInDictionary();
-                        if (cla.IsProperSurname || ((t.Morph.Language.IsUa && t.Morph.Class.IsProperSurname))) 
-                        {
-                            if (names == null && ((org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport))) 
-                            {
-                            }
-                            else if (typ != null && typ.Root != null && typ.Root.Acronym == "ФОП") 
-                            {
-                            }
-                            else if (typ != null && typ.Typ.Contains("фермер")) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        if (cla.IsUndefined && na.Chars.IsCyrillicLetter && na.Chars.IsCapitalUpper) 
-                        {
-                            if ((t.Previous != null && !t.Previous.Morph.Class.IsPreposition && !t.Previous.Morph.Class.IsConjunction) && t.Previous.Chars.IsAllLower) 
-                            {
-                                if ((t.Next != null && (t.Next is Pullenti.Ner.TextToken) && t.Next.Chars.IsLetter) && !t.Next.Chars.IsAllLower) 
-                                    break;
-                            }
-                        }
-                        if (typ != null && typ.Typ == "союз" && !t.Morph.Case.IsGenitive) 
-                            break;
-                        Pullenti.Ner.ReferentToken pit = t.Kit.ProcessReferent("PERSONPROPERTY", t, null);
-                        if (pit != null) 
-                        {
-                            if (pit.Morph.Number == Pullenti.Morph.MorphNumber.Singular && pit.BeginToken != pit.EndToken) 
-                            {
-                                if (typ != null && typ.Typ == "служба" && pit.Morph.Case.IsGenitive) 
-                                {
-                                }
-                                else 
-                                    break;
-                            }
-                        }
-                        pit = t.Kit.ProcessReferent("DECREE", t, null);
-                        if (pit != null) 
-                        {
-                            Pullenti.Ner.Core.NounPhraseToken nptt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                            if (nptt != null && nptt.EndToken.IsValue("РЕШЕНИЕ", null)) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        pit = t.Kit.ProcessReferent("NAMEDENTITY", t, null);
-                        if (pit != null && pit.EndToken != t) 
-                            break;
-                        if (t.IsValue("АО", null)) 
-                            break;
-                        if (t.NewlinesBeforeCount > 1) 
-                            break;
-                    }
-                }
-                if (t.IsValue("ИМЕНИ", "ІМЕНІ") || t.IsValue("ИМ", "ІМ")) 
-                    break;
-                pr = na;
-                if (attachTyp == AttachType.ExtOntology) 
-                {
-                    if (names == null) 
-                        names = new List<Pullenti.Ner.Org.Internal.OrgItemNameToken>();
-                    names.Add(na);
-                    t1 = (t = na.EndToken);
-                    continue;
-                }
-                if (names == null) 
-                {
-                    if (tMax != null) 
-                        break;
-                    if (t.Previous != null && t.IsNewlineBefore && attachTyp != AttachType.ExtOntology) 
-                    {
-                        if (typ != null && typ.EndToken.Next == t && ((typ.IsNewlineBefore || Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(typ.BeginToken.Previous, false, false)))) 
-                        {
-                        }
-                        else 
-                        {
-                            if (t.NewlinesAfterCount > 1 || !t.Chars.IsAllLower) 
-                                break;
-                            if (t.NewlinesBeforeCount > 1) 
-                                break;
-                            if (t.Morph.Class.IsPreposition && typ != null && (((typ.Typ == "комитет" || typ.Typ == "комиссия" || typ.Typ == "комітет") || typ.Typ == "комісія"))) 
-                            {
-                            }
-                            else if (na.StdOrgNameNouns > 0) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                    }
-                    else if (t.Previous != null && t.WhitespacesBeforeCount > 1 && attachTyp != AttachType.ExtOntology) 
-                    {
-                        if (t.WhitespacesBeforeCount > 10) 
-                            break;
-                        if (!t.Chars.Equals(t.Previous.Chars)) 
-                            break;
-                    }
-                    if (t.Chars.IsAllLower && org.Kind == OrganizationKind.Justice) 
-                    {
-                        if (t.IsValue("ПО", null) && t.Next != null && t.Next.IsValue("ПРАВО", null)) 
-                        {
-                        }
-                        else if (t.IsValue("З", null) && t.Next != null && t.Next.IsValue("ПРАВ", null)) 
-                        {
-                        }
-                        else 
-                            break;
-                    }
-                    if (org.Kind == OrganizationKind.Federation) 
-                    {
-                        if (t.Morph.Class.IsPreposition || t.Morph.Class.IsConjunction) 
-                            break;
-                    }
-                    if (t.Chars.IsAllLower && ((org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport || org.Kind == OrganizationKind.Hotel))) 
-                        break;
-                    if ((typ != null && typ.LengthChar == 2 && ((typ.Typ == "АО" || typ.Typ == "СП"))) && !specWordBefore && attachTyp == AttachType.Normal) 
-                    {
-                        if (!na.Chars.IsLatinLetter) 
-                            break;
-                    }
-                    if (t.Chars.IsLatinLetter && typ != null && Pullenti.Morph.LanguageHelper.EndsWithEx(typ.Typ, "служба", "сервис", "сервіс", null)) 
-                        break;
-                    if (typ != null && ((typ.Root == null || !typ.Root.IsPurePrefix))) 
-                    {
-                        if (typ.Chars.IsLatinLetter && na.Chars.IsLatinLetter) 
-                        {
-                            if (!t.IsValue("OF", null)) 
-                                break;
-                        }
-                        if ((na.IsInDictionary && na.Morph.Language.IsCyrillic && na.Chars.IsAllLower) && !na.Morph.Case.IsUndefined) 
-                        {
-                            if (na.Preposition == null) 
-                            {
-                                if (!na.Morph.Case.IsGenitive) 
-                                    break;
-                                if (org.Kind == OrganizationKind.Party && !specWordBefore) 
-                                {
-                                    if (typ.Typ == "лига") 
-                                    {
-                                    }
-                                    else 
-                                        break;
-                                }
-                                if (na.Morph.Number != Pullenti.Morph.MorphNumber.Plural) 
-                                {
-                                    Pullenti.Ner.ReferentToken prr = t.Kit.ProcessReferent("PERSONPROPERTY", t, null);
-                                    if (prr != null) 
-                                    {
-                                        if (Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(na.EndToken.Next, false) != null) 
-                                        {
-                                        }
-                                        else if (typ != null && typ.Typ == "служба") 
-                                            typ.Coef += 3;
-                                        else 
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                        if (na.Preposition != null) 
-                        {
-                            if (org.Kind == OrganizationKind.Party) 
-                            {
-                                if (na.Preposition == "ЗА" || na.Preposition == "ПРОТИВ") 
-                                {
-                                }
-                                else if (na.Preposition == "В") 
-                                {
-                                    if (na.Value.StartsWith("ЗАЩИТ") && na.Value.StartsWith("ПОДДЕРЖ")) 
-                                    {
-                                    }
-                                    else 
-                                        break;
-                                }
-                                else 
-                                    break;
-                            }
-                            else 
-                            {
-                                if (na.Preposition == "В") 
-                                    break;
-                                if (typ.IsDoubtRootWord) 
-                                {
-                                    if (Pullenti.Morph.LanguageHelper.EndsWithEx(typ.Typ, "комитет", "комиссия", "комітет", "комісія") && ((t.IsValue("ПО", null) || t.IsValue("З", null)))) 
-                                    {
-                                    }
-                                    else if (names == null && na.StdOrgNameNouns > 0) 
-                                    {
-                                    }
-                                    else 
-                                        break;
-                                }
-                            }
-                        }
-                        else if (na.Chars.IsCapitalUpper && na.Chars.IsCyrillicLetter) 
-                        {
-                            Pullenti.Ner.ReferentToken prt = na.Kit.ProcessReferent("PERSON", na.BeginToken, null);
-                            if (prt != null) 
-                            {
-                                if (org.Kind == OrganizationKind.Church) 
-                                {
-                                    na.EndToken = prt.EndToken;
-                                    na.IsStdName = true;
-                                    na.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(na, Pullenti.Ner.Core.GetTextAttr.No);
-                                }
-                                else if ((typ != null && typ.Typ != null && typ.Typ.Contains("фермер")) && names == null) 
-                                    na.EndToken = prt.EndToken;
-                                else if (prt.Referent.TypeName == "PERSONPROPERTY") 
-                                {
-                                }
-                                else 
-                                    break;
-                            }
-                        }
-                    }
-                    if (na.IsEmptyWord) 
-                        break;
-                    if (na.IsStdTail) 
-                    {
-                        if (na.Chars.IsLatinLetter && na.Chars.IsAllUpper && (na.LengthChar < 4)) 
-                        {
-                            na.IsStdTail = false;
-                            na.Value = na.GetSourceText().ToUpper();
-                        }
-                        else 
-                            break;
-                    }
-                    names = new List<Pullenti.Ner.Org.Internal.OrgItemNameToken>();
-                }
-                else 
-                {
-                    Pullenti.Ner.Org.Internal.OrgItemNameToken na0 = names[names.Count - 1];
-                    if (na0.IsStdTail) 
-                        break;
-                    if (na.Preposition == null) 
-                    {
-                        if ((!na.Chars.IsLatinLetter && na.Chars.IsAllLower && !na.IsAfterConjunction) && !na.Morph.Case.IsGenitive) 
-                            break;
-                    }
-                }
-                names.Add(na);
-                t1 = (t = na.EndToken);
-            }
-            typ = _lastTyp(types);
-            bool doHigherAlways = false;
-            if (typ != null) 
-            {
-                if (((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep)) && typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural) 
-                {
-                    if (names != null && names.Count > 0 && names[names.Count - 1].IsNewlineAfter) 
-                    {
-                    }
-                    else if (num != null && num.IsNewlineAfter) 
-                    {
-                    }
-                    else 
-                        return null;
-                }
-                if (Pullenti.Morph.LanguageHelper.EndsWithEx(typ.Typ, "комитет", "комиссия", "комітет", "комісія")) 
-                {
-                }
-                else if (typ.Typ == "служба" && ownOrg != null && typ.Name != null) 
-                {
-                    OrganizationKind ki = (ownOrg.Referent as OrganizationReferent).Kind;
-                    if (ki == OrganizationKind.Press || ki == OrganizationKind.Media) 
-                    {
-                        typ.Coef += 3;
-                        doHigherAlways = true;
-                    }
-                    else 
-                        ownOrg = null;
-                }
-                else if ((typ.Typ == "служба" && ownOrg != null && num == null) && _isMvdOrg(ownOrg.Referent as OrganizationReferent) != null && (((((typ.BeginToken.Previous is Pullenti.Ner.NumberToken) && (typ.WhitespacesBeforeCount < 3))) || names != null))) 
-                {
-                    typ.Coef += 4;
-                    if (typ.BeginToken.Previous is Pullenti.Ner.NumberToken) 
-                    {
-                        t0 = typ.BeginToken.Previous;
-                        num = new Pullenti.Ner.Org.Internal.OrgItemNumberToken(t0, t0) { Number = (typ.BeginToken.Previous as Pullenti.Ner.NumberToken).Value };
-                    }
-                }
-                else if ((((typ.IsDoubtRootWord || typ.Typ == "организация" || typ.Typ == "управление") || typ.Typ == "служба" || typ.Typ == "общество") || typ.Typ == "союз" || typ.Typ == "організація") || typ.Typ == "керування" || typ.Typ == "суспільство") 
-                    ownOrg = null;
-                if (org.Kind == OrganizationKind.Govenment) 
-                {
-                    if (names == null && ((typ.Name == null || string.Compare(typ.Name, typ.Typ, true) == 0))) 
-                    {
-                        if ((attachTyp != AttachType.ExtOntology && typ.Typ != "следственный комитет" && typ.Typ != "кабинет министров") && typ.Typ != "слідчий комітет") 
-                        {
-                            if (((typ.Typ == "администрация" || typ.Typ == "адміністрація")) && (typ.EndToken.Next is Pullenti.Ner.TextToken)) 
-                            {
-                                Pullenti.Ner.ReferentToken rt1 = typ.Kit.ProcessReferent("PERSONPROPERTY", typ.EndToken.Next, null);
-                                if (rt1 != null && typ.EndToken.Next.Morph.Case.IsGenitive) 
-                                {
-                                    Pullenti.Ner.Geo.GeoReferent geo = rt1.Referent.GetSlotValue("REF") as Pullenti.Ner.Geo.GeoReferent;
-                                    if (geo != null) 
-                                    {
-                                        org.AddName("АДМИНИСТРАЦИЯ " + (typ.EndToken.Next as Pullenti.Ner.TextToken).Term, true, null);
-                                        org.AddGeoObject(geo);
-                                        return new Pullenti.Ner.ReferentToken(org, typ.BeginToken, rt1.EndToken);
-                                    }
-                                }
-                            }
-                            if ((typ.Coef < 5) || typ.Chars.IsAllLower) 
-                                return null;
-                        }
-                    }
-                }
-            }
-            else if (names != null && names[0].Chars.IsAllLower) 
-            {
-                if (attachTyp != AttachType.ExtOntology) 
-                    return null;
-            }
-            bool always = false;
-            string name = null;
-            if (((num != null || org.Number != null || epon != null) || attachTyp == AttachType.High || attachTyp == AttachType.ExtOntology) || ownOrg != null) 
-            {
-                int cou0 = org.Slots.Count;
-                if (names != null) 
-                {
-                    if ((names.Count == 1 && names[0].Chars.IsAllUpper && attachTyp == AttachType.ExtOntology) && isAdditionalAttach) 
-                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, names[names.Count - 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No), true, names[0].BeginToken);
-                    else 
-                    {
-                        name = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, names[names.Count - 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                        if ((names[0].IsNounPhrase && typ != null && typ.Root != null) && !typ.Root.IsPurePrefix && multTyp == null) 
-                            name = string.Format("{0} {1}", typ.Name ?? typ.Typ.ToUpper(), name);
-                    }
-                }
-                else if (typ != null && typ.Name != null && ((typ.Root == null || !typ.Root.IsPurePrefix))) 
-                {
-                    if (typ.Chars.IsAllLower && !typ.CanBeOrganization && (typ.NameWordsCount < 3)) 
-                        org.AddTypeStr(typ.Name.ToLower());
-                    else 
-                        name = typ.Name;
-                    if (typ != multTyp) 
-                    {
-                        if (t1.EndChar < typ.EndToken.EndChar) 
-                            t1 = typ.EndToken;
-                    }
-                }
-                if (name != null) 
-                {
-                    if (name.Length > MaxOrgName) 
-                        return null;
-                    org.AddName(name, true, null);
-                }
-                if (num != null) 
-                    org.Number = num.Number;
-                if (epon != null) 
-                {
-                    foreach (string e in epon.Eponyms) 
-                    {
-                        org.AddEponym(e);
-                    }
-                }
-                ok = attachTyp == AttachType.ExtOntology;
-                if (typ != null && typ.Root != null && typ.Root.CanBeNormalDep) 
-                    ok = true;
-                foreach (Pullenti.Ner.Slot a in org.Slots) 
-                {
-                    if (a.TypeName == OrganizationReferent.ATTR_NUMBER) 
-                    {
-                        if (typ != null && typ.Typ == "корпус") 
-                        {
-                        }
-                        else 
-                            ok = true;
-                    }
-                    else if (a.TypeName == OrganizationReferent.ATTR_GEO) 
-                    {
-                        if (typ.Root != null && typ.Root.CanBeSingleGeo) 
-                            ok = true;
-                    }
-                    else if (a.TypeName != OrganizationReferent.ATTR_TYPE && a.TypeName != OrganizationReferent.ATTR_PROFILE) 
-                    {
-                        ok = true;
-                        break;
-                    }
-                }
-                if (attachTyp == AttachType.Normal) 
-                {
-                    if (typ == null) 
-                        ok = false;
-                    else if ((typ.EndChar - typ.BeginChar) < 2) 
-                    {
-                        if (num == null && epon == null) 
-                            ok = false;
-                        else if (epon == null) 
-                        {
-                            if (t1.IsWhitespaceAfter || t1.Next == null) 
-                            {
-                            }
-                            else if (t1.Next.IsCharOf(".,;") && t1.Next.IsWhitespaceAfter) 
-                            {
-                            }
-                            else 
-                                ok = false;
-                        }
-                    }
-                }
-                if ((!ok && typ != null && typ.CanBeDepBeforeOrganization) && ownOrg != null) 
-                {
-                    org.AddTypeStr((ownOrg.Kit.BaseLanguage.IsUa ? "підрозділ" : "подразделение"));
-                    org.Higher = ownOrg.Referent as OrganizationReferent;
-                    t1 = ownOrg;
-                    ok = true;
-                }
-                else if (typ != null && ownOrg != null && Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(ownOrg.Referent as OrganizationReferent, org, true)) 
-                {
-                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(ownOrg.Referent as OrganizationReferent, org)) 
-                    {
-                        if (org.Kind == OrganizationKind.Department && !typ.CanBeDepBeforeOrganization) 
-                        {
-                        }
-                        else 
-                        {
-                            org.Higher = ownOrg.Referent as OrganizationReferent;
-                            if (t1.EndChar < ownOrg.EndChar) 
-                                t1 = ownOrg;
-                            ok = true;
-                        }
-                    }
-                    else if (typ.Root != null && ((typ.Root.CanBeNormalDep || ownOrg.Referent.ToString().Contains("Сбербанк")))) 
-                    {
-                        org.Higher = ownOrg.Referent as OrganizationReferent;
-                        if (t1.EndChar < ownOrg.EndChar) 
-                            t1 = ownOrg;
-                        ok = true;
-                    }
-                }
-            }
-            else if (names != null) 
-            {
-                if (typ == null) 
-                {
-                    if (names[0].IsStdName && specWordBefore) 
-                    {
-                        org.AddName(names[0].Value, true, null);
-                        t1 = names[0].EndToken;
-                        t = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                        if (t != null) 
-                            t1 = t;
-                        return new Pullenti.Ner.ReferentToken(org, t0, t1);
-                    }
-                    return null;
-                }
-                if (typ.Root != null && typ.Root.MustHasCapitalName) 
-                {
-                    if (names[0].Chars.IsAllLower) 
-                        return null;
-                }
-                if (names[0].Chars.IsLatinLetter) 
-                {
-                    if (typ.Root != null && !typ.Root.CanHasLatinName) 
-                    {
-                        if (!typ.Chars.IsLatinLetter) 
-                            return null;
-                    }
-                    if (names[0].Chars.IsAllLower && !typ.Chars.IsLatinLetter) 
-                        return null;
-                    StringBuilder tmp = new StringBuilder();
-                    tmp.Append(names[0].Value);
-                    t1 = names[0].EndToken;
-                    for (int j = 1; j < names.Count; j++) 
-                    {
-                        if (!names[j].IsStdTail && ((names[j].IsNewlineBefore || !names[j].Chars.IsLatinLetter))) 
-                        {
-                            tMax = names[j].BeginToken.Previous;
-                            if (typ.Geo == null && org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
-                                org.Slots.Remove(org.FindSlot(OrganizationReferent.ATTR_GEO, null, true));
-                            break;
-                        }
-                        else 
-                        {
-                            t1 = names[j].EndToken;
-                            if (names[j].IsStdTail) 
-                            {
-                                Pullenti.Ner.Org.Internal.OrgItemEngItem ei = Pullenti.Ner.Org.Internal.OrgItemEngItem.TryAttach(names[j].BeginToken, false);
-                                if (ei != null) 
-                                {
-                                    org.AddTypeStr(ei.FullValue);
-                                    if (ei.ShortValue != null) 
-                                        org.AddTypeStr(ei.ShortValue);
-                                }
-                                break;
-                            }
-                            if (names[j - 1].EndToken.IsChar('.') && !names[j - 1].Value.EndsWith(".")) 
-                                tmp.AppendFormat(".{0}", names[j].Value);
-                            else 
-                                tmp.AppendFormat(" {0}", names[j].Value);
-                        }
-                    }
-                    if (tmp.Length > MaxOrgName) 
-                        return null;
-                    string nnn = tmp.ToString();
-                    if (nnn.StartsWith("OF ") || nnn.StartsWith("IN ")) 
-                        tmp.Insert(0, ((typ.Name ?? typ.Typ)).ToUpper() + " ");
-                    if (tmp.Length < 3) 
-                    {
-                        if (tmp.Length < 2) 
-                            return null;
-                        if (types != null && names[0].Chars.IsAllUpper) 
-                        {
-                        }
-                        else 
-                            return null;
-                    }
-                    ok = true;
-                    org.AddName(tmp.ToString(), true, null);
-                }
-                else if (org.FindSlot(OrganizationReferent.ATTR_NAME, null, true) != null) 
-                {
-                }
-                else if (typ.Root != null && typ.Root.IsPurePrefix) 
-                {
-                    Pullenti.Ner.TextToken tt = typ.EndToken as Pullenti.Ner.TextToken;
-                    if (tt == null) 
-                        return null;
-                    if (tt.IsNewlineAfter) 
-                    {
-                        if (names[0].IsNewlineAfter && typ.IsNewlineBefore) 
-                        {
-                        }
-                        else 
-                            return null;
-                    }
-                    if (typ.BeginToken == typ.EndToken && tt.Chars.IsAllLower) 
-                        return null;
-                    if (names[0].Chars.IsAllLower) 
-                    {
-                        if (!names[0].Morph.Case.IsGenitive) 
-                            return null;
-                    }
-                    t1 = names[0].EndToken;
-                    for (int j = 1; j < names.Count; j++) 
-                    {
-                        if (names[j].IsNewlineBefore || !names[j].Chars.Equals(names[0].Chars)) 
-                            break;
-                        else 
-                            t1 = names[j].EndToken;
-                    }
-                    ok = true;
-                    name = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, t1, Pullenti.Ner.Core.GetTextAttr.No);
-                    if (num == null && (t1 is Pullenti.Ner.NumberToken) && (t1 as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit) 
-                    {
-                        Pullenti.Ner.Token tt1 = t1.Previous;
-                        if (tt1 != null && tt1.IsHiphen) 
-                            tt1 = tt1.Previous;
-                        if (tt1 != null && tt1.EndChar > names[0].BeginChar && (tt1 is Pullenti.Ner.TextToken)) 
-                        {
-                            name = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, tt1, Pullenti.Ner.Core.GetTextAttr.No);
-                            org.Number = (t1 as Pullenti.Ner.NumberToken).Value.ToString();
-                        }
-                    }
-                    if (name.Length > MaxOrgName) 
-                        return null;
-                    org.AddName(name, true, names[0].BeginToken);
-                }
-                else 
-                {
-                    if (typ.IsDep) 
-                        return null;
-                    if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural && attachTyp != AttachType.Multiple) 
-                        return null;
-                    StringBuilder tmp = new StringBuilder();
-                    float koef = typ.Coef;
-                    if (koef >= 4) 
-                        always = true;
-                    if (org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
-                        koef += 1;
-                    if (specWordBefore) 
-                        koef += 1;
-                    if (names[0].Chars.IsAllLower && typ.Chars.IsAllLower && !specWordBefore) 
-                    {
-                        if (koef >= 3) 
-                        {
-                            if (t != null && (t.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
-                            {
-                            }
-                            else 
-                                koef -= 3;
-                        }
-                    }
-                    if (typ.CharsRoot.IsCapitalUpper) 
-                        koef += ((float)0.5);
-                    if (types.Count > 1) 
-                        koef += (types.Count - 1);
-                    if (typ.Name != null) 
-                    {
-                        for (Pullenti.Ner.Token to = typ.BeginToken; to != typ.EndToken && to != null; to = to.Next) 
-                        {
-                            if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsStdAdjective(to, false)) 
-                                koef += 2;
-                            if (to.Chars.IsCapitalUpper) 
-                                koef += ((float)0.5);
-                        }
-                    }
-                    OrganizationKind ki = org.Kind;
-                    if (attachTyp == AttachType.Multiple && ((typ.Name == null || typ.Name.Length == typ.Typ.Length))) 
-                    {
-                    }
-                    else if ((((((ki == OrganizationKind.Media || ki == OrganizationKind.Party || ki == OrganizationKind.Press) || ki == OrganizationKind.Factory || ki == OrganizationKind.Airport) || ki == OrganizationKind.Seaport || ((typ.Root != null && typ.Root.MustHasCapitalName))) || ki == OrganizationKind.Bank || typ.Typ.Contains("предприятие")) || typ.Typ.Contains("организация") || typ.Typ.Contains("підприємство")) || typ.Typ.Contains("організація")) 
-                    {
-                        if (typ.Name != null) 
-                            org.AddTypeStr(typ.Name.ToLower());
-                    }
-                    else 
-                        tmp.Append(typ.Name ?? typ.Typ.ToUpper());
-                    if (typ != multTyp) 
-                        t1 = typ.EndToken;
-                    for (int j = 0; j < names.Count; j++) 
-                    {
-                        if (names[j].IsNewlineBefore && j > 0) 
-                        {
-                            if (names[j].NewlinesBeforeCount > 1) 
-                                break;
-                            if (names[j].Chars.IsAllLower) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        if (!names[j].Chars.Equals(names[0].Chars) && !names[j].BeginToken.Chars.Equals(names[0].Chars)) 
-                            break;
-                        if (names[j].IsNounPhrase != names[0].IsNounPhrase) 
-                            break;
-                        if (j == 0 && names[j].Preposition == null && names[j].IsInDictionary) 
-                        {
-                            if (!names[j].Morph.Case.IsGenitive && ((typ.Root != null && !typ.Root.CanHasSingleName))) 
-                                break;
-                        }
-                        if (j == 0 && names[0].Preposition == "ПО" && (((typ.Typ == "комитет" || typ.Typ == "комиссия" || typ.Typ == "комітет") || typ.Typ == "комісія"))) 
-                            koef += 2.5F;
-                        if ((j == 0 && names[j].WhitespacesBeforeCount > 2 && names[j].NewlinesBeforeCount == 0) && names[j].BeginToken.Previous != null) 
-                            koef -= (((float)names[j].WhitespacesBeforeCount) / 2);
-                        if (names[j].IsStdName) 
-                            koef += 4;
-                        else if (names[j].StdOrgNameNouns > 0 && ((ki == OrganizationKind.Govenment || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "центр")))) 
-                            koef += names[j].StdOrgNameNouns;
-                        if (((ki == OrganizationKind.Airport || ki == OrganizationKind.Seaport)) && j == 0) 
-                            koef++;
-                        t1 = names[j].EndToken;
-                        if (names[j].IsNounPhrase) 
-                        {
-                            if (!names[j].Chars.IsAllLower) 
-                            {
-                                Pullenti.Morph.MorphCase ca = names[j].Morph.Case;
-                                if ((ca.IsDative || ca.IsGenitive || ca.IsInstrumental) || ca.IsPrepositional) 
-                                    koef += ((float)0.5);
-                                else 
-                                    continue;
-                            }
-                            else if (((j == 0 || names[j].IsAfterConjunction)) && names[j].Morph.Case.IsGenitive && names[j].Preposition == null) 
-                                koef += ((float)0.5);
-                            if (j == (names.Count - 1)) 
-                            {
-                                if (names[j].EndToken.Next is Pullenti.Ner.TextToken) 
-                                {
-                                    if (names[j].EndToken.Next.GetMorphClassInDictionary().IsVerb) 
-                                        koef += 0.5F;
-                                }
-                            }
-                        }
-                        for (Pullenti.Ner.Token to = names[j].BeginToken; to != null; to = to.Next) 
-                        {
-                            if (to is Pullenti.Ner.TextToken) 
-                            {
-                                if (attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
-                                {
-                                    if (to.Chars.IsCapitalUpper) 
-                                        koef += ((float)0.5);
-                                    else if ((j == 0 && ((to.Chars.IsAllUpper || to.Chars.IsLastLower)) && to.LengthChar > 2) && typ.Root != null && typ.Root.CanHasLatinName) 
-                                        koef += 1;
-                                }
-                                else if (to.Chars.IsAllUpper || to.Chars.IsCapitalUpper) 
-                                    koef += 1;
-                            }
-                            if (to == names[j].EndToken) 
-                                break;
-                        }
-                    }
-                    for (Pullenti.Ner.Token ttt = typ.BeginToken.Previous; ttt != null; ttt = ttt.Previous) 
-                    {
-                        if (ttt.GetReferent() is OrganizationReferent) 
-                        {
-                            koef += 1;
-                            break;
-                        }
-                        else if (!(ttt is Pullenti.Ner.TextToken)) 
-                            break;
-                        else if (ttt.Chars.IsLetter) 
-                            break;
-                    }
-                    OrganizationKind oki = org.Kind;
-                    if (oki == OrganizationKind.Govenment || oki == OrganizationKind.Study || oki == OrganizationKind.Party) 
-                        koef += names.Count;
-                    if (attachTyp != AttachType.Normal && attachTyp != AttachType.NormalAfterDep) 
-                        koef += 3;
-                    Pullenti.Ner.Core.BracketSequenceToken br1 = null;
-                    if ((t1.WhitespacesAfterCount < 2) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t1.Next, true, false)) 
-                    {
-                        br1 = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                        if (br1 != null && (br1.LengthChar < 30)) 
-                        {
-                            string sss = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br1, Pullenti.Ner.Core.GetTextAttr.No);
-                            if (sss != null && sss.Length > 2) 
-                            {
-                                org.AddName(sss, true, br1.BeginToken.Next);
-                                koef += 1;
-                                t1 = br1.EndToken;
-                            }
-                            else 
-                                br1 = null;
-                        }
-                    }
-                    if (koef >= 3 && t1.Next != null) 
-                    {
-                        Pullenti.Ner.Referent r = t1.Next.GetReferent();
-                        if (r != null && ((r.TypeName == GEONAME || r.TypeName == OrganizationReferent.OBJ_TYPENAME))) 
-                            koef += ((float)1);
-                        else if (IsGeo(t1.Next, false) != null) 
-                            koef += ((float)1);
-                        else if (t1.Next.IsChar('(') && IsGeo(t1.Next.Next, false) != null) 
-                            koef += ((float)1);
-                        else if (specWordBefore && t1.Kit.ProcessReferent("PERSON", t1.Next, null) != null) 
-                            koef += ((float)1);
-                    }
-                    if (koef >= 4) 
-                        ok = true;
-                    if (!ok) 
-                    {
-                        if ((oki == OrganizationKind.Press || oki == OrganizationKind.Federation || org.Types.Contains("агентство")) || ((oki == OrganizationKind.Party && Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(t0.Previous)))) 
-                        {
-                            if (!names[0].IsNewlineBefore && !names[0].Morph.Class.IsProper) 
-                            {
-                                if (names[0].Morph.Case.IsGenitive && names[0].IsInDictionary) 
-                                {
-                                    if (typ.Chars.IsAllLower && !names[0].Chars.IsAllLower) 
-                                    {
-                                        ok = true;
-                                        t1 = names[0].EndToken;
-                                    }
-                                }
-                                else if (!names[0].IsInDictionary && names[0].Chars.IsAllUpper) 
-                                {
-                                    ok = true;
-                                    tmp.Length = 0;
-                                    t1 = names[0].EndToken;
-                                }
-                            }
-                        }
-                    }
-                    if ((!ok && oki == OrganizationKind.Federation && names[0].Morph.Case.IsGenitive) && koef > 0) 
-                    {
-                        if (IsGeo(names[names.Count - 1].EndToken.Next, false) != null) 
-                            ok = true;
-                    }
-                    if (!ok && typ != null && typ.Root != null) 
-                    {
-                        if (names.Count == 1 && ((names[0].Chars.IsAllUpper || names[0].Chars.IsLastLower))) 
-                        {
-                            if ((ki == OrganizationKind.Bank || ki == OrganizationKind.Culture || ki == OrganizationKind.Hotel) || ki == OrganizationKind.Media || ki == OrganizationKind.Medical) 
-                                ok = true;
-                        }
-                    }
-                    if (((!ok && typ != null && typ.Typ == "компания") && names.Count == 1 && !names[0].Chars.IsAllLower) && (typ.WhitespacesAfterCount < 3)) 
-                        ok = true;
-                    if (ok) 
-                    {
-                        Pullenti.Ner.Token tt1 = t1;
-                        if (br1 != null) 
-                            tt1 = br1.BeginToken.Previous;
-                        if ((tt1.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && (tt1.GetReferent() as Pullenti.Ner.Geo.GeoReferent).IsState) 
-                        {
-                            if (names[0].BeginToken != tt1) 
-                            {
-                                tt1 = t1.Previous;
-                                org.AddGeoObject(t1.GetReferent());
-                            }
-                        }
-                        string s = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, tt1, Pullenti.Ner.Core.GetTextAttr.No);
-                        if ((tt1 == names[0].EndToken && typ != null && typ.Typ != null) && typ.Typ.Contains("фермер") && names[0].Value != null) 
-                            s = names[0].Value;
-                        Pullenti.Morph.MorphClass cla = tt1.GetMorphClassInDictionary();
-                        if ((names[0].BeginToken == t1 && s != null && t1.Morph.Case.IsGenitive) && t1.Chars.IsCapitalUpper) 
-                        {
-                            if (cla.IsUndefined || cla.IsProperGeo) 
-                            {
-                                if (ki == OrganizationKind.Medical || ki == OrganizationKind.Justice) 
-                                {
-                                    Pullenti.Ner.Geo.GeoReferent geo = new Pullenti.Ner.Geo.GeoReferent();
-                                    geo.AddSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_NAME, t1.GetNormalCaseText(null, Pullenti.Morph.MorphNumber.Undefined, Pullenti.Morph.MorphGender.Undefined, false), false, 0);
-                                    geo.AddSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_TYPE, (t1.Kit.BaseLanguage.IsUa ? "місто" : "город"), false, 0);
-                                    Pullenti.Ner.ReferentToken rt = new Pullenti.Ner.ReferentToken(geo, t1, t1);
-                                    rt.Data = OrganizationAnalyzer.GetData(t1);
-                                    org.AddGeoObject(rt);
-                                    s = null;
-                                }
-                            }
-                        }
-                        if (s != null) 
-                        {
-                            if (tmp.Length == 0) 
-                            {
-                                if (names[0].Morph.Case.IsGenitive || names[0].Preposition != null) 
-                                {
-                                    if (names[0].Chars.IsAllLower) 
-                                        tmp.Append(typ.Name ?? typ.Typ);
-                                }
-                            }
-                            if (tmp.Length > 0) 
-                                tmp.Append(' ');
-                            tmp.Append(s);
-                        }
-                        if (tmp.Length > MaxOrgName) 
-                            return null;
-                        org.AddName(tmp.ToString(), true, names[0].BeginToken);
-                        if (types.Count > 1 && types[0].Name != null) 
-                            org.AddTypeStr(types[0].Name.ToLower());
-                    }
-                }
-            }
-            else 
-            {
-                if (typ == null) 
-                    return null;
-                if (types.Count == 2 && types[0].Coef > typ.Coef) 
-                    typ = types[0];
-                if ((typ.Typ == "банк" && (t is Pullenti.Ner.ReferentToken) && !t.IsNewlineBefore) && typ.Morph.Number == Pullenti.Morph.MorphNumber.Singular) 
-                {
-                    if (typ.Name != null) 
-                    {
-                        if (typ.BeginToken.Chars.IsAllLower) 
-                            org.AddTypeStr(typ.Name.ToLower());
-                        else 
-                        {
-                            org.AddName(typ.Name, true, null);
-                            string s0 = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(typ, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
-                            if (s0 != typ.Name) 
-                                org.AddName(s0, true, null);
-                        }
-                    }
-                    Pullenti.Ner.Referent r = t.GetReferent();
-                    if (r.TypeName == GEONAME && !t.Morph.Case.Equals(Pullenti.Morph.MorphCase.Nominative)) 
-                    {
-                        org.AddGeoObject(r);
-                        if (types.Count == 1 && (t.WhitespacesAfterCount < 3)) 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false);
-                            if (typ1 != null && typ1.Root != null && typ1.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
-                            {
-                                org.AddType(typ1, false);
-                                t = typ1.EndToken;
-                            }
-                        }
-                        return new Pullenti.Ner.ReferentToken(org, t0, t);
-                    }
-                }
-                if (((typ.Root != null && typ.Root.IsPurePrefix)) && (typ.Coef < 4)) 
-                    return null;
-                if (typ.Root != null && typ.Root.MustHasCapitalName) 
-                    return null;
-                if (typ.Name == null) 
-                {
-                    if (((typ.Typ.EndsWith("университет") || typ.Typ.EndsWith("університет"))) && IsGeo(typ.EndToken.Next, false) != null) 
-                        always = true;
-                    else if (((org.Kind == OrganizationKind.Justice || org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport)) && org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
-                    {
-                    }
-                    else if (typ.Coef >= 4) 
-                        always = true;
-                    else if (typ.Chars.IsCapitalUpper) 
-                    {
-                        if (typ.EndToken.Next != null && ((typ.EndToken.Next.IsHiphen || typ.EndToken.Next.IsCharOf(":")))) 
-                        {
-                        }
-                        else 
-                        {
-                            Pullenti.Ner.Org.Internal.OrgAnalyzerData ad = OrganizationAnalyzer.GetData(t);
-                            List<Pullenti.Ner.Core.IntOntologyItem> li = (ad == null || ad.LocalOntology.Items.Count > 1000 ? null : ad.LocalOntology.TryAttachByItem(org.CreateOntologyItem()));
-                            if (li != null && li.Count > 0) 
-                            {
-                                foreach (Pullenti.Ner.Core.IntOntologyItem ll in li) 
-                                {
-                                    Pullenti.Ner.Referent r = ll.Referent ?? (ll.Tag as Pullenti.Ner.Referent);
-                                    if (r != null) 
-                                    {
-                                        if (org.CanBeEquals(r, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
-                                        {
-                                            Pullenti.Ner.Token ttt = typ.EndToken;
-                                            Pullenti.Ner.Org.Internal.OrgItemNumberToken nu = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ttt.Next, true, null);
-                                            if (nu != null) 
-                                            {
-                                                if ((r as OrganizationReferent).Number != nu.Number) 
-                                                    ttt = null;
-                                                else 
-                                                {
-                                                    org.Number = nu.Number;
-                                                    ttt = nu.EndToken;
-                                                }
-                                            }
-                                            else if (li.Count > 1) 
-                                                ttt = null;
-                                            if (ttt != null) 
-                                                return new Pullenti.Ner.ReferentToken(r, typ.BeginToken, ttt);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        return null;
-                    }
-                    else 
-                    {
-                        int cou = 0;
-                        for (Pullenti.Ner.Token tt = typ.BeginToken.Previous; tt != null && (cou < 200); tt = tt.Previous,cou++) 
-                        {
-                            OrganizationReferent org0 = tt.GetReferent() as OrganizationReferent;
-                            if (org0 == null) 
-                                continue;
-                            if (!org0.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
-                                continue;
-                            tt = AttachTailAttributes(org, typ.EndToken.Next, false, attachTyp, false) ?? typ.EndToken;
-                            if (!org0.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
-                                break;
-                            org.MergeSlots(org0, true);
-                            return new Pullenti.Ner.ReferentToken(org, typ.BeginToken, tt);
-                        }
-                        if (typ.Root != null && typ.Root.CanBeSingleGeo && t1.Next != null) 
-                        {
-                            object ggg = IsGeo(t1.Next, false);
-                            if (ggg != null) 
-                            {
-                                org.AddGeoObject(ggg);
-                                t1 = GetGeoEndToken(ggg, t1.Next);
-                                return new Pullenti.Ner.ReferentToken(org, t0, t1);
-                            }
-                        }
-                        return null;
-                    }
-                }
-                if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural || typ == multTyp) 
-                    return null;
-                float koef = typ.Coef;
-                if (typ.NameWordsCount == 1 && typ.Name != null && typ.Name.Length > typ.Typ.Length) 
-                    koef++;
-                if (specWordBefore) 
-                    koef += 1;
-                ok = false;
-                if (typ.CharsRoot.IsCapitalUpper) 
-                {
-                    koef += ((float)0.5);
-                    if (typ.NameWordsCount == 1) 
-                        koef += ((float)0.5);
-                }
-                if (epon != null) 
-                    koef += 2;
-                bool hasNonstdWords = false;
-                for (Pullenti.Ner.Token to = typ.BeginToken; to != typ.EndToken && to != null; to = to.Next) 
-                {
-                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsStdAdjective(to, false)) 
-                    {
-                        if (typ.Root != null && typ.Root.Coeff > 0) 
-                            koef += (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsStdAdjective(to, true) ? 1 : (int)0.5F);
-                    }
-                    else 
-                        hasNonstdWords = true;
-                    if (to.Chars.IsCapitalUpper && !to.Morph.Class.IsPronoun) 
-                        koef += ((float)0.5);
-                }
-                if (!hasNonstdWords && org.Kind == OrganizationKind.Govenment) 
-                    koef -= 2;
-                if (typ.Chars.IsAllLower && (typ.Coef < 4)) 
-                    koef -= 2;
-                if (koef > 1 && typ.NameWordsCount > 2) 
-                    koef += 2;
-                for (Pullenti.Ner.Token ttt = typ.BeginToken.Previous; ttt != null; ttt = ttt.Previous) 
-                {
-                    if (ttt.GetReferent() is OrganizationReferent) 
-                    {
-                        koef += 1;
-                        break;
-                    }
-                    else if (!(ttt is Pullenti.Ner.TextToken)) 
-                        break;
-                    else if (ttt.Chars.IsLetter) 
-                        break;
-                }
-                for (Pullenti.Ner.Token ttt = typ.EndToken.Next; ttt != null; ttt = ttt.Next) 
-                {
-                    if (ttt.GetReferent() is OrganizationReferent) 
-                    {
-                        koef += 1;
-                        break;
-                    }
-                    else if (!(ttt is Pullenti.Ner.TextToken)) 
-                        break;
-                    else if (ttt.Chars.IsLetter) 
-                        break;
-                }
-                if (typ.WhitespacesBeforeCount > 4 && typ.WhitespacesAfterCount > 4) 
-                    koef += ((float)0.5);
-                if (typ.CanBeOrganization) 
-                {
-                    foreach (Pullenti.Ner.Slot s in org.Slots) 
-                    {
-                        if ((s.TypeName == OrganizationReferent.ATTR_EPONYM || s.TypeName == OrganizationReferent.ATTR_NAME || s.TypeName == OrganizationReferent.ATTR_GEO) || s.TypeName == OrganizationReferent.ATTR_NUMBER) 
-                        {
-                            koef += 3;
-                            break;
-                        }
-                    }
-                }
-                org.AddType(typ, false);
-                if (((org.Kind == OrganizationKind.Bank || org.Kind == OrganizationKind.Justice)) && typ.Name != null && typ.Name.Length > typ.Typ.Length) 
-                    koef += 1;
-                if (org.Kind == OrganizationKind.Justice && org.GeoObjects.Count > 0) 
-                    always = true;
-                if (org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport) 
-                {
-                    foreach (Pullenti.Ner.Geo.GeoReferent g in org.GeoObjects) 
-                    {
-                        if (g.IsCity) 
-                            always = true;
-                    }
-                }
-                if (koef > 3 || always) 
-                    ok = true;
-                if (((org.Kind == OrganizationKind.Party || org.Kind == OrganizationKind.Justice)) && typ.Morph.Number == Pullenti.Morph.MorphNumber.Singular) 
-                {
-                    if (org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null && typ.Name != null && typ.Name.Length > typ.Typ.Length) 
-                        ok = true;
-                    else if (typ.Coef >= 4) 
-                        ok = true;
-                    else if (typ.NameWordsCount > 2) 
-                        ok = true;
-                }
-                if (ok) 
-                {
-                    if (typ.Name != null && !typ.IsNotTyp) 
-                    {
-                        if (typ.Name.Length > MaxOrgName || string.Compare(typ.Name, typ.Typ, true) == 0) 
-                            return null;
-                        org.AddName(typ.Name, true, null);
-                    }
-                    t1 = typ.EndToken;
-                }
-            }
-            if (!ok || org.Slots.Count == 0) 
-                return null;
-            if (attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
-            {
-                ok = always;
-                foreach (Pullenti.Ner.Slot s in org.Slots) 
-                {
-                    if (s.TypeName != OrganizationReferent.ATTR_TYPE && s.TypeName != OrganizationReferent.ATTR_PROFILE) 
-                    {
-                        ok = true;
-                        break;
-                    }
-                }
-                if (!ok) 
-                    return null;
-            }
-            if (tMax != null && (t1.EndChar < tMax.BeginChar)) 
-                t1 = tMax;
-            t = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-            if (t != null) 
-                t1 = t;
-            if (ownOrg != null && org.Higher == null) 
-            {
-                if (doHigherAlways || Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(ownOrg.Referent as OrganizationReferent, org, false)) 
-                {
-                    org.Higher = ownOrg.Referent as OrganizationReferent;
-                    if (ownOrg.BeginChar > t1.BeginChar) 
-                    {
-                        t1 = ownOrg;
-                        t = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
-                        if (t != null) 
-                            t1 = t;
-                    }
-                }
-            }
-            if (((ownOrg != null && typ != null && typ.Typ == "банк") && typ.Geo != null && org.Higher == ownOrg.Referent) && ownOrg.Referent.ToString().Contains("Сбербанк")) 
-            {
-                Pullenti.Ner.Token tt2 = t1.Next;
-                if (tt2 != null) 
-                {
-                    if (tt2.IsComma || tt2.IsValue("В", null)) 
-                        tt2 = tt2.Next;
-                }
-                if (tt2 != null && (tt2.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
-                {
-                    Pullenti.Ner.Slot s = org.FindSlot(OrganizationReferent.ATTR_GEO, null, true);
-                    if (s != null) 
-                        org.Slots.Remove(s);
-                    if (org.AddGeoObject(tt2)) 
-                        t1 = tt2;
-                }
-            }
-            if (t1.IsNewlineAfter && t0.IsNewlineBefore) 
-            {
-                Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false);
-                if (typ1 != null && typ1.IsNewlineAfter) 
-                {
-                    if (TryAttachOrg(t1.Next, AttachType.Normal, null, false, -1) == null) 
-                    {
-                        org.AddType(typ1, false);
-                        t1 = typ1.EndToken;
-                    }
-                }
-                if (t1.Next != null && t1.Next.IsChar('(')) 
-                {
-                    if ((((typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next.Next, false)))) != null) 
-                    {
-                        if (typ1.EndToken.Next != null && typ1.EndToken.Next.IsChar(')') && typ1.EndToken.Next.IsNewlineAfter) 
-                        {
-                            org.AddType(typ1, false);
-                            t1 = typ1.EndToken.Next;
-                        }
-                    }
-                }
-            }
-            if (attachTyp == AttachType.Normal && ((typ == null || (typ.Coef < 4)))) 
-            {
-                if (org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) == null || ((typ != null && typ.Geo != null))) 
-                {
-                    bool isAllLow = true;
-                    for (t = t0; t != null && t.EndChar <= t1.EndChar; t = t.Next) 
-                    {
-                        if (t.Chars.IsLetter) 
-                        {
-                            if (!t.Chars.IsAllLower) 
-                                isAllLow = false;
-                        }
-                        else if (!(t is Pullenti.Ner.TextToken)) 
-                            isAllLow = false;
-                    }
-                    if (isAllLow && !specWordBefore) 
-                        return null;
-                }
-            }
-            if (t0.BeginChar > t1.BeginChar) 
-                return null;
-            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(org, t0, t1);
-            if (types != null && types.Count > 0) 
-            {
-                res.Morph = types[0].Morph;
-                if (types[0].IsNotTyp && types[0].BeginToken == t0 && (types[0].EndChar < t1.EndChar)) 
-                    res.BeginToken = types[0].EndToken.Next;
-            }
-            else 
-                res.Morph = t0.Morph;
-            if ((org.Number == null && t1.Next != null && (t1.WhitespacesAfterCount < 2)) && typ != null && ((typ.Root == null || typ.Root.CanHasNumber))) 
-            {
-                Pullenti.Ner.Org.Internal.OrgItemNumberToken num1 = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next, false, typ);
-                if (num1 == null && t1.Next.IsHiphen) 
-                    num1 = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next.Next, false, typ);
-                if (num1 != null) 
-                {
-                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 2)) 
-                    {
-                    }
-                    else 
-                    {
-                        org.Number = num1.Number;
-                        t1 = num1.EndToken;
-                        res.EndToken = t1;
-                    }
-                }
-            }
-            return res;
-        }
-        Pullenti.Ner.ReferentToken TryAttachOrgBefore(Pullenti.Ner.Token t)
-        {
-            if (t == null || t.Previous == null || (t.Previous is Pullenti.Ner.ReferentToken)) 
-                return null;
-            OrganizationReferent org0 = t.GetReferent() as OrganizationReferent;
-            int minEndChar = t.Previous.EndChar;
-            int maxEndChar = t.EndChar;
-            Pullenti.Ner.Token t0 = t.Previous;
-            if ((t0 is Pullenti.Ner.ReferentToken) && (t0.GetReferent() is OrganizationReferent) && t0.Previous != null) 
-            {
-                minEndChar = t0.Previous.EndChar;
-                t0 = t0.Previous;
-            }
-            Pullenti.Ner.ReferentToken res = null;
-            for (; t0 != null; t0 = t0.Previous) 
-            {
-                if (t0.WhitespacesAfterCount > 1) 
-                    break;
-                int cou = 0;
-                Pullenti.Ner.Token tt0 = t0;
-                string num = null;
-                Pullenti.Ner.Token numEt = null;
-                for (Pullenti.Ner.Token ttt = t0; ttt != null; ttt = ttt.Previous) 
-                {
-                    if (ttt.WhitespacesAfterCount > 1) 
-                        break;
-                    if (ttt is Pullenti.Ner.ReferentToken) 
-                        break;
-                    if (ttt.IsHiphen || ttt.IsChar('.')) 
-                        continue;
-                    if (ttt is Pullenti.Ner.NumberToken) 
-                    {
-                        if (num != null) 
-                            break;
-                        num = (ttt as Pullenti.Ner.NumberToken).Value.ToString();
-                        numEt = ttt;
-                        tt0 = ttt.Previous;
-                        continue;
-                    }
-                    Pullenti.Ner.Org.Internal.OrgItemNumberToken nn = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ttt, false, null);
-                    if (nn != null) 
-                    {
-                        num = nn.Number;
-                        numEt = nn.EndToken;
-                        tt0 = ttt.Previous;
-                        continue;
-                    }
-                    if ((++cou) > 10) 
-                        break;
-                    if (ttt.IsValue("НАПРАВЛЕНИЕ", "НАПРЯМОК")) 
-                    {
-                        if (num != null || (((ttt.Previous is Pullenti.Ner.NumberToken) && (ttt.WhitespacesBeforeCount < 3)))) 
-                        {
-                            OrganizationReferent oo = new OrganizationReferent();
-                            oo.AddProfile(OrgProfile.Unit);
-                            oo.AddTypeStr(((ttt.Morph.Language.IsUa ? "НАПРЯМОК" : "НАПРАВЛЕНИЕ")).ToLower());
-                            Pullenti.Ner.ReferentToken rt0 = new Pullenti.Ner.ReferentToken(oo, ttt, ttt);
-                            if (numEt != null && num != null) 
-                            {
-                                oo.AddSlot(OrganizationReferent.ATTR_NUMBER, num, false, 0);
-                                rt0.EndToken = numEt;
-                                return rt0;
-                            }
-                            if (ttt.Previous is Pullenti.Ner.NumberToken) 
-                            {
-                                rt0.BeginToken = ttt.Previous;
-                                oo.AddSlot(OrganizationReferent.ATTR_NUMBER, (ttt.Previous as Pullenti.Ner.NumberToken).Value.ToString(), false, 0);
-                                return rt0;
-                            }
-                        }
-                    }
-                    Pullenti.Morph.MorphClass mc = ttt.GetMorphClassInDictionary();
-                    if (mc.IsVerb && !mc.IsPreposition) 
-                        break;
-                    Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(ttt, true);
-                    if (typ1 == null || typ1.BeginToken != ttt) 
-                    {
-                        if (cou == 1) 
-                            break;
-                        continue;
-                    }
-                    if (typ1.EndToken == tt0) 
-                        t0 = ttt;
-                }
-                if ((t0.GetReferent() is OrganizationReferent) && org0 != null) 
-                {
-                    OrganizationReferent oo = t0.GetReferent() as OrganizationReferent;
-                    if (oo.Higher == null && Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org0, oo, false)) 
-                    {
-                        if ((t0.EndChar + 4) > t.BeginChar) 
-                        {
-                            oo.Higher = org0;
-                            return new Pullenti.Ner.ReferentToken(oo, t0, t);
-                        }
-                    }
-                }
-                if (t0 is Pullenti.Ner.ReferentToken) 
-                    break;
-                Pullenti.Ner.ReferentToken rt = TryAttachOrg(t0, AttachType.Normal, null, false, -1);
-                if (rt != null) 
-                {
-                    if (rt.BeginToken != t0) 
-                        return null;
-                    if (rt.EndChar >= minEndChar && rt.EndChar <= maxEndChar) 
-                    {
-                        OrganizationReferent oo = rt.Referent as OrganizationReferent;
-                        if (oo.Higher != null && oo.Higher.Higher != null && oo.Higher == rt.EndToken.GetReferent()) 
-                            return rt;
-                        if (rt.BeginChar < t.BeginChar) 
-                            return rt;
-                        res = rt;
-                    }
-                    else 
-                        break;
-                }
-                else if (!(t0 is Pullenti.Ner.TextToken)) 
-                    break;
-                else if (!t0.Chars.IsLetter) 
-                {
-                    if (!Pullenti.Ner.Core.BracketHelper.IsBracket(t0, false)) 
-                        break;
-                }
-                else 
-                {
-                    Pullenti.Morph.MorphClass mc = t0.GetMorphClassInDictionary();
-                    if (mc.IsVerb && !mc.IsPreposition) 
-                        break;
-                    if (mc.IsAdverb || mc.IsConjunction) 
-                        break;
-                }
-            }
-            if (res != null) 
-                return null;
-            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ = null;
-            for (t0 = t.Previous; t0 != null; t0 = t0.Previous) 
-            {
-                if (t0.WhitespacesAfterCount > 1) 
-                    break;
-                if (t0 is Pullenti.Ner.NumberToken) 
-                    continue;
-                if (t0.IsChar('.') || t0.IsHiphen) 
-                    continue;
-                if (!(t0 is Pullenti.Ner.TextToken)) 
-                    break;
-                if (!t0.Chars.IsLetter) 
-                    break;
-                Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t0, true);
-                if (ty != null) 
-                {
-                    Pullenti.Ner.Org.Internal.OrgItemNumberToken nn = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ty.EndToken.Next, true, ty);
-                    if (nn != null) 
-                    {
-                        ty.EndToken = nn.EndToken;
-                        ty.Number = nn.Number;
-                    }
-                    else if ((ty.EndToken.Next is Pullenti.Ner.NumberToken) && (ty.WhitespacesAfterCount < 2)) 
-                    {
-                        ty.EndToken = ty.EndToken.Next;
-                        ty.Number = (ty.EndToken as Pullenti.Ner.NumberToken).Value.ToString();
-                    }
-                    if (typ != null && ty.BeginChar > typ.BeginChar) 
-                        break;
-                    if (ty.EndChar >= minEndChar && ty.EndChar <= maxEndChar) 
-                        typ = ty;
-                    else 
-                        break;
-                }
-            }
-            if (typ != null && typ.IsDep) 
-                res = TryAttachDepBeforeOrg(typ, null);
-            return res;
         }
         static Pullenti.Ner.ReferentToken AttachGlobalOrg(Pullenti.Ner.Token t, AttachType attachTyp, object extGeo = null)
         {
@@ -8417,6 +3946,17 @@ namespace Pullenti.Ner.Org
             {
                 if (!Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false)) 
                     return null;
+                for (Pullenti.Ner.Token tt = t.Previous; tt != null; tt = tt.Previous) 
+                {
+                    if (tt.GetReferent() is Pullenti.Ner.Geo.GeoReferent) 
+                        continue;
+                    if (tt.IsValue("ПРОГРАММА", null) && tt.Previous != null) 
+                    {
+                        if (tt.Previous.IsValue("ГОСУДАРСТВЕННЫЙ", null)) 
+                            return null;
+                    }
+                    break;
+                }
                 if ((((nameTok = m_PoliticNames.TryParse(t.Next, Pullenti.Ner.Core.TerminParseAttr.No)))) != null) 
                     coef += 1.5;
                 else if (onlyAbbrs) 
@@ -8754,5 +4294,4564 @@ namespace Pullenti.Ner.Org
         static Pullenti.Ner.Core.TerminCollection m_PoliticPrefs;
         static Pullenti.Ner.Core.TerminCollection m_PoliticSuffs;
         static Pullenti.Ner.Core.TerminCollection m_PoliticNames;
+        const int MaxOrgName = 200;
+        static Pullenti.Ner.ReferentToken TryAttachOrg(Pullenti.Ner.Token t, AttachType attachTyp, Pullenti.Ner.Org.Internal.OrgItemTypeToken multTyp = null, bool isAdditionalAttach = false, int step = -1)
+        {
+            Pullenti.Ner.Org.Internal.OrgAnalyzerData ad = OrganizationAnalyzer.GetData(t);
+            if (ad == null) 
+                return null;
+            if (ad.Level > 4) 
+                return null;
+            ad.Level++;
+            Pullenti.Ner.ReferentToken res = _TryAttachOrgInt(t, attachTyp, multTyp, isAdditionalAttach, step);
+            ad.Level--;
+            return res;
+        }
+        static Pullenti.Ner.ReferentToken _TryAttachOrgInt(Pullenti.Ner.Token t, AttachType attachTyp, Pullenti.Ner.Org.Internal.OrgItemTypeToken multTyp, bool isAdditionalAttach, int step)
+        {
+            if (t == null) 
+                return null;
+            if (t.Chars.IsLatinLetter && Pullenti.Ner.Core.MiscHelper.IsEngArticle(t)) 
+            {
+                Pullenti.Ner.ReferentToken re = TryAttachOrg(t.Next, attachTyp, multTyp, isAdditionalAttach, step);
+                if (re != null) 
+                {
+                    re.BeginToken = t;
+                    return re;
+                }
+            }
+            OrganizationReferent org = null;
+            List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> types = null;
+            if (multTyp != null) 
+            {
+                types = new List<Pullenti.Ner.Org.Internal.OrgItemTypeToken>();
+                types.Add(multTyp);
+            }
+            Pullenti.Ner.Token t0 = t;
+            Pullenti.Ner.Token t1 = t;
+            List<Pullenti.Ner.Core.IntOntologyToken> otExLi = null;
+            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ = null;
+            bool hiph = false;
+            bool specWordBefore = false;
+            bool ok;
+            bool inBrackets = false;
+            Pullenti.Ner.ReferentToken rt0 = null;
+            Pullenti.Ner.Org.Internal.OrgAnalyzerData ad = OrganizationAnalyzer.GetData(t);
+            for (; t != null; t = t.Next) 
+            {
+                if (t.GetReferent() is OrganizationReferent) 
+                    break;
+                rt0 = AttachGlobalOrg(t, attachTyp, null);
+                if ((rt0 == null && typ != null && typ.Geo != null) && typ.BeginToken.Next == typ.EndToken) 
+                {
+                    rt0 = AttachGlobalOrg(typ.EndToken, attachTyp, typ.Geo);
+                    if (rt0 != null) 
+                        rt0.BeginToken = typ.BeginToken;
+                }
+                if (rt0 != null) 
+                {
+                    if (attachTyp == AttachType.Multiple) 
+                    {
+                        if (types == null || types.Count == 0) 
+                            return null;
+                        if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypeAccords(rt0.Referent as OrganizationReferent, types[0])) 
+                            return null;
+                        (rt0.Referent as OrganizationReferent).AddType(types[0], false);
+                        if ((rt0.BeginToken.BeginChar - types[0].EndToken.Next.EndChar) < 3) 
+                            rt0.BeginToken = types[0].BeginToken;
+                        break;
+                    }
+                    if (typ != null && !typ.EndToken.Morph.Class.IsVerb) 
+                    {
+                        if (_isMvdOrg(rt0.Referent as OrganizationReferent) != null && typ.Typ != null && typ.Typ.Contains("служба")) 
+                        {
+                            rt0 = null;
+                            break;
+                        }
+                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypeAccords(rt0.Referent as OrganizationReferent, typ)) 
+                        {
+                            rt0.BeginToken = typ.BeginToken;
+                            (rt0.Referent as OrganizationReferent).AddType(typ, false);
+                        }
+                    }
+                    break;
+                }
+                if (t.IsHiphen) 
+                {
+                    if (t == t0 || types == null) 
+                    {
+                        if (otExLi != null) 
+                            break;
+                        return null;
+                    }
+                    if (t.IsWhitespaceBefore && t.IsWhitespaceAfter) 
+                    {
+                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false) != null) 
+                            break;
+                    }
+                    if ((typ != null && typ.Root != null && typ.Root.CanHasNumber) && (t.Next is Pullenti.Ner.NumberToken)) 
+                    {
+                    }
+                    else 
+                        hiph = true;
+                    continue;
+                }
+                if (ad != null && otExLi == null) 
+                {
+                    bool ok1 = false;
+                    Pullenti.Ner.Token tt = t;
+                    if (t.InnerBool) 
+                        ok1 = true;
+                    else if (t.Chars.IsAllLower) 
+                    {
+                    }
+                    else if (t.Chars.IsLetter) 
+                        ok1 = true;
+                    else if (t.Previous != null && Pullenti.Ner.Core.BracketHelper.IsBracket(t.Previous, false)) 
+                        ok1 = true;
+                    else if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false) && t.Next != null) 
+                    {
+                        ok1 = true;
+                        tt = t.Next;
+                    }
+                    if (ok1 && tt != null) 
+                    {
+                        otExLi = ad.LocOrgs.TryAttach(tt, null, false);
+                        if (otExLi == null && t.Kit.Ontology != null) 
+                        {
+                            if ((((otExLi = t.Kit.Ontology.AttachToken(OrganizationReferent.OBJ_TYPENAME, tt)))) != null) 
+                            {
+                            }
+                        }
+                        if ((otExLi == null && tt.LengthChar == 2 && tt.Chars.IsAllUpper) && (ad.LocalOntology.Items.Count < 1000)) 
+                        {
+                            otExLi = ad.LocalOntology.TryAttach(tt, null, false);
+                            if (otExLi != null) 
+                            {
+                                if (tt.Kit.Sofa.Text.Length > 300) 
+                                    otExLi = null;
+                            }
+                        }
+                    }
+                    if (otExLi != null) 
+                        t.InnerBool = true;
+                }
+                if ((step >= 0 && !t.InnerBool && t == t0) && (t is Pullenti.Ner.TextToken)) 
+                    typ = null;
+                else 
+                {
+                    typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t, attachTyp == AttachType.ExtOntology);
+                    if (typ == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
+                    {
+                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br != null) 
+                        {
+                            typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, attachTyp == AttachType.ExtOntology);
+                            if (typ != null && typ.EndToken == br.EndToken.Previous && ((Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(br.EndToken.Next, true, false) || t.IsChar('(')))) 
+                            {
+                                typ = typ.Clone();
+                                typ.EndToken = br.EndToken;
+                                typ.BeginToken = t;
+                            }
+                            else 
+                                typ = null;
+                        }
+                    }
+                }
+                if (typ == null) 
+                    break;
+                if (types == null) 
+                {
+                    if ((((typ.Typ == "главное управление" || typ.Typ == "главное территориальное управление" || typ.Typ == "головне управління") || typ.Typ == "головне територіальне управління" || typ.Typ == "пограничное управление")) && otExLi != null) 
+                        break;
+                    types = new List<Pullenti.Ner.Org.Internal.OrgItemTypeToken>();
+                    t0 = typ.BeginToken;
+                    if (typ.IsNotTyp && typ.EndToken.Next != null) 
+                        t0 = typ.EndToken.Next;
+                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(typ.BeginToken.Previous)) 
+                        specWordBefore = true;
+                }
+                else 
+                {
+                    ok = true;
+                    foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                    {
+                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(ty, typ)) 
+                        {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (!ok) 
+                        break;
+                    if (typ.IsDep) 
+                        break;
+                    if (inBrackets) 
+                        break;
+                    Pullenti.Ner.Org.Internal.OrgItemTypeToken typ0 = _lastTyp(types);
+                    if (hiph && ((t.WhitespacesBeforeCount > 0 && ((typ0 != null && typ0.IsDoubtRootWord))))) 
+                        break;
+                    if (typ.EndToken == typ.BeginToken) 
+                    {
+                        if (typ.IsValue("ОРГАНИЗАЦИЯ", "ОРГАНІЗАЦІЯ") || typ.IsValue("УПРАВЛІННЯ", "")) 
+                            break;
+                    }
+                    if (typ0.Typ == "банк" && typ.Root != null && typ.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
+                    {
+                        Pullenti.Ner.ReferentToken rt = TryAttachOrg(typ.BeginToken, attachTyp, null, false, -1);
+                        if (rt != null && rt.Referent.ToString().Contains("Сбербанк")) 
+                            return null;
+                    }
+                    if (typ0.IsDep || typ0.Typ == "департамент") 
+                        break;
+                    if ((typ0.Root != null && typ0.Root.IsPurePrefix && typ.Root != null) && !typ.Root.IsPurePrefix && !typ.BeginToken.Chars.IsAllLower) 
+                    {
+                        if (typ0.Typ.Contains("НИИ")) 
+                            break;
+                    }
+                    bool pref0 = typ0.Root != null && typ0.Root.IsPurePrefix;
+                    bool pref = typ.Root != null && typ.Root.IsPurePrefix;
+                    if (!pref0 && !pref) 
+                    {
+                        if (typ0.Name != null && typ0.Name.Length != typ0.Typ.Length) 
+                        {
+                            if (t.WhitespacesBeforeCount > 1) 
+                                break;
+                        }
+                        if (!typ0.Morph.Case.IsUndefined && !typ.Morph.Case.IsUndefined) 
+                        {
+                            if (!((typ0.Morph.Case & typ.Morph.Case)).IsNominative && !hiph) 
+                            {
+                                if (!typ.Morph.Case.IsNominative) 
+                                    break;
+                            }
+                        }
+                        if (typ0.Morph.Number != Pullenti.Morph.MorphNumber.Undefined && typ.Morph.Number != Pullenti.Morph.MorphNumber.Undefined) 
+                        {
+                            if (((typ0.Morph.Number & typ.Morph.Number)) == Pullenti.Morph.MorphNumber.Undefined) 
+                                break;
+                        }
+                    }
+                    if (!pref0 && pref && !hiph) 
+                    {
+                        bool nom = false;
+                        foreach (Pullenti.Morph.MorphBaseInfo m in typ.Morph.Items) 
+                        {
+                            if (m.Number == Pullenti.Morph.MorphNumber.Singular && m.Case.IsNominative) 
+                            {
+                                nom = true;
+                                break;
+                            }
+                        }
+                        if (!nom) 
+                        {
+                            if (Pullenti.Morph.LanguageHelper.EndsWith(typ0.Typ, "фракция") || Pullenti.Morph.LanguageHelper.EndsWith(typ0.Typ, "фракція") || typ0.Typ == "банк") 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                    }
+                    foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                    {
+                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(ty, typ)) 
+                            return null;
+                    }
+                }
+                types.Add(typ);
+                inBrackets = false;
+                if (typ.Name != null) 
+                {
+                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(typ.BeginToken.Previous, true, false) && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(typ.EndToken.Next, false, null, false)) 
+                    {
+                        typ = typ.Clone();
+                        typ.BeginToken = typ.BeginToken.Previous;
+                        typ.EndToken = typ.EndToken.Next;
+                        if (typ.BeginToken.EndChar < t0.BeginChar) 
+                            t0 = typ.BeginToken;
+                        inBrackets = true;
+                    }
+                }
+                t = typ.EndToken;
+                hiph = false;
+            }
+            if ((types == null && otExLi == null && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) && rt0 == null) 
+            {
+                ok = false;
+                if (!ok) 
+                {
+                    if (t0 != null && t0.Morph.Class.IsAdjective && t0.Next != null) 
+                    {
+                        if ((((rt0 = TryAttachOrg(t0.Next, attachTyp, multTyp, isAdditionalAttach, step)))) != null) 
+                        {
+                            if (rt0.BeginToken == t0) 
+                                return rt0;
+                        }
+                    }
+                    if (attachTyp == AttachType.Normal) 
+                    {
+                        if ((((rt0 = TryAttachOrgMed(t)))) != null) 
+                            return rt0;
+                    }
+                    if ((((t0 is Pullenti.Ner.TextToken) && t0.Previous != null && t0.LengthChar > 2) && !t0.Chars.IsAllLower && !t0.IsNewlineAfter) && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(t0)) 
+                    {
+                        typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t0.Next, false);
+                        if (typ != null) 
+                        {
+                            Pullenti.Ner.ReferentToken rrr = TryAttachOrg(t0.Next, attachTyp, multTyp, isAdditionalAttach, step);
+                            if (rrr == null) 
+                            {
+                                if (specWordBefore || t0.Previous.IsValue("ТЕРРИТОРИЯ", null)) 
+                                {
+                                    OrganizationReferent org0 = new OrganizationReferent();
+                                    org0.AddType(typ, false);
+                                    org0.AddName((t0 as Pullenti.Ner.TextToken).Term, false, t0);
+                                    t1 = typ.EndToken;
+                                    t1 = AttachTailAttributes(org0, t1.Next, false, AttachType.Normal, false) ?? t1;
+                                    return new Pullenti.Ner.ReferentToken(org0, t0, t1);
+                                }
+                            }
+                        }
+                    }
+                    for (Pullenti.Ner.Token tt = t; tt != null; tt = tt.Next) 
+                    {
+                        if (tt.IsAnd) 
+                        {
+                            if (tt == t) 
+                                break;
+                            continue;
+                        }
+                        if ((((tt is Pullenti.Ner.TextToken) && tt.Chars.IsLetter && !tt.Chars.IsAllLower) && !tt.Chars.IsCapitalUpper && tt.LengthChar > 1) && (tt.WhitespacesAfterCount < 2)) 
+                        {
+                            string term = (tt as Pullenti.Ner.TextToken).Term;
+                            if (term == "СНВ") 
+                                break;
+                            Pullenti.Morph.MorphClass mc = tt.GetMorphClassInDictionary();
+                            if (mc.IsUndefined) 
+                            {
+                            }
+                            else if (((tt.LengthChar < 5) && !mc.IsConjunction && !mc.IsPreposition) && !mc.IsNoun) 
+                            {
+                            }
+                            else if ((tt.LengthChar <= 3 && (tt.Previous is Pullenti.Ner.TextToken) && tt.Previous.Chars.IsLetter) && !tt.Previous.Chars.IsAllUpper) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        else 
+                            break;
+                        if ((tt.Next is Pullenti.Ner.ReferentToken) && (tt.Next.GetReferent() is OrganizationReferent)) 
+                        {
+                            Pullenti.Ner.Token ttt = t.Previous;
+                            if ((((ttt is Pullenti.Ner.TextToken) && tt.Chars.IsLetter && !ttt.Chars.IsAllLower) && !ttt.Chars.IsCapitalUpper && ttt.LengthChar > 1) && ttt.GetMorphClassInDictionary().IsUndefined && (ttt.WhitespacesAfterCount < 2)) 
+                                break;
+                            Pullenti.Ner.Token tt0 = t;
+                            for (t = t.Previous; t != null; t = t.Previous) 
+                            {
+                                if (!(t is Pullenti.Ner.TextToken) || t.WhitespacesAfterCount > 2) 
+                                    break;
+                                else if (t.IsAnd) 
+                                {
+                                }
+                                else if ((t.Chars.IsLetter && !t.Chars.IsAllLower && !t.Chars.IsCapitalUpper) && t.LengthChar > 1 && t.GetMorphClassInDictionary().IsUndefined) 
+                                    tt0 = t;
+                                else 
+                                    break;
+                            }
+                            string nam = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, tt, Pullenti.Ner.Core.GetTextAttr.No);
+                            if (nam == "СЭД" || nam == "ЕОСЗ" || nam == "ВНЖ") 
+                                break;
+                            OrganizationReferent own = tt.Next.GetReferent() as OrganizationReferent;
+                            if (own.Profiles.Contains(OrgProfile.Unit)) 
+                                break;
+                            if (own.ToString().ToUpper().Contains("СОЮЗ")) 
+                                break;
+                            if (nam == "НК" || nam == "ГК") 
+                                return new Pullenti.Ner.ReferentToken(own, tt0, tt.Next);
+                            OrganizationReferent org0 = new OrganizationReferent();
+                            org0.AddProfile(OrgProfile.Unit);
+                            org0.AddName(nam, true, null);
+                            if (nam.IndexOf(' ') > 0) 
+                                org0.AddName(nam.Replace(" ", ""), true, null);
+                            org0.Higher = own;
+                            t1 = tt.Next;
+                            Pullenti.Ner.Token ttt1 = AttachTailAttributes(org0, t1, true, attachTyp, false);
+                            if (tt0.Kit.Ontology != null) 
+                            {
+                                List<Pullenti.Ner.Core.IntOntologyToken> li = tt0.Kit.Ontology.AttachToken(OrganizationReferent.OBJ_TYPENAME, tt0);
+                                if (li != null) 
+                                {
+                                    foreach (Pullenti.Ner.Core.IntOntologyToken v in li) 
+                                    {
+                                    }
+                                }
+                            }
+                            return new Pullenti.Ner.ReferentToken(org0, tt0, ttt1 ?? t1);
+                        }
+                    }
+                    if (((t is Pullenti.Ner.TextToken) && t.IsNewlineBefore && t.LengthChar > 1) && !t.Chars.IsAllLower && t.GetMorphClassInDictionary().IsUndefined) 
+                    {
+                        t1 = t.Next;
+                        if (t1 != null && !t1.IsNewlineBefore && (t1 is Pullenti.Ner.TextToken)) 
+                            t1 = t1.Next;
+                        if (t1 != null && t1.IsNewlineBefore) 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
+                            if ((typ0 != null && typ0.Root != null && typ0.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) && typ0.IsNewlineAfter) 
+                            {
+                                if (TryAttachOrg(t1, AttachType.Normal, null, false, -1) == null) 
+                                {
+                                    org = new OrganizationReferent();
+                                    org.AddType(typ0, false);
+                                    org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
+                                    t1 = typ0.EndToken;
+                                    Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                                    return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
+                                }
+                            }
+                            if (t1.IsChar('(')) 
+                            {
+                                if ((((typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false)))) != null) 
+                                {
+                                    if (typ0.EndToken.Next != null && typ0.EndToken.Next.IsChar(')') && typ0.EndToken.Next.IsNewlineAfter) 
+                                    {
+                                        org = new OrganizationReferent();
+                                        org.AddType(typ0, false);
+                                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
+                                        t1 = typ0.EndToken.Next;
+                                        Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                                        return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if ((t is Pullenti.Ner.TextToken) && t.IsNewlineBefore && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
+                    {
+                        Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br != null && br.IsNewlineAfter && (br.LengthChar < 100)) 
+                        {
+                            t1 = br.EndToken.Next;
+                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
+                            if ((typ0 != null && typ0.Root != null && typ0.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) && typ0.IsNewlineAfter) 
+                            {
+                                if (TryAttachOrg(t1, AttachType.Normal, null, false, -1) == null) 
+                                {
+                                    org = new OrganizationReferent();
+                                    org.AddType(typ0, false);
+                                    org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
+                                    t1 = typ0.EndToken;
+                                    Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                                    return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
+                                }
+                            }
+                            if (t1 != null && t1.IsChar('(')) 
+                            {
+                                if ((((typ0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false)))) != null) 
+                                {
+                                    if (typ0.EndToken.Next != null && typ0.EndToken.Next.IsChar(')') && typ0.EndToken.Next.IsNewlineAfter) 
+                                    {
+                                        org = new OrganizationReferent();
+                                        org.AddType(typ0, false);
+                                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(t, t1.Previous, Pullenti.Ner.Core.GetTextAttr.No), true, null);
+                                        t1 = typ0.EndToken.Next;
+                                        Pullenti.Ner.Token ttt1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                                        return new Pullenti.Ner.ReferentToken(org, t, ttt1 ?? t1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return null;
+                }
+            }
+            if (types != null && types.Count > 1 && attachTyp != AttachType.ExtOntology) 
+            {
+                if (types[0].Typ == "предприятие" || types[0].Typ == "підприємство") 
+                {
+                    types.RemoveAt(0);
+                    t0 = types[0].BeginToken;
+                }
+            }
+            if (rt0 == null) 
+            {
+                rt0 = _TryAttachOrg_(t0, t, types, specWordBefore, attachTyp, multTyp, isAdditionalAttach);
+                if (rt0 != null && otExLi != null) 
+                {
+                    foreach (Pullenti.Ner.Core.IntOntologyToken ot in otExLi) 
+                    {
+                        if ((ot.EndChar > rt0.EndChar && ot.Item != null && ot.Item.Owner != null) && ot.Item.Owner.IsExtOntology) 
+                        {
+                            rt0 = null;
+                            break;
+                        }
+                        else if (ot.EndChar < rt0.BeginChar) 
+                        {
+                            otExLi = null;
+                            break;
+                        }
+                        else if (ot.EndChar < rt0.EndChar) 
+                        {
+                            if (ot.EndToken.Next.GetMorphClassInDictionary().IsPreposition) 
+                            {
+                                rt0 = null;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (rt0 != null) 
+                {
+                    if (types != null && rt0.BeginToken == types[0].BeginToken) 
+                    {
+                        foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                        {
+                            (rt0.Referent as OrganizationReferent).AddType(ty, true);
+                        }
+                    }
+                    if ((rt0.BeginToken == t0 && t0.Previous != null && t0.Previous.Morph.Class.IsAdjective) && (t0.WhitespacesBeforeCount < 2)) 
+                    {
+                        if ((rt0.Referent as OrganizationReferent).GeoObjects.Count == 0) 
+                        {
+                            object geo = IsGeo(t0.Previous, true);
+                            if (geo != null) 
+                            {
+                                if ((rt0.Referent as OrganizationReferent).AddGeoObject(geo)) 
+                                    rt0.BeginToken = t0.Previous;
+                            }
+                        }
+                    }
+                }
+            }
+            if (otExLi != null && rt0 == null && (otExLi.Count < 10)) 
+            {
+                foreach (Pullenti.Ner.Core.IntOntologyToken ot in otExLi) 
+                {
+                    OrganizationReferent org0 = ot.Item.Referent as OrganizationReferent;
+                    if (org0 == null) 
+                        continue;
+                    if (org0.Names.Count == 0 && org0.Eponyms.Count == 0) 
+                        continue;
+                    Pullenti.Ner.Org.Internal.OrgItemTypeToken tyty = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(ot.BeginToken, true);
+                    if (tyty != null && tyty.BeginToken == ot.EndToken) 
+                        continue;
+                    Pullenti.Ner.Token ts = ot.BeginToken;
+                    Pullenti.Ner.Token te = ot.EndToken;
+                    bool isQuots = false;
+                    bool isVeryDoubt = false;
+                    bool nameEq = false;
+                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(ts.Previous, false, false) && Pullenti.Ner.Core.BracketHelper.IsBracket(ts.Previous, false)) 
+                    {
+                        if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(te.Next, false, null, false)) 
+                        {
+                            if (ot.LengthChar < 2) 
+                                continue;
+                            if (ot.LengthChar == 2 && !org0.Names.Contains(te.GetSourceText())) 
+                            {
+                            }
+                            else 
+                            {
+                                isQuots = true;
+                                ts = ts.Previous;
+                                te = te.Next;
+                            }
+                        }
+                        else 
+                            continue;
+                    }
+                    ok = types != null;
+                    if (ot.EndToken.Next != null && (ot.EndToken.Next.GetReferent() is OrganizationReferent)) 
+                        ok = true;
+                    else if (ot.EndToken != ot.BeginToken) 
+                    {
+                        if (step == 0) 
+                        {
+                            if (!ot.Kit.MiscData.ContainsKey("o2step")) 
+                                ot.Kit.MiscData.Add("o2step", null);
+                            continue;
+                        }
+                        if (!ot.BeginToken.Chars.IsAllLower) 
+                            ok = true;
+                        else if (specWordBefore || isQuots) 
+                            ok = true;
+                    }
+                    else if (ot.BeginToken is Pullenti.Ner.TextToken) 
+                    {
+                        if (step == 0) 
+                        {
+                            if (!ot.Kit.MiscData.ContainsKey("o2step")) 
+                                ot.Kit.MiscData.Add("o2step", null);
+                            continue;
+                        }
+                        ok = false;
+                        int len = ot.BeginToken.LengthChar;
+                        if (!ot.Chars.IsAllLower) 
+                        {
+                            if (!ot.Chars.IsAllUpper && ot.Morph.Class.IsPreposition) 
+                                continue;
+                            foreach (string n in org0.Names) 
+                            {
+                                if (ot.BeginToken.IsValue(n, null)) 
+                                {
+                                    nameEq = true;
+                                    break;
+                                }
+                            }
+                            Pullenti.Ner.TextAnnotation ano = org0.FindNearOccurence(ot.BeginToken);
+                            if (ano == null) 
+                            {
+                                if (!ot.Item.Owner.IsExtOntology) 
+                                {
+                                    if (len < 3) 
+                                        continue;
+                                    else 
+                                        isVeryDoubt = true;
+                                }
+                            }
+                            else 
+                            {
+                                if (len == 2 && !t.Chars.IsAllUpper) 
+                                    continue;
+                                int d = ano.BeginChar - ot.BeginToken.BeginChar;
+                                if (d < 0) 
+                                    d = -d;
+                                if (d > 2000) 
+                                {
+                                    if (len < 3) 
+                                        continue;
+                                    else if (len < 5) 
+                                        isVeryDoubt = true;
+                                }
+                                else if (d > 300) 
+                                {
+                                    if (len < 3) 
+                                        continue;
+                                }
+                                else if (len < 3) 
+                                {
+                                    if (d > 100 || !ot.BeginToken.Chars.IsAllUpper) 
+                                        isVeryDoubt = true;
+                                }
+                            }
+                            if (((ot.BeginToken.Chars.IsAllUpper || ot.BeginToken.Chars.IsLastLower)) && ((len > 3 || ((len == 3 && ((nameEq || ano != null))))))) 
+                                ok = true;
+                            else if ((specWordBefore || types != null || isQuots) || nameEq) 
+                                ok = true;
+                            else if ((ot.LengthChar < 3) && isVeryDoubt) 
+                                continue;
+                            else if (ot.Item.Owner.IsExtOntology && ot.BeginToken.GetMorphClassInDictionary().IsUndefined && ((len > 3 || ((len == 3 && ((nameEq || ano != null))))))) 
+                                ok = true;
+                            else if (ot.BeginToken.Chars.IsLatinLetter) 
+                                ok = true;
+                            else if ((nameEq && !ot.Chars.IsAllLower && !ot.Item.Owner.IsExtOntology) && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(ot.BeginToken)) 
+                                ok = true;
+                        }
+                    }
+                    else if (ot.BeginToken is Pullenti.Ner.ReferentToken) 
+                    {
+                        Pullenti.Ner.Referent r = ot.BeginToken.GetReferent();
+                        if (r.TypeName != "DENOMINATION" && !isQuots) 
+                            ok = false;
+                    }
+                    if (!ok) 
+                    {
+                    }
+                    if (ok) 
+                    {
+                        ok = false;
+                        org = new OrganizationReferent();
+                        if (types != null) 
+                        {
+                            foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                            {
+                                org.AddType(ty, false);
+                            }
+                            if (!org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
+                                continue;
+                        }
+                        else 
+                            foreach (string ty in org0.Types) 
+                            {
+                                org.AddTypeStr(ty);
+                            }
+                        if (org0.Number != null && (ot.BeginToken.Previous is Pullenti.Ner.NumberToken) && org.Number == null) 
+                        {
+                            if (org0.Number != (ot.BeginToken.Previous as Pullenti.Ner.NumberToken).Value.ToString() && (ot.BeginToken.WhitespacesBeforeCount < 2)) 
+                            {
+                                if (org.Names.Count > 0 || org.Higher != null) 
+                                {
+                                    isVeryDoubt = false;
+                                    ok = true;
+                                    org.Number = (ot.BeginToken.Previous as Pullenti.Ner.NumberToken).Value.ToString();
+                                    if (org0.Higher != null) 
+                                        org.Higher = org0.Higher;
+                                    t0 = ot.BeginToken.Previous;
+                                }
+                            }
+                        }
+                        if (org.Number == null) 
+                        {
+                            Pullenti.Ner.Token ttt = ot.EndToken.Next;
+                            Pullenti.Ner.Org.Internal.OrgItemNumberToken nnn = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ttt, (org0.Number != null || !ot.IsWhitespaceAfter), null);
+                            if (nnn == null && !ot.IsWhitespaceAfter && ttt != null) 
+                            {
+                                if (ttt.IsHiphen && ttt.Next != null) 
+                                    ttt = ttt.Next;
+                                if (ttt is Pullenti.Ner.NumberToken) 
+                                    nnn = new Pullenti.Ner.Org.Internal.OrgItemNumberToken(ot.EndToken.Next, ttt) { Number = (ttt as Pullenti.Ner.NumberToken).Value.ToString() };
+                            }
+                            if (nnn != null) 
+                            {
+                                org.Number = nnn.Number;
+                                te = nnn.EndToken;
+                            }
+                        }
+                        bool norm = (ot.EndToken.EndChar - ot.BeginToken.BeginChar) > 5;
+                        Pullenti.Ner.Token tt0 = ot.BeginToken;
+                        if (types != null && types[0].Root != null && types[0].Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
+                            tt0 = types[0].EndToken.Next;
+                        string s = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, ot.EndToken, ((norm ? Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative : Pullenti.Ner.Core.GetTextAttr.No)) | Pullenti.Ner.Core.GetTextAttr.IgnoreArticles);
+                        org.AddName(s, true, (norm ? null : ot.BeginToken));
+                        if (types == null || types.Count == 0) 
+                        {
+                            string s1 = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(ot, Pullenti.Ner.Core.GetTextAttr.IgnoreArticles);
+                            if (s1 != s && norm) 
+                                org.AddName(s1, true, ot.BeginToken);
+                        }
+                        t1 = te;
+                        if (t1.IsChar(')') && t1.IsNewlineAfter) 
+                        {
+                        }
+                        else 
+                        {
+                            t1 = AttachMiddleAttributes(org, t1.Next) ?? t1;
+                            if (attachTyp != AttachType.NormalAfterDep) 
+                                t1 = AttachTailAttributes(org, t1.Next, false, AttachType.Normal, false) ?? t1;
+                        }
+                        OrganizationReferent hi = null;
+                        if (t1.Next != null) 
+                            hi = t1.Next.GetReferent() as OrganizationReferent;
+                        if (org0.Higher != null && hi != null && otExLi.Count == 1) 
+                        {
+                            if (hi.CanBeEquals(org0.Higher, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
+                            {
+                                org.Higher = hi;
+                                t1 = t1.Next;
+                            }
+                        }
+                        if ((org.Eponyms.Count == 0 && org.Number == null && isVeryDoubt) && !nameEq && types == null) 
+                            continue;
+                        if (!org.CanBeEqualsEx(org0, true, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
+                        {
+                            if (t != null && Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(t.Previous)) 
+                                ok = true;
+                            else if (!isVeryDoubt && ok) 
+                            {
+                            }
+                            else 
+                            {
+                                if (!isVeryDoubt) 
+                                {
+                                    if (org.Eponyms.Count > 0 || org.Number != null || org.Higher != null) 
+                                        ok = true;
+                                }
+                                ok = false;
+                            }
+                        }
+                        else if (org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.DifferentTexts)) 
+                        {
+                            org.MergeSlots(org0, false);
+                            ok = true;
+                        }
+                        else if (org0.Higher == null || org.Higher != null || ot.Item.Owner.IsExtOntology) 
+                        {
+                            ok = true;
+                            org.MergeSlots(org0, false);
+                        }
+                        else if (!ot.Item.Owner.IsExtOntology && org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
+                        {
+                            if (org0.Higher == null) 
+                                org.MergeSlots(org0, false);
+                            ok = true;
+                        }
+                        if (!ok) 
+                            continue;
+                        if (ts.BeginChar < t0.BeginChar) 
+                            t0 = ts;
+                        rt0 = new Pullenti.Ner.ReferentToken(org, t0, t1);
+                        if (org.Kind == OrganizationKind.Department) 
+                            CorrectDepAttrs(rt0, typ, false);
+                        _correctAfter(rt0);
+                        if (ot.Item.Owner.IsExtOntology) 
+                        {
+                            foreach (Pullenti.Ner.Slot sl in org.Slots) 
+                            {
+                                if (sl.Value is Pullenti.Ner.Referent) 
+                                {
+                                    bool ext = false;
+                                    foreach (Pullenti.Ner.Slot ss in org0.Slots) 
+                                    {
+                                        if (ss.Value == sl.Value) 
+                                        {
+                                            ext = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!ext) 
+                                        continue;
+                                    Pullenti.Ner.Referent rr = (sl.Value as Pullenti.Ner.Referent).Clone();
+                                    rr.Occurrence.Clear();
+                                    org.UploadSlot(sl, rr);
+                                    Pullenti.Ner.ReferentToken rtEx = new Pullenti.Ner.ReferentToken(rr, t0, t1);
+                                    rtEx.SetDefaultLocalOnto(t0.Kit.Processor);
+                                    org.AddExtReferent(rtEx);
+                                    foreach (Pullenti.Ner.Slot sss in rr.Slots) 
+                                    {
+                                        if (sss.Value is Pullenti.Ner.Referent) 
+                                        {
+                                            Pullenti.Ner.Referent rrr = (sss.Value as Pullenti.Ner.Referent).Clone();
+                                            rrr.Occurrence.Clear();
+                                            rr.UploadSlot(sss, rrr);
+                                            Pullenti.Ner.ReferentToken rtEx2 = new Pullenti.Ner.ReferentToken(rrr, t0, t1);
+                                            rtEx2.SetDefaultLocalOnto(t0.Kit.Processor);
+                                            (sl.Value as Pullenti.Ner.Referent).AddExtReferent(rtEx2);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        _correctAfter(rt0);
+                        return rt0;
+                    }
+                }
+            }
+            if ((rt0 == null && types != null && types.Count == 1) && types[0].Name == null) 
+            {
+                Pullenti.Ner.Token tt0 = null;
+                if (Pullenti.Ner.Core.MiscHelper.IsEngArticle(types[0].BeginToken)) 
+                    tt0 = types[0].BeginToken;
+                else if (Pullenti.Ner.Core.MiscHelper.IsEngAdjSuffix(types[0].EndToken.Next)) 
+                    tt0 = types[0].BeginToken;
+                else 
+                {
+                    Pullenti.Ner.Token tt00 = types[0].BeginToken.Previous;
+                    if (tt00 != null && (tt00.WhitespacesAfterCount < 2) && tt00.Chars.IsLatinLetter == types[0].Chars.IsLatinLetter) 
+                    {
+                        if (Pullenti.Ner.Core.MiscHelper.IsEngArticle(tt00)) 
+                            tt0 = tt00;
+                        else if (tt00.Morph.Class.IsPreposition || tt00.Morph.Class.IsPronoun) 
+                            tt0 = tt00.Next;
+                    }
+                }
+                int cou = 100;
+                if (tt0 != null) 
+                {
+                    OrganizationReferent accortTypeRef = null;
+                    for (Pullenti.Ner.Token tt00 = tt0.Previous; tt00 != null && cou > 0; tt00 = tt00.Previous,cou--) 
+                    {
+                        if (tt00.GetReferent() is OrganizationReferent) 
+                        {
+                            OrganizationReferent oo = tt00.GetReferent() as OrganizationReferent;
+                            if (oo.Types.Contains(types[0].Typ)) 
+                            {
+                                rt0 = new Pullenti.Ner.ReferentToken(oo, tt0, types[0].EndToken);
+                                break;
+                            }
+                            if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypeAccords(oo, types[0])) 
+                            {
+                                if ((types[0].WhitespacesAfterCount < 3) && Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(types[0].EndToken.Next, true) != null) 
+                                {
+                                }
+                                else if (accortTypeRef == null) 
+                                    accortTypeRef = oo;
+                            }
+                        }
+                    }
+                    if (rt0 == null && accortTypeRef != null) 
+                        rt0 = new Pullenti.Ner.ReferentToken(accortTypeRef, tt0, types[0].EndToken);
+                }
+            }
+            if (rt0 != null) 
+                CorrectOwnerBefore(rt0);
+            if (hiph && !inBrackets && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) 
+            {
+                bool ok1 = false;
+                if (rt0 != null && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt0.EndToken, true, null, false)) 
+                {
+                    if (types.Count > 0) 
+                    {
+                        Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = types[types.Count - 1];
+                        if (ty.EndToken.Next != null && ty.EndToken.Next.IsHiphen && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(ty.EndToken.Next.Next, true, false)) 
+                            ok1 = true;
+                    }
+                }
+                else if (rt0 != null && rt0.EndToken.Next != null && rt0.EndToken.Next.IsHiphen) 
+                {
+                    Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(rt0.EndToken.Next.Next, false);
+                    if (ty == null) 
+                        ok1 = true;
+                }
+                if (!ok1) 
+                    return null;
+            }
+            if (attachTyp == AttachType.Multiple && t != null) 
+            {
+                if (t.Chars.IsAllLower) 
+                    return null;
+            }
+            if (rt0 == null) 
+                return rt0;
+            bool doubt = rt0.Tag != null;
+            org = rt0.Referent as OrganizationReferent;
+            if (doubt && ad != null && (ad.LocalOntology.Items.Count < 1000)) 
+            {
+                List<Pullenti.Ner.Referent> rli = ad.LocalOntology.TryAttachByReferent(org, null, true);
+                if (rli != null && rli.Count > 0) 
+                    doubt = false;
+                else 
+                    foreach (Pullenti.Ner.Core.IntOntologyItem it in ad.LocalOntology.Items) 
+                    {
+                        if (it.Referent != null) 
+                        {
+                            if (it.Referent.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
+                            {
+                                doubt = false;
+                                break;
+                            }
+                        }
+                    }
+            }
+            if ((t != null && t.Kit.Ontology != null && attachTyp == AttachType.Normal) && doubt) 
+            {
+                List<Pullenti.Ner.ExtOntologyItem> rli = t.Kit.Ontology.AttachReferent(org);
+                if (rli != null) 
+                {
+                    if (rli.Count >= 1) 
+                        doubt = false;
+                }
+            }
+            if (doubt) 
+                return null;
+            _correctAfter(rt0);
+            return rt0;
+        }
+        static void _correctAfter(Pullenti.Ner.ReferentToken rt0)
+        {
+            if (rt0 == null) 
+                return;
+            if (!rt0.IsNewlineAfter && rt0.EndToken.Next != null && rt0.EndToken.Next.IsChar('(')) 
+            {
+                Pullenti.Ner.Token tt = rt0.EndToken.Next.Next;
+                if (tt is Pullenti.Ner.TextToken) 
+                {
+                    if (tt.IsChar(')')) 
+                        rt0.EndToken = tt;
+                    else if ((tt.LengthChar > 2 && (tt.LengthChar < 7) && tt.Chars.IsLatinLetter) && tt.Chars.IsAllUpper) 
+                    {
+                        string act = tt.GetSourceText().ToUpper();
+                        if ((tt.Next is Pullenti.Ner.NumberToken) && !tt.IsWhitespaceAfter && (tt.Next as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit) 
+                        {
+                            tt = tt.Next;
+                            act += tt.GetSourceText();
+                        }
+                        if (tt.Next != null && tt.Next.IsChar(')')) 
+                        {
+                            rt0.Referent.AddSlot(OrganizationReferent.ATTR_MISC, act, false, 0);
+                            rt0.EndToken = tt.Next;
+                        }
+                    }
+                    else 
+                    {
+                        OrganizationReferent org = rt0.Referent as OrganizationReferent;
+                        if (org.Kind == OrganizationKind.Bank && tt.Chars.IsLatinLetter) 
+                        {
+                        }
+                        Pullenti.Ner.ReferentToken rt1 = TryAttachOrg(tt, AttachType.Normal, null, false, -1);
+                        if (rt1 != null && rt1.EndToken.Next != null && rt1.EndToken.Next.IsChar(')')) 
+                        {
+                            if (org.CanBeEquals(rt1.Referent, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
+                            {
+                                org.MergeSlots(rt1.Referent, true);
+                                rt0.EndToken = rt1.EndToken.Next;
+                            }
+                        }
+                    }
+                }
+            }
+            if (rt0.IsNewlineBefore && rt0.IsNewlineAfter && rt0.EndToken.Next != null) 
+            {
+                Pullenti.Ner.Token t1 = rt0.EndToken.Next;
+                Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
+                if ((typ1 != null && typ1.IsNewlineAfter && typ1.Root != null) && typ1.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
+                {
+                    if (TryAttachOrg(t1, AttachType.Normal, null, false, -1) == null) 
+                    {
+                        (rt0.Referent as OrganizationReferent).AddType(typ1, false);
+                        rt0.EndToken = typ1.EndToken;
+                    }
+                }
+                if (t1.IsChar('(')) 
+                {
+                    if ((((typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false)))) != null) 
+                    {
+                        if ((typ1.Root != null && typ1.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix && typ1.EndToken.Next != null) && typ1.EndToken.Next.IsChar(')') && typ1.EndToken.Next.IsNewlineAfter) 
+                        {
+                            (rt0.Referent as OrganizationReferent).AddType(typ1, false);
+                            rt0.EndToken = typ1.EndToken.Next;
+                        }
+                    }
+                }
+            }
+        }
+        static Pullenti.Ner.Org.Internal.OrgItemTypeToken _lastTyp(List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> types)
+        {
+            if (types == null) 
+                return null;
+            for (int i = types.Count - 1; i >= 0; i--) 
+            {
+                return types[i];
+            }
+            return null;
+        }
+        static Pullenti.Ner.ReferentToken _TryAttachOrg_(Pullenti.Ner.Token t0, Pullenti.Ner.Token t, List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> types, bool specWordBefore, AttachType attachTyp, Pullenti.Ner.Org.Internal.OrgItemTypeToken multTyp, bool isAdditionalAttach)
+        {
+            if (t0 == null) 
+                return null;
+            Pullenti.Ner.Token t1 = t;
+            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ = _lastTyp(types);
+            if (typ != null) 
+            {
+                if (typ.IsDep) 
+                {
+                    Pullenti.Ner.ReferentToken rt0 = TryAttachDep(typ, attachTyp, specWordBefore);
+                    if (rt0 != null) 
+                        return rt0;
+                    if (typ.Typ == "группа" || typ.Typ == "група") 
+                    {
+                        typ = typ.Clone();
+                        typ.IsDep = false;
+                    }
+                    else 
+                        return null;
+                }
+                if (typ.IsNewlineAfter && typ.Name == null) 
+                {
+                    if (t1 != null && (t1.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && typ.Profiles.Contains(OrgProfile.State)) 
+                    {
+                    }
+                    else if (typ.Root != null && ((typ.Root.Coeff >= 3 || typ.Root.IsPurePrefix))) 
+                    {
+                    }
+                    else if (typ.Coef >= 4) 
+                    {
+                    }
+                    else if ((typ.Coef >= 3 && (typ.NewlinesAfterCount < 2) && typ.EndToken.Next != null) && typ.EndToken.Next.Morph.Class.IsPreposition) 
+                    {
+                    }
+                    else if (specWordBefore) 
+                    {
+                    }
+                    else 
+                        return null;
+                }
+                if (typ != multTyp && ((typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural && !char.IsUpper(typ.Typ[0])))) 
+                {
+                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, true, false)) 
+                    {
+                    }
+                    else if (typ.EndToken.IsValue("ВЛАСТЬ", null)) 
+                    {
+                    }
+                    else 
+                        return null;
+                }
+                if (attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
+                {
+                    if (((typ.Typ == "предприятие" || typ.Typ == "підприємство")) && !specWordBefore && types.Count == 1) 
+                        return null;
+                }
+            }
+            OrganizationReferent org = new OrganizationReferent();
+            if (types != null) 
+            {
+                foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                {
+                    org.AddType(ty, false);
+                }
+            }
+            if (typ != null && typ.Root != null && typ.Root.IsPurePrefix) 
+            {
+                if ((t is Pullenti.Ner.TextToken) && t.Chars.IsAllUpper && !t.IsNewlineAfter) 
+                {
+                    Pullenti.Ner.Core.BracketSequenceToken b = Pullenti.Ner.Core.BracketHelper.TryParse(t.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                    if (b != null && b.IsQuoteType) 
+                    {
+                        org.AddTypeStr((t as Pullenti.Ner.TextToken).Term);
+                        t = t.Next;
+                    }
+                    else 
+                    {
+                        string s = (t as Pullenti.Ner.TextToken).Term;
+                        if (s.Length == 2 && s[s.Length - 1] == 'К') 
+                        {
+                            org.AddTypeStr(s);
+                            t = t.Next;
+                        }
+                        else if (((t.GetMorphClassInDictionary().IsUndefined && t.Next != null && (t.Next is Pullenti.Ner.TextToken)) && t.Next.Chars.IsCapitalUpper && t.Next.Next != null) && !t.Next.IsNewlineAfter) 
+                        {
+                            if (t.Next.Next.IsCharOf(",.;") || Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t.Next.Next, false, null, false)) 
+                            {
+                                org.AddTypeStr(s);
+                                t = t.Next;
+                            }
+                        }
+                    }
+                }
+                else if ((t is Pullenti.Ner.TextToken) && t.Morph.Class.IsAdjective && !t.Chars.IsAllLower) 
+                {
+                    Pullenti.Ner.ReferentToken rtg = IsGeo(t, true) as Pullenti.Ner.ReferentToken;
+                    if (rtg != null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(rtg.EndToken.Next, false, false)) 
+                    {
+                        org.AddGeoObject(rtg);
+                        t = rtg.EndToken.Next;
+                    }
+                }
+                else if ((t != null && (t.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && t.Next != null) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next, true, false)) 
+                {
+                    org.AddGeoObject(t.GetReferent());
+                    t = t.Next;
+                }
+            }
+            Pullenti.Ner.Token te = null;
+            OrganizationKind ki0 = org.Kind;
+            if (((((ki0 == OrganizationKind.Govenment || ki0 == OrganizationKind.Airport || ki0 == OrganizationKind.Factory) || ki0 == OrganizationKind.Seaport || ki0 == OrganizationKind.Party) || ki0 == OrganizationKind.Justice || ki0 == OrganizationKind.Military)) && t != null) 
+            {
+                object g = IsGeo(t, false);
+                if (g == null && t.Morph.Class.IsPreposition && t.Next != null) 
+                    g = IsGeo(t.Next, false);
+                if (g != null) 
+                {
+                    if (org.AddGeoObject(g)) 
+                    {
+                        te = (t1 = GetGeoEndToken(g, t));
+                        t = t1.Next;
+                        List<Pullenti.Ner.Core.IntOntologyToken> gt = Pullenti.Ner.Org.Internal.OrgGlobal.GlobalOrgs.TryAttach(t, null, false);
+                        if (gt == null && t != null && t.Kit.BaseLanguage.IsUa) 
+                            gt = Pullenti.Ner.Org.Internal.OrgGlobal.GlobalOrgsUa.TryAttach(t, null, false);
+                        if (gt != null && gt.Count == 1) 
+                        {
+                            if (org.CanBeEquals(gt[0].Item.Referent, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
+                            {
+                                org.MergeSlots(gt[0].Item.Referent, false);
+                                return new Pullenti.Ner.ReferentToken(org, t0, gt[0].EndToken);
+                            }
+                        }
+                    }
+                }
+            }
+            if (typ != null && typ.Root != null && ((typ.Root.CanBeSingleGeo && !typ.Root.CanHasSingleName))) 
+            {
+                if (org.GeoObjects.Count > 0 && te != null) 
+                    return new Pullenti.Ner.ReferentToken(org, t0, te);
+                object r = null;
+                te = (t1 = (typ != multTyp ? typ.EndToken : t0.Previous));
+                if (t != null && t1.Next != null) 
+                {
+                    r = IsGeo(t1.Next, false);
+                    if (r == null && t1.Next.Morph.Class.IsPreposition) 
+                        r = IsGeo(t1.Next.Next, false);
+                }
+                if (r != null) 
+                {
+                    if (!org.AddGeoObject(r)) 
+                        return null;
+                    te = GetGeoEndToken(r, t1.Next);
+                }
+                if (org.GeoObjects.Count > 0 && te != null) 
+                {
+                    Pullenti.Ner.Core.NounPhraseToken npt11 = Pullenti.Ner.Core.NounPhraseHelper.TryParse(te.Next, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                    if (npt11 != null && (te.WhitespacesAfterCount < 2) && npt11.Noun.IsValue("ДЕПУТАТ", null)) 
+                    {
+                    }
+                    else 
+                    {
+                        if (t0.BeginChar > te.BeginChar) 
+                            return null;
+                        Pullenti.Ner.ReferentToken res11 = new Pullenti.Ner.ReferentToken(org, t0, te);
+                        if (org.FindSlot(OrganizationReferent.ATTR_TYPE, "посольство", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "консульство", true) != null) 
+                        {
+                            if (te.Next != null && te.Next.IsValue("В", null)) 
+                            {
+                                r = IsGeo(te.Next.Next, false);
+                                if (org.AddGeoObject(r)) 
+                                    res11.EndToken = GetGeoEndToken(r, te.Next.Next);
+                            }
+                        }
+                        if (typ.Root.CanHasNumber) 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgItemNumberToken num11 = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(res11.EndToken.Next, false, null);
+                            if (num11 != null) 
+                            {
+                                res11.EndToken = num11.EndToken;
+                                org.Number = num11.Number;
+                            }
+                        }
+                        return res11;
+                    }
+                }
+            }
+            if (typ != null && (((typ.Typ == "милиция" || typ.Typ == "полиция" || typ.Typ == "міліція") || typ.Typ == "поліція"))) 
+            {
+                if (org.GeoObjects.Count > 0 && te != null) 
+                    return new Pullenti.Ner.ReferentToken(org, t0, te);
+                else 
+                    return null;
+            }
+            if (t != null && t.Morph.Class.IsProperName) 
+            {
+                Pullenti.Ner.ReferentToken rt1 = t.Kit.ProcessReferent("PERSON", t, null);
+                if (rt1 != null && (rt1.WhitespacesAfterCount < 2)) 
+                {
+                    if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(rt1.EndToken.Next, true, false)) 
+                        t = rt1.EndToken.Next;
+                    else if (rt1.EndToken.Next != null && rt1.EndToken.Next.IsHiphen && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(rt1.EndToken.Next.Next, true, false)) 
+                        t = rt1.EndToken.Next.Next;
+                }
+            }
+            else if ((t != null && t.Chars.IsCapitalUpper && t.Morph.Class.IsProperSurname) && t.Next != null && (t.WhitespacesAfterCount < 2)) 
+            {
+                if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next, true, false)) 
+                    t = t.Next;
+                else if (((t.Next.IsCharOf(":") || t.Next.IsHiphen)) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next.Next, true, false)) 
+                    t = t.Next.Next;
+            }
+            Pullenti.Ner.Token tMax = null;
+            Pullenti.Ner.Core.BracketSequenceToken br = null;
+            if (t != null) 
+            {
+                br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                if (typ != null && br == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
+                {
+                    if (t.Next != null && (t.Next.GetReferent() is OrganizationReferent)) 
+                    {
+                        OrganizationReferent org0 = t.Next.GetReferent() as OrganizationReferent;
+                        if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0)) 
+                        {
+                            org0.MergeSlots(org, false);
+                            return new Pullenti.Ner.ReferentToken(org0, t0, t.Next);
+                        }
+                    }
+                    if (((typ.Typ == "компания" || typ.Typ == "предприятие" || typ.Typ == "организация") || typ.Typ == "компанія" || typ.Typ == "підприємство") || typ.Typ == "організація") 
+                    {
+                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 1)) 
+                            return null;
+                    }
+                    Pullenti.Ner.Org.Internal.OrgItemTypeToken ty2 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false);
+                    if (ty2 != null) 
+                    {
+                        List<Pullenti.Ner.Org.Internal.OrgItemTypeToken> typs2 = new List<Pullenti.Ner.Org.Internal.OrgItemTypeToken>();
+                        typs2.Add(ty2);
+                        Pullenti.Ner.ReferentToken rt2 = _TryAttachOrg_(t.Next, ty2.EndToken.Next, typs2, true, AttachType.High, null, isAdditionalAttach);
+                        if (rt2 != null) 
+                        {
+                            OrganizationReferent org0 = rt2.Referent as OrganizationReferent;
+                            if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0)) 
+                            {
+                                org0.MergeSlots(org, false);
+                                rt2.BeginToken = t0;
+                                if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt2.EndToken.Next, false, null, false)) 
+                                    rt2.EndToken = rt2.EndToken.Next;
+                                return rt2;
+                            }
+                        }
+                    }
+                }
+            }
+            if ((typ != null && br == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) && Pullenti.Ner.Core.BracketHelper.IsBracket(t, true)) 
+                br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.NearCloseBracket, 100);
+            if (br != null && typ != null && org.Kind == OrganizationKind.Govenment) 
+            {
+                if (typ.Root != null && !typ.Root.CanHasSingleName) 
+                    br = null;
+            }
+            if (br != null && br.IsQuoteType) 
+            {
+                if (br.BeginToken.Next.IsValue("О", null) || br.BeginToken.Next.IsValue("ОБ", null)) 
+                    br = null;
+                else if (br.BeginToken.Previous != null && br.BeginToken.Previous.IsChar(':')) 
+                    br = null;
+            }
+            if (br != null && br.IsQuoteType && ((br.OpenChar != '<' || ((typ != null && typ.Root != null && typ.Root.IsPurePrefix)) || (((types != null && types.Count > 0 && types[0].Root != null) && types[0].Root.IsPurePrefix))))) 
+            {
+                if (t.IsNewlineBefore && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) 
+                {
+                    if (!br.IsNewlineAfter) 
+                    {
+                        if (typ == null) 
+                            return null;
+                        if (typ.IsNewlineBefore || ((typ.BeginToken.Previous != null && typ.BeginToken.Previous.IsTableControlChar))) 
+                        {
+                        }
+                        else 
+                            return null;
+                    }
+                }
+                if (org.FindSlot(OrganizationReferent.ATTR_TYPE, "организация", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "організація", true) != null) 
+                {
+                    if (typ.BeginToken == typ.EndToken) 
+                    {
+                        if (!specWordBefore) 
+                            return null;
+                    }
+                }
+                if (typ != null && ((((typ.Typ == "компания" || typ.Typ == "предприятие" || typ.Typ == "организация") || typ.Typ == "компанія" || typ.Typ == "підприємство") || typ.Typ == "організація"))) 
+                {
+                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 1)) 
+                        return null;
+                }
+                Pullenti.Ner.Org.Internal.OrgItemNameToken nn = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t.Next, null, false, true);
+                if (nn != null && nn.IsIgnoredPart) 
+                    t = nn.EndToken;
+                OrganizationReferent org0 = t.Next.GetReferent() as OrganizationReferent;
+                if (org0 != null) 
+                {
+                    if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0) && t.Next.Next != null) 
+                    {
+                        if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t.Next.Next, false, null, false)) 
+                        {
+                            org0.MergeSlots(org, false);
+                            return new Pullenti.Ner.ReferentToken(org0, t0, t.Next.Next);
+                        }
+                        if ((t.Next.Next.GetReferent() is OrganizationReferent) && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t.Next.Next.Next, false, null, false)) 
+                        {
+                            org0.MergeSlots(org, false);
+                            return new Pullenti.Ner.ReferentToken(org0, t0, t.Next);
+                        }
+                    }
+                    return null;
+                }
+                Pullenti.Ner.Org.Internal.OrgItemNameToken na0 = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(br.BeginToken.Next, null, false, true);
+                if (na0 != null && na0.IsEmptyWord && na0.EndToken.Next == br.EndToken) 
+                    return null;
+                Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t.Next, attachTyp, null, isAdditionalAttach, -1);
+                if (br.Internal.Count > 1) 
+                {
+                    if (rt0 != null && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt0.EndToken, false, null, false)) 
+                        br.EndToken = rt0.EndToken;
+                    else 
+                        return null;
+                }
+                string abbr = null;
+                Pullenti.Ner.Token tt00 = (rt0 == null ? null : rt0.BeginToken);
+                if (((rt0 == null && t.Next != null && (t.Next is Pullenti.Ner.TextToken)) && t.Next.Chars.IsAllUpper && t.Next.LengthChar > 2) && t.Next.Chars.IsCyrillicLetter) 
+                {
+                    rt0 = TryAttachOrg(t.Next.Next, attachTyp, null, isAdditionalAttach, -1);
+                    if (rt0 != null && rt0.BeginToken == t.Next.Next) 
+                    {
+                        tt00 = t.Next;
+                        abbr = t.Next.GetSourceText();
+                    }
+                    else 
+                        rt0 = null;
+                }
+                bool ok2 = false;
+                if (rt0 != null) 
+                {
+                    if (rt0.EndToken == br.EndToken.Previous || rt0.EndToken == br.EndToken) 
+                        ok2 = true;
+                    else if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt0.EndToken, false, null, false) && rt0.EndChar > br.EndChar) 
+                    {
+                        Pullenti.Ner.Core.BracketSequenceToken br2 = Pullenti.Ner.Core.BracketHelper.TryParse(br.EndToken.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br2 != null && rt0.EndToken == br2.EndToken) 
+                            ok2 = true;
+                    }
+                }
+                if (ok2 && (rt0.Referent is OrganizationReferent)) 
+                {
+                    org0 = rt0.Referent as OrganizationReferent;
+                    if (typ != null && typ.Typ == "служба" && ((org0.Kind == OrganizationKind.Media || org0.Kind == OrganizationKind.Press))) 
+                    {
+                        if (br.BeginToken == rt0.BeginToken && br.EndToken == rt0.EndToken) 
+                            return rt0;
+                    }
+                    Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = null;
+                    if (tt00 != t.Next) 
+                    {
+                        typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false);
+                        if (typ1 != null && typ1.EndToken.Next == tt00) 
+                            org.AddType(typ1, false);
+                    }
+                    bool hi = false;
+                    if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org0, org, true)) 
+                    {
+                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org0, org)) 
+                            hi = true;
+                    }
+                    if (hi) 
+                    {
+                        org.Higher = org0;
+                        rt0.SetDefaultLocalOnto(t.Kit.Processor);
+                        org.AddExtReferent(rt0);
+                        if (typ1 != null) 
+                            org.AddType(typ1, true);
+                        if (abbr != null) 
+                            org.AddName(abbr, true, null);
+                    }
+                    else if (!Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org0, org)) 
+                    {
+                        if (typ != null && typ.Root != null && typ.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
+                        {
+                            if (org0.ContainsProfile(OrgProfile.Unit)) 
+                            {
+                                org0.AddSlot(OrganizationReferent.ATTR_PROFILE, null, true, 0);
+                                org0.AddSlot(OrganizationReferent.ATTR_TYPE, null, true, 0);
+                            }
+                        }
+                        org.MergeSlots(org0, true);
+                        if (abbr != null) 
+                        {
+                            foreach (Pullenti.Ner.Slot s in org.Slots) 
+                            {
+                                if (s.TypeName == OrganizationReferent.ATTR_NAME) 
+                                    org.UploadSlot(s, string.Format("{0} {1}", abbr, s.Value));
+                            }
+                        }
+                    }
+                    else 
+                        rt0 = null;
+                    if (rt0 != null) 
+                    {
+                        Pullenti.Ner.Token t11 = br.EndToken;
+                        if (rt0.EndChar > t11.EndChar) 
+                            t11 = rt0.EndToken;
+                        Pullenti.Ner.Org.Internal.OrgItemEponymToken ep11 = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t11.Next, true);
+                        if (ep11 != null) 
+                        {
+                            t11 = ep11.EndToken;
+                            foreach (string e in ep11.Eponyms) 
+                            {
+                                org.AddEponym(e);
+                            }
+                        }
+                        t1 = AttachTailAttributes(org, t11.Next, true, attachTyp, false);
+                        if (t1 == null) 
+                            t1 = t11;
+                        if (typ != null) 
+                        {
+                            if ((typ.Name != null && typ.Geo == null && org.Names.Count > 0) && !org.Names.Contains(typ.Name)) 
+                                org.AddTypeStr(typ.Name.ToLower());
+                        }
+                        return new Pullenti.Ner.ReferentToken(org, t0, t1);
+                    }
+                }
+                if (rt0 != null && (rt0.EndChar < br.EndToken.Previous.EndChar)) 
+                {
+                    Pullenti.Ner.ReferentToken rt1 = TryAttachOrg(rt0.EndToken.Next, attachTyp, null, isAdditionalAttach, -1);
+                    if (rt1 != null && rt1.EndToken.Next == br.EndToken) 
+                        return rt1;
+                    OrganizationReferent org1 = rt0.EndToken.Next.GetReferent() as OrganizationReferent;
+                    if (org1 != null && br.EndToken.Previous == rt0.EndToken) 
+                    {
+                    }
+                }
+                for (int step = 0; step < 2; step++) 
+                {
+                    Pullenti.Ner.Token tt0 = t.Next;
+                    Pullenti.Ner.Token tt1 = null;
+                    bool pref = true;
+                    int notEmpty = 0;
+                    for (t1 = t.Next; t1 != null && t1 != br.EndToken; t1 = t1.Next) 
+                    {
+                        if (t1.IsChar('(')) 
+                        {
+                            if (notEmpty == 0) 
+                                break;
+                            Pullenti.Ner.Referent r = null;
+                            if (t1.Next != null) 
+                                r = t1.Next.GetReferent();
+                            if (r != null && t1.Next.Next != null && t1.Next.Next.IsChar(')')) 
+                            {
+                                if (r.TypeName == GEONAME) 
+                                {
+                                    org.AddGeoObject(r);
+                                    break;
+                                }
+                            }
+                            Pullenti.Ner.ReferentToken rt = TryAttachOrg(t1.Next, AttachType.High, null, false, -1);
+                            if (rt != null && rt.EndToken.Next != null && rt.EndToken.Next.IsChar(')')) 
+                            {
+                                if (!OrganizationReferent.CanBeSecondDefinition(org, rt.Referent as OrganizationReferent)) 
+                                    break;
+                                org.MergeSlots(rt.Referent, false);
+                            }
+                            break;
+                        }
+                        else if ((((org0 = t1.GetReferent() as OrganizationReferent))) != null) 
+                        {
+                            if (((t1.Previous is Pullenti.Ner.NumberToken) && t1.Previous.Previous == br.BeginToken && !Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(org, org0)) && org0.Number == null) 
+                            {
+                                org0.Number = (t1.Previous as Pullenti.Ner.NumberToken).Value.ToString();
+                                org0.MergeSlots(org, false);
+                                if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t1.Next, false, null, false)) 
+                                    t1 = t1.Next;
+                                return new Pullenti.Ner.ReferentToken(org0, t0, t1);
+                            }
+                            Pullenti.Ner.Org.Internal.OrgItemNameToken ne = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(br.BeginToken.Next, null, attachTyp == AttachType.ExtOntology, true);
+                            if (ne != null && ne.IsIgnoredPart && ne.EndToken.Next == t1) 
+                            {
+                                org0.MergeSlots(org, false);
+                                if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(t1.Next, false, null, false)) 
+                                    t1 = t1.Next;
+                                return new Pullenti.Ner.ReferentToken(org0, t0, t1);
+                            }
+                            return null;
+                        }
+                        else 
+                        {
+                            typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1, false);
+                            if (typ != null && types != null) 
+                            {
+                                foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                                {
+                                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(ty, typ)) 
+                                    {
+                                        typ = null;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (typ != null) 
+                            {
+                                if (typ.IsDoubtRootWord && ((typ.EndToken.Next == br.EndToken || ((typ.EndToken.Next != null && typ.EndToken.Next.IsHiphen))))) 
+                                    typ = null;
+                                else if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural) 
+                                    typ = null;
+                                else if (!typ.Morph.Case.IsUndefined && !typ.Morph.Case.IsNominative) 
+                                    typ = null;
+                                else if (typ.Typ == "управление") 
+                                    typ = null;
+                                else if (typ.BeginToken == typ.EndToken) 
+                                {
+                                    Pullenti.Ner.Token ttt = typ.EndToken.Next;
+                                    if (ttt != null && ttt.IsHiphen) 
+                                        ttt = ttt.Next;
+                                    if (ttt != null) 
+                                    {
+                                        if (ttt.IsValue("БАНК", null)) 
+                                            typ = null;
+                                    }
+                                }
+                            }
+                            Pullenti.Ner.Org.Internal.OrgItemEponymToken ep = null;
+                            if (typ == null) 
+                                ep = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t1, false);
+                            Pullenti.Ner.Org.Internal.OrgItemNumberToken nu = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1, false, null);
+                            if (nu != null && !(t1 is Pullenti.Ner.NumberToken)) 
+                            {
+                                org.Number = nu.Number;
+                                tt1 = t1.Previous;
+                                t1 = nu.EndToken;
+                                notEmpty += 2;
+                                continue;
+                            }
+                            bool brSpec = false;
+                            if ((br.Internal.Count == 0 && (br.EndToken.Next is Pullenti.Ner.TextToken) && ((!br.EndToken.Next.Chars.IsAllLower && br.EndToken.Next.Chars.IsLetter))) && Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(br.EndToken.Next.Next, true, null, false)) 
+                                brSpec = true;
+                            if (typ != null && ((pref || !typ.IsDep))) 
+                            {
+                                if (notEmpty > 1) 
+                                {
+                                    Pullenti.Ner.ReferentToken rrr = TryAttachOrg(typ.BeginToken, AttachType.Normal, null, false, -1);
+                                    if (rrr != null) 
+                                    {
+                                        br.EndToken = (t1 = typ.BeginToken.Previous);
+                                        break;
+                                    }
+                                }
+                                if (((attachTyp == AttachType.ExtOntology || attachTyp == AttachType.High)) && ((typ.Root == null || !typ.Root.IsPurePrefix))) 
+                                    pref = false;
+                                else if (typ.Name == null) 
+                                {
+                                    if (typ.BeginToken == br.BeginToken.Next && typ.EndToken.Next == br.EndToken && Pullenti.Ner.Core.BracketHelper.IsBracket(br.EndToken, true)) 
+                                    {
+                                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(typ, Pullenti.Ner.Core.GetTextAttr.No), true, null);
+                                        t1 = typ.EndToken;
+                                        break;
+                                    }
+                                    org.AddType(typ, false);
+                                    if (pref) 
+                                        tt0 = typ.EndToken.Next;
+                                    else if (typ.Root != null && typ.Root.IsPurePrefix) 
+                                    {
+                                        tt1 = typ.BeginToken.Previous;
+                                        break;
+                                    }
+                                }
+                                else if (typ.EndToken.Next != br.EndToken) 
+                                {
+                                    org.AddType(typ, false);
+                                    if (typ.Typ == "банк") 
+                                        pref = false;
+                                    else 
+                                    {
+                                        org.AddTypeStr(typ.Name.ToLower());
+                                        org.AddTypeStr(typ.AltTyp);
+                                        if (pref) 
+                                            tt0 = typ.EndToken.Next;
+                                    }
+                                }
+                                else if (brSpec) 
+                                {
+                                    org.AddType(typ, false);
+                                    org.AddTypeStr(typ.Name.ToLower());
+                                    notEmpty += 2;
+                                    tt0 = br.EndToken.Next;
+                                    t1 = tt0.Next;
+                                    br.EndToken = t1;
+                                    break;
+                                }
+                                if (typ != multTyp) 
+                                {
+                                    t1 = typ.EndToken;
+                                    if (typ.Geo != null) 
+                                        org.AddType(typ, false);
+                                }
+                            }
+                            else if (ep != null) 
+                            {
+                                foreach (string e in ep.Eponyms) 
+                                {
+                                    org.AddEponym(e);
+                                }
+                                notEmpty += 3;
+                                t1 = ep.BeginToken.Previous;
+                                break;
+                            }
+                            else if ((t1 == t.Next && (t1 is Pullenti.Ner.TextToken) && t1.Chars.IsAllLower) && !t1.Chars.IsLatinLetter && !t1.Next.IsCharOf(".")) 
+                                return null;
+                            else if (t1.Chars.IsLetter || (t1 is Pullenti.Ner.NumberToken)) 
+                            {
+                                if (brSpec) 
+                                {
+                                    tt0 = br.BeginToken;
+                                    t1 = br.EndToken.Next.Next;
+                                    string ss = Pullenti.Ner.Core.MiscHelper.GetTextValue(br.EndToken, t1, Pullenti.Ner.Core.GetTextAttr.No);
+                                    if (!string.IsNullOrEmpty(ss)) 
+                                    {
+                                        org.AddName(ss, true, br.EndToken.Next);
+                                        br.EndToken = t1;
+                                    }
+                                    break;
+                                }
+                                pref = false;
+                                notEmpty++;
+                            }
+                        }
+                    }
+                    bool canHasNum = false;
+                    bool canHasLatinName = false;
+                    if (types != null) 
+                    {
+                        foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                        {
+                            if (ty.Root != null) 
+                            {
+                                if (ty.Root.CanHasNumber) 
+                                    canHasNum = true;
+                                if (ty.Root.CanHasLatinName) 
+                                    canHasLatinName = true;
+                            }
+                        }
+                    }
+                    te = tt1 ?? t1;
+                    if (te != null && tt0 != null && (tt0.BeginChar < te.BeginChar)) 
+                    {
+                        for (Pullenti.Ner.Token ttt = tt0; ttt != te && ttt != null; ttt = ttt.Next) 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgItemNameToken oin = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(ttt, null, attachTyp == AttachType.ExtOntology, ttt == tt0);
+                            if (oin != null) 
+                            {
+                                if (oin.IsIgnoredPart && ttt == tt0) 
+                                {
+                                    tt0 = oin.EndToken.Next;
+                                    if (tt0 == null) 
+                                        break;
+                                    ttt = tt0.Previous;
+                                    continue;
+                                }
+                                if (oin.IsStdTail) 
+                                {
+                                    Pullenti.Ner.Org.Internal.OrgItemEngItem ei = Pullenti.Ner.Org.Internal.OrgItemEngItem.TryAttach(oin.BeginToken, false);
+                                    if (ei == null && oin.BeginToken.IsComma) 
+                                        ei = Pullenti.Ner.Org.Internal.OrgItemEngItem.TryAttach(oin.BeginToken.Next, false);
+                                    if (ei != null) 
+                                    {
+                                        org.AddTypeStr(ei.FullValue);
+                                        if (ei.ShortValue != null) 
+                                            org.AddTypeStr(ei.ShortValue);
+                                    }
+                                    te = ttt.Previous;
+                                    break;
+                                }
+                            }
+                            if ((ttt != tt0 && (ttt is Pullenti.Ner.ReferentToken) && ttt.Next == te) && (ttt.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                            {
+                                if (ttt.Previous != null && ttt.Previous.GetMorphClassInDictionary().IsAdjective) 
+                                    continue;
+                                Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(ttt.Previous, Pullenti.Ner.Core.NounPhraseParseAttr.ReferentCanBeNoun, 0, null);
+                                if (npt != null && npt.EndToken == ttt) 
+                                {
+                                }
+                                else 
+                                {
+                                    te = ttt.Previous;
+                                    if (te.Morph.Class.IsPreposition && te.Previous != null) 
+                                        te = te.Previous;
+                                }
+                                org.AddGeoObject(ttt.GetReferent());
+                                break;
+                            }
+                        }
+                    }
+                    if (te != null && tt0 != null && (tt0.BeginChar < te.BeginChar)) 
+                    {
+                        if ((te.Previous is Pullenti.Ner.NumberToken) && canHasNum) 
+                        {
+                            bool err = false;
+                            Pullenti.Ner.NumberToken num1 = te.Previous as Pullenti.Ner.NumberToken;
+                            if (org.Number != null && org.Number != num1.Value.ToString()) 
+                                err = true;
+                            else if (te.Previous.Previous == null) 
+                                err = true;
+                            else if (!te.Previous.Previous.IsHiphen && !te.Previous.Previous.Chars.IsLetter) 
+                                err = true;
+                            else if (num1.Value == "0") 
+                                err = true;
+                            if (!err) 
+                            {
+                                org.Number = num1.Value.ToString();
+                                te = te.Previous.Previous;
+                                if (te != null && ((te.IsHiphen || te.IsValue("N", null) || te.IsValue("№", null)))) 
+                                    te = te.Previous;
+                            }
+                        }
+                    }
+                    string s = (te == null ? null : Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, te, Pullenti.Ner.Core.GetTextAttr.No));
+                    string s1 = (te == null ? null : Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, te, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative));
+                    if ((te != null && (te.Previous is Pullenti.Ner.NumberToken) && canHasNum) && org.Number == null) 
+                    {
+                        org.Number = (te.Previous as Pullenti.Ner.NumberToken).Value.ToString();
+                        Pullenti.Ner.Token tt11 = te.Previous;
+                        if (tt11.Previous != null && tt11.Previous.IsHiphen) 
+                            tt11 = tt11.Previous;
+                        if (tt11.Previous != null) 
+                        {
+                            s = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, tt11.Previous, Pullenti.Ner.Core.GetTextAttr.No);
+                            s1 = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt0, tt11.Previous, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
+                        }
+                    }
+                    if (!string.IsNullOrEmpty(s)) 
+                    {
+                        if (tt0.Morph.Class.IsPreposition && tt0 != br.BeginToken.Next) 
+                        {
+                            foreach (string ty in org.Types) 
+                            {
+                                if (!ty.Contains(" ") && char.IsLower(ty[0])) 
+                                {
+                                    s = string.Format("{0} {1}", ty.ToUpper(), s);
+                                    s1 = null;
+                                    break;
+                                }
+                            }
+                        }
+                        if (s.Length > MaxOrgName) 
+                            return null;
+                        if (s1 != null && s1 != s && s1.Length <= s.Length) 
+                            org.AddName(s1, true, null);
+                        org.AddName(s, true, tt0);
+                        typ = _lastTyp(types);
+                        if (typ != null && typ.Root != null && typ.Root.CanonicText.StartsWith("ИНДИВИДУАЛЬН")) 
+                        {
+                            Pullenti.Ner.ReferentToken pers = typ.Kit.ProcessReferent("PERSON", tt0, null);
+                            if (pers != null && pers.EndToken.Next == te) 
+                            {
+                                org.AddExtReferent(pers);
+                                org.AddSlot(OrganizationReferent.ATTR_OWNER, pers.Referent, false, 0);
+                            }
+                        }
+                        bool ok1 = false;
+                        foreach (char c in s) 
+                        {
+                            if (char.IsLetterOrDigit(c)) 
+                            {
+                                ok1 = true;
+                                break;
+                            }
+                        }
+                        if (!ok1) 
+                            return null;
+                        if (br.BeginToken.Next.Chars.IsAllLower) 
+                        {
+                            if (br.BeginToken.Next.Chars.IsLatinLetter) 
+                            {
+                            }
+                            else if (br.BeginToken.Next.Next != null && br.BeginToken.Next.Next.IsChar('.')) 
+                            {
+                            }
+                            else 
+                                return null;
+                        }
+                        if (org.Types.Count == 0) 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = _lastTyp(types);
+                            if (ty != null && ty.Coef >= 4) 
+                            {
+                            }
+                            else 
+                            {
+                                if (attachTyp == AttachType.Normal) 
+                                    return null;
+                                if (org.Names.Count == 1 && (org.Names[0].Length < 2) && (br.LengthChar < 5)) 
+                                    return null;
+                            }
+                        }
+                    }
+                    else if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t1, false, false)) 
+                    {
+                        Pullenti.Ner.Core.BracketSequenceToken br1 = Pullenti.Ner.Core.BracketHelper.TryParse(t1, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br1 == null) 
+                            break;
+                        t = br1.BeginToken;
+                        br = br1;
+                        continue;
+                    }
+                    else if (((org.Number != null || org.Eponyms.Count > 0)) && t1 == br.EndToken) 
+                    {
+                    }
+                    else if (org.GeoObjects.Count > 0 && org.Types.Count > 2) 
+                    {
+                    }
+                    else if (org.Types.Count > 2) 
+                    {
+                    }
+                    else 
+                        return null;
+                    t1 = br.EndToken;
+                    if (org.Number == null && t1.Next != null && (t1.WhitespacesAfterCount < 2)) 
+                    {
+                        Pullenti.Ner.Org.Internal.OrgItemNumberToken num1 = (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 1) ? null : Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next, false, typ));
+                        if (num1 != null) 
+                        {
+                            org.Number = num1.Number;
+                            t1 = num1.EndToken;
+                        }
+                        else 
+                            t1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                    }
+                    else 
+                        t1 = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                    if (t1 == null) 
+                        t1 = br.EndToken;
+                    bool ok0 = false;
+                    if (types != null) 
+                    {
+                        foreach (Pullenti.Ner.Org.Internal.OrgItemTypeToken ty in types) 
+                        {
+                            if (ty.Name != null) 
+                                org.AddTypeStr(ty.Name.ToLower());
+                            if (attachTyp != AttachType.Multiple && (ty.BeginChar < t0.BeginChar) && !ty.IsNotTyp) 
+                                t0 = ty.BeginToken;
+                            if (!ty.IsDoubtRootWord || ty.Coef > 0 || ty.Geo != null) 
+                                ok0 = true;
+                            else if (ty.Typ == "движение" && ((!br.BeginToken.Next.Chars.IsAllLower || !ty.Chars.IsAllLower))) 
+                            {
+                                if (!br.BeginToken.Next.Morph.Case.IsGenitive) 
+                                    ok0 = true;
+                            }
+                            else if (ty.Typ == "АО") 
+                            {
+                                if (ty.BeginToken.Chars.IsAllUpper && (ty.WhitespacesAfterCount < 2) && Pullenti.Ner.Core.BracketHelper.IsBracket(ty.EndToken.Next, true)) 
+                                    ok0 = true;
+                                else 
+                                    for (Pullenti.Ner.Token tt2 = t1.Next; tt2 != null; tt2 = tt2.Next) 
+                                    {
+                                        if (tt2.IsComma) 
+                                            continue;
+                                        if (tt2.IsValue("ИМЕНОВАТЬ", null)) 
+                                            ok0 = true;
+                                        if (tt2.IsValue("В", null) && tt2.Next != null) 
+                                        {
+                                            if (tt2.Next.IsValue("ЛИЦО", null) || tt2.Next.IsValue("ДАЛЬШЕЙШЕМ", null) || tt2.Next.IsValue("ДАЛЕЕ", null)) 
+                                                ok0 = true;
+                                        }
+                                        break;
+                                    }
+                            }
+                        }
+                    }
+                    if (org.Eponyms.Count == 0 && (t1.WhitespacesAfterCount < 2)) 
+                    {
+                        Pullenti.Ner.Org.Internal.OrgItemEponymToken ep = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t1.Next, false);
+                        if (ep != null) 
+                        {
+                            foreach (string e in ep.Eponyms) 
+                            {
+                                org.AddEponym(e);
+                            }
+                            ok0 = true;
+                            t1 = ep.EndToken;
+                        }
+                    }
+                    if (org.Names.Count == 0) 
+                    {
+                        s = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
+                        s1 = (te == null ? null : Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative));
+                        org.AddName(s, true, br.BeginToken.Next);
+                        org.AddName(s1, true, null);
+                    }
+                    if (!ok0) 
+                    {
+                        if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(t0.Previous)) 
+                            ok0 = true;
+                    }
+                    if (!ok0 && attachTyp != AttachType.Normal) 
+                        ok0 = true;
+                    typ = _lastTyp(types);
+                    if (typ != null && typ.BeginToken != typ.EndToken) 
+                        ok0 = true;
+                    if (ok0) 
+                        return new Pullenti.Ner.ReferentToken(org, t0, t1);
+                    else 
+                        return new Pullenti.Ner.ReferentToken(org, t0, t1) { Tag = org };
+                }
+            }
+            Pullenti.Ner.Org.Internal.OrgItemNumberToken num = null;
+            Pullenti.Ner.Org.Internal.OrgItemNumberToken _num;
+            Pullenti.Ner.Org.Internal.OrgItemEponymToken epon = null;
+            Pullenti.Ner.Org.Internal.OrgItemEponymToken _epon;
+            List<Pullenti.Ner.Org.Internal.OrgItemNameToken> names = null;
+            Pullenti.Ner.Org.Internal.OrgItemNameToken pr = null;
+            Pullenti.Ner.ReferentToken ownOrg = null;
+            if (t1 == null) 
+                t1 = t0;
+            else if (t != null && t.Previous != null && t.Previous.BeginChar >= t0.BeginChar) 
+                t1 = t.Previous;
+            br = null;
+            bool ok = false;
+            for (; t != null; t = t.Next) 
+            {
+                if (t.GetReferent() is OrganizationReferent) 
+                {
+                }
+                Pullenti.Ner.ReferentToken rt;
+                if ((((rt = AttachGlobalOrg(t, attachTyp, null)))) != null) 
+                {
+                    if (t == t0) 
+                    {
+                        if (!t.Chars.IsAllLower) 
+                            return rt;
+                        return null;
+                    }
+                    rt = TryAttachOrg(t, attachTyp, multTyp, isAdditionalAttach, -1);
+                    if (rt != null) 
+                        return rt;
+                }
+                if ((t.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && t.Chars.IsCyrillicLetter) 
+                {
+                    if (org.FindSlot(null, t.GetReferent(), true) != null && (t.WhitespacesBeforeCount < 3)) 
+                    {
+                        t1 = t;
+                        continue;
+                    }
+                }
+                if ((((_num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t, typ != null && typ.Root != null && typ.Root.CanHasNumber, typ)))) != null) 
+                {
+                    if ((typ == null || typ.Root == null || !typ.Root.CanHasNumber) || num != null) 
+                        break;
+                    if (t.WhitespacesBeforeCount > 2) 
+                    {
+                        if (typ.EndToken.Next == t && Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(t) != null) 
+                        {
+                        }
+                        else 
+                            break;
+                    }
+                    if (typ.Root.CanonicText == "СУД" && typ.Name != null) 
+                    {
+                        if ((((typ.Name.StartsWith("ВЕРХОВНЫЙ") || typ.Name.StartsWith("АРБИТРАЖНЫЙ") || typ.Name.StartsWith("ВЫСШИЙ")) || typ.Name.StartsWith("КОНСТИТУЦИОН") || typ.Name.StartsWith("ВЕРХОВНИЙ")) || typ.Name.StartsWith("АРБІТРАЖНИЙ") || typ.Name.StartsWith("ВИЩИЙ")) || typ.Name.StartsWith("КОНСТИТУЦІЙН")) 
+                        {
+                            typ.Coef = 3;
+                            break;
+                        }
+                    }
+                    num = _num;
+                    t1 = (t = num.EndToken);
+                    continue;
+                }
+                if ((((_epon = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t, false)))) != null) 
+                {
+                    epon = _epon;
+                    t1 = (t = epon.EndToken);
+                    continue;
+                }
+                if ((((typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t, false)))) != null) 
+                {
+                    if (typ.Morph.Case.IsGenitive) 
+                    {
+                        if (typ.EndToken.IsValue("СЛУЖБА", null) || typ.EndToken.IsValue("УПРАВЛЕНИЕ", "УПРАВЛІННЯ") || typ.EndToken.IsValue("ХОЗЯЙСТВО", null)) 
+                            typ = null;
+                    }
+                    if (typ != null) 
+                    {
+                        if (!typ.IsDoubtRootWord && attachTyp != AttachType.ExtOntology) 
+                            break;
+                        if (types == null && t0 == t) 
+                            break;
+                        if (_lastTyp(types) != null && attachTyp != AttachType.ExtOntology) 
+                        {
+                            if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticTT(typ, _lastTyp(types))) 
+                            {
+                                if (names != null && ((typ.Morph.Case.IsGenitive || typ.Morph.Case.IsInstrumental)) && (t.WhitespacesBeforeCount < 2)) 
+                                {
+                                }
+                                else 
+                                    break;
+                            }
+                        }
+                    }
+                }
+                if ((((br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100)))) != null) 
+                {
+                    if (ownOrg != null && !(ownOrg.Referent as OrganizationReferent).IsFromGlobalOntos) 
+                        break;
+                    if (t.IsNewlineBefore && ((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep))) 
+                        break;
+                    typ = _lastTyp(types);
+                    if ((org.FindSlot(OrganizationReferent.ATTR_TYPE, "организация", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "движение", true) != null || org.FindSlot(OrganizationReferent.ATTR_TYPE, "організація", true) != null) || org.FindSlot(OrganizationReferent.ATTR_TYPE, "рух", true) != null) 
+                    {
+                        if (((typ == null || (typ.Coef < 2))) && !specWordBefore) 
+                            return null;
+                    }
+                    if (br.IsQuoteType) 
+                    {
+                        if (br.OpenChar == '<' || br.WhitespacesBeforeCount > 1) 
+                            break;
+                        rt = TryAttachOrg(t, AttachType.High, null, false, -1);
+                        if (rt == null) 
+                            break;
+                        OrganizationReferent org0 = rt.Referent as OrganizationReferent;
+                        if (names != null && names.Count == 1) 
+                        {
+                            if (((!names[0].IsNounPhrase && names[0].Chars.IsAllUpper)) || org0.Names.Count > 0) 
+                            {
+                                if (!names[0].BeginToken.Morph.Class.IsPreposition) 
+                                {
+                                    if (org0.Names.Count == 0) 
+                                        org.AddTypeStr(names[0].Value);
+                                    else if (org0.Names.Count < 6) 
+                                    {
+                                        foreach (string n in org0.Names) 
+                                        {
+                                            org.AddName(string.Format("{0} {1}", names[0].Value, n), true, null);
+                                            if (typ != null && typ.Root != null && typ.Root.Typ != Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
+                                                org.AddName(string.Format("{0} {1} {2}", typ.Typ.ToUpper(), Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(names[0], Pullenti.Ner.Core.GetTextAttr.No), n), true, null);
+                                        }
+                                        if (typ != null) 
+                                            typ.Coef = 4;
+                                    }
+                                    names = null;
+                                }
+                            }
+                        }
+                        if (names != null && names.Count > 0 && !specWordBefore) 
+                        {
+                            Pullenti.Ner.Token tt2 = rt.EndToken.Next;
+                            if (tt2 != null && tt2.IsComma) 
+                                tt2 = tt2.Next;
+                            if (tt2 != null && tt2.IsValue("ИМЕНУЕМЫЙ", null)) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        if (!org.CanBeEquals(org0, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
+                            break;
+                        org.MergeSlots(org0, true);
+                        t1 = (tMax = (t = rt.EndToken));
+                        ok = true;
+                        continue;
+                    }
+                    else if (br.OpenChar == '(') 
+                    {
+                        if (t.Next.GetReferent() != null && t.Next.Next == br.EndToken) 
+                        {
+                            Pullenti.Ner.Referent r = t.Next.GetReferent();
+                            if (r.TypeName == GEONAME) 
+                            {
+                                org.AddGeoObject(r);
+                                tMax = (t1 = (t = br.EndToken));
+                                continue;
+                            }
+                        }
+                        else if (((t.Next is Pullenti.Ner.TextToken) && t.Next.Chars.IsLetter && !t.Next.Chars.IsAllLower) && t.Next.Next == br.EndToken) 
+                        {
+                            typ = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, true);
+                            if (typ != null) 
+                            {
+                                OrganizationReferent or0 = new OrganizationReferent();
+                                or0.AddType(typ, false);
+                                if (or0.Kind != OrganizationKind.Undefined && org.Kind != OrganizationKind.Undefined) 
+                                {
+                                    if (org.Kind != or0.Kind) 
+                                        break;
+                                }
+                                if (Pullenti.Ner.Core.MiscHelper.TestAcronym(t.Next, t0, t.Previous)) 
+                                    org.AddName(t.Next.GetSourceText(), true, null);
+                                else 
+                                    org.AddType(typ, false);
+                                t1 = (t = (tMax = br.EndToken));
+                                continue;
+                            }
+                            else 
+                            {
+                                Pullenti.Ner.Org.Internal.OrgItemNameToken nam = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t.Next, null, attachTyp == AttachType.ExtOntology, true);
+                                if (nam != null && nam.IsEmptyWord) 
+                                    break;
+                                if (attachTyp == AttachType.Normal) 
+                                {
+                                    OrganizationReferent org0 = new OrganizationReferent();
+                                    org0.AddName((t.Next as Pullenti.Ner.TextToken).Term, true, t.Next);
+                                    if (!OrganizationReferent.CanBeSecondDefinition(org, org0)) 
+                                        break;
+                                }
+                                org.AddName((t.Next as Pullenti.Ner.TextToken).Term, true, t.Next);
+                                tMax = (t1 = (t = br.EndToken));
+                                continue;
+                            }
+                        }
+                    }
+                    break;
+                }
+                if (ownOrg != null) 
+                {
+                    if (names == null && t.IsValue("ПО", null) && !t.IsValue2("ПО", "ИТОГ")) 
+                    {
+                    }
+                    else if (names != null && t.IsCommaAnd) 
+                    {
+                    }
+                    else 
+                        break;
+                }
+                typ = _lastTyp(types);
+                if (typ != null && typ.Root != null && typ.Root.IsPurePrefix) 
+                {
+                    if (pr == null && names == null) 
+                    {
+                        pr = new Pullenti.Ner.Org.Internal.OrgItemNameToken(t, t);
+                        pr.Morph.Case = Pullenti.Morph.MorphCase.Nominative;
+                    }
+                }
+                Pullenti.Ner.Org.Internal.OrgItemNameToken na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t, pr, attachTyp == AttachType.ExtOntology, names == null);
+                if (na == null && t != null) 
+                {
+                    if (org.Kind == OrganizationKind.Church || ((typ != null && typ.Typ != null && typ.Typ.Contains("фермер")))) 
+                    {
+                        Pullenti.Ner.ReferentToken prt = t.Kit.ProcessReferent("PERSON", t, null);
+                        if (prt != null) 
+                        {
+                            na = new Pullenti.Ner.Org.Internal.OrgItemNameToken(t, prt.EndToken) { IsStdName = true };
+                            na.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(na, Pullenti.Ner.Core.GetTextAttr.No);
+                            na.Chars = new Pullenti.Morph.CharsInfo() { IsCapitalUpper = true };
+                            na.Morph = prt.Morph;
+                            string sur = prt.Referent.GetStringValue("LASTNAME");
+                            if (sur != null) 
+                            {
+                                for (Pullenti.Ner.Token tt = t; tt != null && tt.EndChar <= prt.EndChar; tt = tt.Next) 
+                                {
+                                    if (tt.IsValue(sur, null)) 
+                                    {
+                                        na.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(tt, tt, Pullenti.Ner.Core.GetTextAttr.No);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (na == null) 
+                {
+                    if (attachTyp == AttachType.ExtOntology) 
+                    {
+                        if (t.IsChar(',') || t.IsAnd) 
+                            continue;
+                    }
+                    if (t.GetReferent() is OrganizationReferent) 
+                    {
+                        ownOrg = t as Pullenti.Ner.ReferentToken;
+                        continue;
+                    }
+                    if (t.IsValue("ПРИ", null) && (t.Next is Pullenti.Ner.ReferentToken) && (t.Next.GetReferent() is OrganizationReferent)) 
+                    {
+                        t = t.Next;
+                        ownOrg = t as Pullenti.Ner.ReferentToken;
+                        continue;
+                    }
+                    if ((((names == null && t.IsChar('/') && (t.Next is Pullenti.Ner.TextToken)) && !t.IsWhitespaceAfter && t.Next.Chars.IsAllUpper) && t.Next.LengthChar >= 3 && (t.Next.Next is Pullenti.Ner.TextToken)) && !t.Next.IsWhitespaceAfter && t.Next.Next.IsChar('/')) 
+                        na = new Pullenti.Ner.Org.Internal.OrgItemNameToken(t, t.Next.Next) { Value = t.Next.GetSourceText().ToUpper(), Chars = t.Next.Chars };
+                    else if (names == null && typ != null && ((typ.Typ == "движение" || org.Kind == OrganizationKind.Party))) 
+                    {
+                        Pullenti.Ner.Token tt1 = null;
+                        if (t.IsValue("ЗА", null) || t.IsValue("ПРОТИВ", null)) 
+                            tt1 = t.Next;
+                        else if (t.IsValue("В", null) && t.Next != null) 
+                        {
+                            if (t.Next.IsValue("ЗАЩИТА", null) || t.Next.IsValue("ПОДДЕРЖКА", null)) 
+                                tt1 = t.Next;
+                        }
+                        else if (typ.Chars.IsCapitalUpper && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(typ.BeginToken)) 
+                        {
+                            Pullenti.Morph.MorphClass mc = t.GetMorphClassInDictionary();
+                            if ((mc.IsAdverb || mc.IsPronoun || mc.IsPersonalPronoun) || mc.IsVerb || mc.IsConjunction) 
+                            {
+                            }
+                            else if (t.Chars.IsLetter) 
+                                tt1 = t;
+                            else if (typ.BeginToken != typ.EndToken) 
+                                typ.Coef += 3;
+                        }
+                        if (tt1 != null) 
+                        {
+                            na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(tt1, pr, true, false);
+                            if (na != null) 
+                            {
+                                na.BeginToken = t;
+                                typ.Coef += 3;
+                            }
+                        }
+                    }
+                    if (na == null) 
+                        break;
+                }
+                if (num != null || epon != null) 
+                    break;
+                if (attachTyp == AttachType.Multiple || attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
+                {
+                    if (!na.IsStdTail && !na.Chars.IsLatinLetter && na.StdOrgNameNouns == 0) 
+                    {
+                        if (t.Morph.Class.IsProperName && !t.Chars.IsAllUpper && !na.IsNewlineAfter) 
+                            break;
+                        Pullenti.Morph.MorphClass cla = t.GetMorphClassInDictionary();
+                        if (cla.IsProperSurname || ((t.Morph.Language.IsUa && t.Morph.Class.IsProperSurname))) 
+                        {
+                            if (names == null && ((org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport))) 
+                            {
+                            }
+                            else if (typ != null && typ.Root != null && typ.Root.Acronym == "ФОП") 
+                            {
+                            }
+                            else if (typ != null && typ.Typ.Contains("фермер")) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        if (cla.IsUndefined && na.Chars.IsCyrillicLetter && na.Chars.IsCapitalUpper) 
+                        {
+                            if ((t.Previous != null && !t.Previous.Morph.Class.IsPreposition && !t.Previous.Morph.Class.IsConjunction) && t.Previous.Chars.IsAllLower) 
+                            {
+                                if ((t.Next != null && (t.Next is Pullenti.Ner.TextToken) && t.Next.Chars.IsLetter) && !t.Next.Chars.IsAllLower) 
+                                    break;
+                            }
+                        }
+                        if (typ != null && typ.Typ == "союз" && !t.Morph.Case.IsGenitive) 
+                            break;
+                        Pullenti.Ner.ReferentToken pit = t.Kit.ProcessReferent("PERSONPROPERTY", t, null);
+                        if (pit != null) 
+                        {
+                            if (pit.Morph.Number == Pullenti.Morph.MorphNumber.Singular && pit.BeginToken != pit.EndToken) 
+                            {
+                                if (typ != null && typ.Typ == "служба" && pit.Morph.Case.IsGenitive) 
+                                {
+                                }
+                                else 
+                                    break;
+                            }
+                        }
+                        pit = t.Kit.ProcessReferent("DECREE", t, null);
+                        if (pit != null) 
+                        {
+                            Pullenti.Ner.Core.NounPhraseToken nptt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                            if (nptt != null && nptt.EndToken.IsValue("РЕШЕНИЕ", null)) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        pit = t.Kit.ProcessReferent("NAMEDENTITY", t, null);
+                        if (pit != null && pit.EndToken != t) 
+                            break;
+                        if (t.IsValue("АО", null)) 
+                            break;
+                        if (t.NewlinesBeforeCount > 1) 
+                            break;
+                    }
+                }
+                if (t.IsValue("ИМЕНИ", "ІМЕНІ") || t.IsValue("ИМ", "ІМ")) 
+                    break;
+                pr = na;
+                if (attachTyp == AttachType.ExtOntology) 
+                {
+                    if (names == null) 
+                        names = new List<Pullenti.Ner.Org.Internal.OrgItemNameToken>();
+                    names.Add(na);
+                    t1 = (t = na.EndToken);
+                    continue;
+                }
+                if (names == null) 
+                {
+                    if (tMax != null) 
+                        break;
+                    if (t.Previous != null && t.IsNewlineBefore && attachTyp != AttachType.ExtOntology) 
+                    {
+                        if (typ != null && typ.EndToken.Next == t && ((typ.IsNewlineBefore || Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(typ.BeginToken.Previous, false, false)))) 
+                        {
+                        }
+                        else 
+                        {
+                            if (t.NewlinesAfterCount > 1 || !t.Chars.IsAllLower) 
+                                break;
+                            if (t.NewlinesBeforeCount > 1) 
+                                break;
+                            if (t.Morph.Class.IsPreposition && typ != null && (((typ.Typ == "комитет" || typ.Typ == "комиссия" || typ.Typ == "комітет") || typ.Typ == "комісія"))) 
+                            {
+                            }
+                            else if (na.StdOrgNameNouns > 0) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                    }
+                    else if (t.Previous != null && t.WhitespacesBeforeCount > 1 && attachTyp != AttachType.ExtOntology) 
+                    {
+                        if (t.WhitespacesBeforeCount > 10) 
+                            break;
+                        if (!t.Chars.Equals(t.Previous.Chars)) 
+                            break;
+                    }
+                    if (t.Chars.IsAllLower && org.Kind == OrganizationKind.Justice) 
+                    {
+                        if (t.IsValue("ПО", null) && t.Next != null && t.Next.IsValue("ПРАВО", null)) 
+                        {
+                        }
+                        else if (t.IsValue("З", null) && t.Next != null && t.Next.IsValue("ПРАВ", null)) 
+                        {
+                        }
+                        else 
+                            break;
+                    }
+                    if (org.Kind == OrganizationKind.Federation) 
+                    {
+                        if (t.Morph.Class.IsPreposition || t.Morph.Class.IsConjunction) 
+                            break;
+                    }
+                    if (t.Chars.IsAllLower && ((org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport || org.Kind == OrganizationKind.Hotel))) 
+                        break;
+                    if ((typ != null && typ.LengthChar == 2 && ((typ.Typ == "АО" || typ.Typ == "СП"))) && !specWordBefore && attachTyp == AttachType.Normal) 
+                    {
+                        if (!na.Chars.IsLatinLetter) 
+                            break;
+                    }
+                    if (t.Chars.IsLatinLetter && typ != null && Pullenti.Morph.LanguageHelper.EndsWithEx(typ.Typ, "служба", "сервис", "сервіс", null)) 
+                        break;
+                    if (typ != null && ((typ.Root == null || !typ.Root.IsPurePrefix))) 
+                    {
+                        if (typ.Chars.IsLatinLetter && na.Chars.IsLatinLetter) 
+                        {
+                            if (!t.IsValue("OF", null)) 
+                                break;
+                        }
+                        if ((na.IsInDictionary && na.Morph.Language.IsCyrillic && na.Chars.IsAllLower) && !na.Morph.Case.IsUndefined) 
+                        {
+                            if (na.Preposition == null) 
+                            {
+                                if (!na.Morph.Case.IsGenitive) 
+                                    break;
+                                if (org.Kind == OrganizationKind.Party && !specWordBefore) 
+                                {
+                                    if (typ.Typ == "лига") 
+                                    {
+                                    }
+                                    else 
+                                        break;
+                                }
+                                if (na.Morph.Number != Pullenti.Morph.MorphNumber.Plural) 
+                                {
+                                    Pullenti.Ner.ReferentToken prr = t.Kit.ProcessReferent("PERSONPROPERTY", t, null);
+                                    if (prr != null) 
+                                    {
+                                        if (Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(na.EndToken.Next, false) != null) 
+                                        {
+                                        }
+                                        else if (typ != null && typ.Typ == "служба") 
+                                            typ.Coef += 3;
+                                        else 
+                                            break;
+                                    }
+                                }
+                            }
+                        }
+                        if (na.Preposition != null) 
+                        {
+                            if (org.Kind == OrganizationKind.Party) 
+                            {
+                                if (na.Preposition == "ЗА" || na.Preposition == "ПРОТИВ") 
+                                {
+                                }
+                                else if (na.Preposition == "В") 
+                                {
+                                    if (na.Value.StartsWith("ЗАЩИТ") && na.Value.StartsWith("ПОДДЕРЖ")) 
+                                    {
+                                    }
+                                    else 
+                                        break;
+                                }
+                                else 
+                                    break;
+                            }
+                            else 
+                            {
+                                if (na.Preposition == "В") 
+                                    break;
+                                if (typ.IsDoubtRootWord) 
+                                {
+                                    if (Pullenti.Morph.LanguageHelper.EndsWithEx(typ.Typ, "комитет", "комиссия", "комітет", "комісія") && ((t.IsValue("ПО", null) || t.IsValue("З", null)))) 
+                                    {
+                                    }
+                                    else if (names == null && na.StdOrgNameNouns > 0) 
+                                    {
+                                    }
+                                    else 
+                                        break;
+                                }
+                            }
+                        }
+                        else if (na.Chars.IsCapitalUpper && na.Chars.IsCyrillicLetter) 
+                        {
+                            Pullenti.Ner.ReferentToken prt = na.Kit.ProcessReferent("PERSON", na.BeginToken, null);
+                            if (prt != null) 
+                            {
+                                if (org.Kind == OrganizationKind.Church) 
+                                {
+                                    na.EndToken = prt.EndToken;
+                                    na.IsStdName = true;
+                                    na.Value = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(na, Pullenti.Ner.Core.GetTextAttr.No);
+                                }
+                                else if ((typ != null && typ.Typ != null && typ.Typ.Contains("фермер")) && names == null) 
+                                    na.EndToken = prt.EndToken;
+                                else if (prt.Referent.TypeName == "PERSONPROPERTY") 
+                                {
+                                }
+                                else 
+                                    break;
+                            }
+                        }
+                    }
+                    if (na.IsEmptyWord) 
+                        break;
+                    if (na.IsStdTail) 
+                    {
+                        if (na.Chars.IsLatinLetter && na.Chars.IsAllUpper && (na.LengthChar < 4)) 
+                        {
+                            na.IsStdTail = false;
+                            na.Value = na.GetSourceText().ToUpper();
+                        }
+                        else 
+                            break;
+                    }
+                    names = new List<Pullenti.Ner.Org.Internal.OrgItemNameToken>();
+                }
+                else 
+                {
+                    Pullenti.Ner.Org.Internal.OrgItemNameToken na0 = names[names.Count - 1];
+                    if (na0.IsStdTail) 
+                        break;
+                    if (na.Preposition == null) 
+                    {
+                        if ((!na.Chars.IsLatinLetter && na.Chars.IsAllLower && !na.IsAfterConjunction) && !na.Morph.Case.IsGenitive) 
+                            break;
+                    }
+                }
+                names.Add(na);
+                t1 = (t = na.EndToken);
+            }
+            typ = _lastTyp(types);
+            bool doHigherAlways = false;
+            if (typ != null) 
+            {
+                if (((attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep)) && typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural) 
+                {
+                    if (names != null && names.Count > 0 && names[names.Count - 1].IsNewlineAfter) 
+                    {
+                    }
+                    else if (num != null && num.IsNewlineAfter) 
+                    {
+                    }
+                    else 
+                        return null;
+                }
+                if (Pullenti.Morph.LanguageHelper.EndsWithEx(typ.Typ, "комитет", "комиссия", "комітет", "комісія")) 
+                {
+                }
+                else if (typ.Typ == "служба" && ownOrg != null && typ.Name != null) 
+                {
+                    OrganizationKind ki = (ownOrg.Referent as OrganizationReferent).Kind;
+                    if (ki == OrganizationKind.Press || ki == OrganizationKind.Media) 
+                    {
+                        typ.Coef += 3;
+                        doHigherAlways = true;
+                    }
+                    else 
+                        ownOrg = null;
+                }
+                else if ((typ.Typ == "служба" && ownOrg != null && num == null) && _isMvdOrg(ownOrg.Referent as OrganizationReferent) != null && (((((typ.BeginToken.Previous is Pullenti.Ner.NumberToken) && (typ.WhitespacesBeforeCount < 3))) || names != null))) 
+                {
+                    typ.Coef += 4;
+                    if (typ.BeginToken.Previous is Pullenti.Ner.NumberToken) 
+                    {
+                        t0 = typ.BeginToken.Previous;
+                        num = new Pullenti.Ner.Org.Internal.OrgItemNumberToken(t0, t0) { Number = (typ.BeginToken.Previous as Pullenti.Ner.NumberToken).Value };
+                    }
+                }
+                else if ((((typ.IsDoubtRootWord || typ.Typ == "организация" || typ.Typ == "управление") || typ.Typ == "служба" || typ.Typ == "общество") || typ.Typ == "союз" || typ.Typ == "організація") || typ.Typ == "керування" || typ.Typ == "суспільство") 
+                    ownOrg = null;
+                if (org.Kind == OrganizationKind.Govenment) 
+                {
+                    if (names == null && ((typ.Name == null || string.Compare(typ.Name, typ.Typ, true) == 0))) 
+                    {
+                        if ((attachTyp != AttachType.ExtOntology && typ.Typ != "следственный комитет" && typ.Typ != "кабинет министров") && typ.Typ != "слідчий комітет") 
+                        {
+                            if (((typ.Typ == "администрация" || typ.Typ == "адміністрація")) && (typ.EndToken.Next is Pullenti.Ner.TextToken)) 
+                            {
+                                Pullenti.Ner.ReferentToken rt1 = typ.Kit.ProcessReferent("PERSONPROPERTY", typ.EndToken.Next, null);
+                                if (rt1 != null && typ.EndToken.Next.Morph.Case.IsGenitive) 
+                                {
+                                    Pullenti.Ner.Geo.GeoReferent geo = rt1.Referent.GetSlotValue("REF") as Pullenti.Ner.Geo.GeoReferent;
+                                    if (geo != null) 
+                                    {
+                                        org.AddName("АДМИНИСТРАЦИЯ " + (typ.EndToken.Next as Pullenti.Ner.TextToken).Term, true, null);
+                                        org.AddGeoObject(geo);
+                                        return new Pullenti.Ner.ReferentToken(org, typ.BeginToken, rt1.EndToken);
+                                    }
+                                }
+                            }
+                            if ((typ.Coef < 5) || typ.Chars.IsAllLower) 
+                                return null;
+                        }
+                    }
+                }
+            }
+            else if (names != null && names[0].Chars.IsAllLower) 
+            {
+                if (attachTyp != AttachType.ExtOntology) 
+                    return null;
+            }
+            bool always = false;
+            string name = null;
+            if (((num != null || org.Number != null || epon != null) || attachTyp == AttachType.High || attachTyp == AttachType.ExtOntology) || ownOrg != null) 
+            {
+                int cou0 = org.Slots.Count;
+                if (names != null) 
+                {
+                    if ((names.Count == 1 && names[0].Chars.IsAllUpper && attachTyp == AttachType.ExtOntology) && isAdditionalAttach) 
+                        org.AddName(Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, names[names.Count - 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No), true, names[0].BeginToken);
+                    else 
+                    {
+                        name = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, names[names.Count - 1].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                        if ((names[0].IsNounPhrase && typ != null && typ.Root != null) && !typ.Root.IsPurePrefix && multTyp == null) 
+                            name = string.Format("{0} {1}", typ.Name ?? typ.Typ.ToUpper(), name);
+                    }
+                }
+                else if (typ != null && typ.Name != null && ((typ.Root == null || !typ.Root.IsPurePrefix))) 
+                {
+                    if (typ.Chars.IsAllLower && !typ.CanBeOrganization && (typ.NameWordsCount < 3)) 
+                        org.AddTypeStr(typ.Name.ToLower());
+                    else 
+                        name = typ.Name;
+                    if (typ != multTyp) 
+                    {
+                        if (t1.EndChar < typ.EndToken.EndChar) 
+                            t1 = typ.EndToken;
+                    }
+                }
+                if (name != null) 
+                {
+                    if (name.Length > MaxOrgName) 
+                        return null;
+                    org.AddName(name, true, null);
+                }
+                if (num != null) 
+                    org.Number = num.Number;
+                if (epon != null) 
+                {
+                    foreach (string e in epon.Eponyms) 
+                    {
+                        org.AddEponym(e);
+                    }
+                }
+                ok = attachTyp == AttachType.ExtOntology;
+                if (typ != null && typ.Root != null && typ.Root.CanBeNormalDep) 
+                    ok = true;
+                foreach (Pullenti.Ner.Slot a in org.Slots) 
+                {
+                    if (a.TypeName == OrganizationReferent.ATTR_NUMBER) 
+                    {
+                        if (typ != null && typ.Typ == "корпус") 
+                        {
+                        }
+                        else 
+                            ok = true;
+                    }
+                    else if (a.TypeName == OrganizationReferent.ATTR_GEO) 
+                    {
+                        if (typ.Root != null && typ.Root.CanBeSingleGeo) 
+                            ok = true;
+                    }
+                    else if (a.TypeName != OrganizationReferent.ATTR_TYPE && a.TypeName != OrganizationReferent.ATTR_PROFILE) 
+                    {
+                        ok = true;
+                        break;
+                    }
+                }
+                if (attachTyp == AttachType.Normal) 
+                {
+                    if (typ == null) 
+                        ok = false;
+                    else if ((typ.EndChar - typ.BeginChar) < 2) 
+                    {
+                        if (num == null && epon == null) 
+                            ok = false;
+                        else if (epon == null) 
+                        {
+                            if (t1.IsWhitespaceAfter || t1.Next == null) 
+                            {
+                            }
+                            else if (t1.Next.IsCharOf(".,;") && t1.Next.IsWhitespaceAfter) 
+                            {
+                            }
+                            else 
+                                ok = false;
+                        }
+                    }
+                }
+                if ((!ok && typ != null && typ.CanBeDepBeforeOrganization) && ownOrg != null) 
+                {
+                    org.AddTypeStr((ownOrg.Kit.BaseLanguage.IsUa ? "підрозділ" : "подразделение"));
+                    org.Higher = ownOrg.Referent as OrganizationReferent;
+                    t1 = ownOrg;
+                    ok = true;
+                }
+                else if (typ != null && ownOrg != null && Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(ownOrg.Referent as OrganizationReferent, org, true)) 
+                {
+                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsTypesAntagonisticOO(ownOrg.Referent as OrganizationReferent, org)) 
+                    {
+                        if (org.Kind == OrganizationKind.Department && !typ.CanBeDepBeforeOrganization) 
+                        {
+                        }
+                        else 
+                        {
+                            org.Higher = ownOrg.Referent as OrganizationReferent;
+                            if (t1.EndChar < ownOrg.EndChar) 
+                                t1 = ownOrg;
+                            ok = true;
+                        }
+                    }
+                    else if (typ.Root != null && ((typ.Root.CanBeNormalDep || ownOrg.Referent.ToString().Contains("Сбербанк")))) 
+                    {
+                        org.Higher = ownOrg.Referent as OrganizationReferent;
+                        if (t1.EndChar < ownOrg.EndChar) 
+                            t1 = ownOrg;
+                        ok = true;
+                    }
+                }
+            }
+            else if (names != null) 
+            {
+                if (typ == null) 
+                {
+                    if (names[0].IsStdName && specWordBefore) 
+                    {
+                        org.AddName(names[0].Value, true, null);
+                        t1 = names[0].EndToken;
+                        t = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                        if (t != null) 
+                            t1 = t;
+                        return new Pullenti.Ner.ReferentToken(org, t0, t1);
+                    }
+                    return null;
+                }
+                if (typ.Root != null && typ.Root.MustHasCapitalName) 
+                {
+                    if (names[0].Chars.IsAllLower) 
+                        return null;
+                }
+                if (names[0].Chars.IsLatinLetter) 
+                {
+                    if (typ.Root != null && !typ.Root.CanHasLatinName) 
+                    {
+                        if (!typ.Chars.IsLatinLetter) 
+                            return null;
+                    }
+                    if (names[0].Chars.IsAllLower && !typ.Chars.IsLatinLetter) 
+                        return null;
+                    StringBuilder tmp = new StringBuilder();
+                    tmp.Append(names[0].Value);
+                    t1 = names[0].EndToken;
+                    for (int j = 1; j < names.Count; j++) 
+                    {
+                        if (!names[j].IsStdTail && ((names[j].IsNewlineBefore || !names[j].Chars.IsLatinLetter))) 
+                        {
+                            tMax = names[j].BeginToken.Previous;
+                            if (typ.Geo == null && org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
+                                org.Slots.Remove(org.FindSlot(OrganizationReferent.ATTR_GEO, null, true));
+                            break;
+                        }
+                        else 
+                        {
+                            t1 = names[j].EndToken;
+                            if (names[j].IsStdTail) 
+                            {
+                                Pullenti.Ner.Org.Internal.OrgItemEngItem ei = Pullenti.Ner.Org.Internal.OrgItemEngItem.TryAttach(names[j].BeginToken, false);
+                                if (ei != null) 
+                                {
+                                    org.AddTypeStr(ei.FullValue);
+                                    if (ei.ShortValue != null) 
+                                        org.AddTypeStr(ei.ShortValue);
+                                }
+                                break;
+                            }
+                            if (names[j - 1].EndToken.IsChar('.') && !names[j - 1].Value.EndsWith(".")) 
+                                tmp.AppendFormat(".{0}", names[j].Value);
+                            else 
+                                tmp.AppendFormat(" {0}", names[j].Value);
+                        }
+                    }
+                    if (tmp.Length > MaxOrgName) 
+                        return null;
+                    string nnn = tmp.ToString();
+                    if (nnn.StartsWith("OF ") || nnn.StartsWith("IN ")) 
+                        tmp.Insert(0, ((typ.Name ?? typ.Typ)).ToUpper() + " ");
+                    if (tmp.Length < 3) 
+                    {
+                        if (tmp.Length < 2) 
+                            return null;
+                        if (types != null && names[0].Chars.IsAllUpper) 
+                        {
+                        }
+                        else 
+                            return null;
+                    }
+                    ok = true;
+                    org.AddName(tmp.ToString(), true, null);
+                }
+                else if (org.FindSlot(OrganizationReferent.ATTR_NAME, null, true) != null) 
+                {
+                }
+                else if (typ.Root != null && typ.Root.IsPurePrefix) 
+                {
+                    Pullenti.Ner.TextToken tt = typ.EndToken as Pullenti.Ner.TextToken;
+                    if (tt == null) 
+                        return null;
+                    if (tt.IsNewlineAfter) 
+                    {
+                        if (names[0].IsNewlineAfter && typ.IsNewlineBefore) 
+                        {
+                        }
+                        else 
+                            return null;
+                    }
+                    if (typ.BeginToken == typ.EndToken && tt.Chars.IsAllLower) 
+                        return null;
+                    if (names[0].Chars.IsAllLower) 
+                    {
+                        if (!names[0].Morph.Case.IsGenitive) 
+                            return null;
+                    }
+                    t1 = names[0].EndToken;
+                    for (int j = 1; j < names.Count; j++) 
+                    {
+                        if (names[j].IsNewlineBefore || !names[j].Chars.Equals(names[0].Chars)) 
+                            break;
+                        else 
+                            t1 = names[j].EndToken;
+                    }
+                    ok = true;
+                    name = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, t1, Pullenti.Ner.Core.GetTextAttr.No);
+                    if (num == null && (t1 is Pullenti.Ner.NumberToken) && (t1 as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit) 
+                    {
+                        Pullenti.Ner.Token tt1 = t1.Previous;
+                        if (tt1 != null && tt1.IsHiphen) 
+                            tt1 = tt1.Previous;
+                        if (tt1 != null && tt1.EndChar > names[0].BeginChar && (tt1 is Pullenti.Ner.TextToken)) 
+                        {
+                            name = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, tt1, Pullenti.Ner.Core.GetTextAttr.No);
+                            org.Number = (t1 as Pullenti.Ner.NumberToken).Value.ToString();
+                        }
+                    }
+                    if (name.Length > MaxOrgName) 
+                        return null;
+                    org.AddName(name, true, names[0].BeginToken);
+                }
+                else 
+                {
+                    if (typ.IsDep) 
+                        return null;
+                    if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural && attachTyp != AttachType.Multiple) 
+                        return null;
+                    StringBuilder tmp = new StringBuilder();
+                    float koef = typ.Coef;
+                    if (koef >= 4) 
+                        always = true;
+                    if (org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
+                        koef += 1;
+                    if (specWordBefore) 
+                        koef += 1;
+                    if (names[0].Chars.IsAllLower && typ.Chars.IsAllLower && !specWordBefore) 
+                    {
+                        if (koef >= 3) 
+                        {
+                            if (t != null && (t.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                            {
+                            }
+                            else 
+                                koef -= 3;
+                        }
+                    }
+                    if (typ.CharsRoot.IsCapitalUpper) 
+                        koef += ((float)0.5);
+                    if (types.Count > 1) 
+                        koef += (types.Count - 1);
+                    if (typ.Name != null) 
+                    {
+                        for (Pullenti.Ner.Token to = typ.BeginToken; to != typ.EndToken && to != null; to = to.Next) 
+                        {
+                            if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsStdAdjective(to, false)) 
+                                koef += 2;
+                            if (to.Chars.IsCapitalUpper) 
+                                koef += ((float)0.5);
+                        }
+                    }
+                    OrganizationKind ki = org.Kind;
+                    if (attachTyp == AttachType.Multiple && ((typ.Name == null || typ.Name.Length == typ.Typ.Length))) 
+                    {
+                    }
+                    else if ((((((ki == OrganizationKind.Media || ki == OrganizationKind.Party || ki == OrganizationKind.Press) || ki == OrganizationKind.Factory || ki == OrganizationKind.Airport) || ki == OrganizationKind.Seaport || ((typ.Root != null && typ.Root.MustHasCapitalName))) || ki == OrganizationKind.Bank || typ.Typ.Contains("предприятие")) || typ.Typ.Contains("организация") || typ.Typ.Contains("підприємство")) || typ.Typ.Contains("організація")) 
+                    {
+                        if (typ.Name != null) 
+                            org.AddTypeStr(typ.Name.ToLower());
+                    }
+                    else 
+                        tmp.Append(typ.Name ?? typ.Typ.ToUpper());
+                    if (typ != multTyp) 
+                        t1 = typ.EndToken;
+                    for (int j = 0; j < names.Count; j++) 
+                    {
+                        if (names[j].IsNewlineBefore && j > 0) 
+                        {
+                            if (names[j].NewlinesBeforeCount > 1) 
+                                break;
+                            if (names[j].Chars.IsAllLower) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        if (!names[j].Chars.Equals(names[0].Chars) && !names[j].BeginToken.Chars.Equals(names[0].Chars)) 
+                            break;
+                        if (names[j].IsNounPhrase != names[0].IsNounPhrase) 
+                            break;
+                        if (j == 0 && names[j].Preposition == null && names[j].IsInDictionary) 
+                        {
+                            if (!names[j].Morph.Case.IsGenitive && ((typ.Root != null && !typ.Root.CanHasSingleName))) 
+                                break;
+                        }
+                        if (j == 0 && names[0].Preposition == "ПО" && (((typ.Typ == "комитет" || typ.Typ == "комиссия" || typ.Typ == "комітет") || typ.Typ == "комісія"))) 
+                            koef += 2.5F;
+                        if ((j == 0 && names[j].WhitespacesBeforeCount > 2 && names[j].NewlinesBeforeCount == 0) && names[j].BeginToken.Previous != null) 
+                            koef -= (((float)names[j].WhitespacesBeforeCount) / 2);
+                        if (names[j].IsStdName) 
+                            koef += 4;
+                        else if (names[j].StdOrgNameNouns > 0 && ((ki == OrganizationKind.Govenment || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "центр")))) 
+                            koef += names[j].StdOrgNameNouns;
+                        if (((ki == OrganizationKind.Airport || ki == OrganizationKind.Seaport)) && j == 0) 
+                            koef++;
+                        t1 = names[j].EndToken;
+                        if (names[j].IsNounPhrase) 
+                        {
+                            if (!names[j].Chars.IsAllLower) 
+                            {
+                                Pullenti.Morph.MorphCase ca = names[j].Morph.Case;
+                                if ((ca.IsDative || ca.IsGenitive || ca.IsInstrumental) || ca.IsPrepositional) 
+                                    koef += ((float)0.5);
+                                else 
+                                    continue;
+                            }
+                            else if (((j == 0 || names[j].IsAfterConjunction)) && names[j].Morph.Case.IsGenitive && names[j].Preposition == null) 
+                                koef += ((float)0.5);
+                            if (j == (names.Count - 1)) 
+                            {
+                                if (names[j].EndToken.Next is Pullenti.Ner.TextToken) 
+                                {
+                                    if (names[j].EndToken.Next.GetMorphClassInDictionary().IsVerb) 
+                                        koef += 0.5F;
+                                }
+                            }
+                        }
+                        for (Pullenti.Ner.Token to = names[j].BeginToken; to != null; to = to.Next) 
+                        {
+                            if (to is Pullenti.Ner.TextToken) 
+                            {
+                                if (attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
+                                {
+                                    if (to.Chars.IsCapitalUpper) 
+                                        koef += ((float)0.5);
+                                    else if ((j == 0 && ((to.Chars.IsAllUpper || to.Chars.IsLastLower)) && to.LengthChar > 2) && typ.Root != null && typ.Root.CanHasLatinName) 
+                                        koef += 1;
+                                }
+                                else if (to.Chars.IsAllUpper || to.Chars.IsCapitalUpper) 
+                                    koef += 1;
+                            }
+                            if (to == names[j].EndToken) 
+                                break;
+                        }
+                    }
+                    for (Pullenti.Ner.Token ttt = typ.BeginToken.Previous; ttt != null; ttt = ttt.Previous) 
+                    {
+                        if (ttt.GetReferent() is OrganizationReferent) 
+                        {
+                            koef += 1;
+                            break;
+                        }
+                        else if (!(ttt is Pullenti.Ner.TextToken)) 
+                            break;
+                        else if (ttt.Chars.IsLetter) 
+                            break;
+                    }
+                    OrganizationKind oki = org.Kind;
+                    if (oki == OrganizationKind.Govenment || oki == OrganizationKind.Study || oki == OrganizationKind.Party) 
+                        koef += names.Count;
+                    if (attachTyp != AttachType.Normal && attachTyp != AttachType.NormalAfterDep) 
+                        koef += 3;
+                    Pullenti.Ner.Core.BracketSequenceToken br1 = null;
+                    if ((t1.WhitespacesAfterCount < 2) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t1.Next, true, false)) 
+                    {
+                        br1 = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                        if (br1 != null && (br1.LengthChar < 30)) 
+                        {
+                            string sss = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br1, Pullenti.Ner.Core.GetTextAttr.No);
+                            if (sss != null && sss.Length > 2) 
+                            {
+                                org.AddName(sss, true, br1.BeginToken.Next);
+                                koef += 1;
+                                t1 = br1.EndToken;
+                            }
+                            else 
+                                br1 = null;
+                        }
+                    }
+                    if (koef >= 3 && t1.Next != null) 
+                    {
+                        Pullenti.Ner.Referent r = t1.Next.GetReferent();
+                        if (r != null && ((r.TypeName == GEONAME || r.TypeName == OrganizationReferent.OBJ_TYPENAME))) 
+                            koef += ((float)1);
+                        else if (IsGeo(t1.Next, false) != null) 
+                            koef += ((float)1);
+                        else if (t1.Next.IsChar('(') && IsGeo(t1.Next.Next, false) != null) 
+                            koef += ((float)1);
+                        else if (specWordBefore && t1.Kit.ProcessReferent("PERSON", t1.Next, null) != null) 
+                            koef += ((float)1);
+                    }
+                    if (koef >= 4) 
+                        ok = true;
+                    if (!ok) 
+                    {
+                        if ((oki == OrganizationKind.Press || oki == OrganizationKind.Federation || org.Types.Contains("агентство")) || ((oki == OrganizationKind.Party && Pullenti.Ner.Org.Internal.OrgItemTypeToken.CheckOrgSpecialWordBefore(t0.Previous)))) 
+                        {
+                            if (!names[0].IsNewlineBefore && !names[0].Morph.Class.IsProper) 
+                            {
+                                if (names[0].Morph.Case.IsGenitive && names[0].IsInDictionary) 
+                                {
+                                    if (typ.Chars.IsAllLower && !names[0].Chars.IsAllLower) 
+                                    {
+                                        ok = true;
+                                        t1 = names[0].EndToken;
+                                    }
+                                }
+                                else if (!names[0].IsInDictionary && names[0].Chars.IsAllUpper) 
+                                {
+                                    ok = true;
+                                    tmp.Length = 0;
+                                    t1 = names[0].EndToken;
+                                }
+                            }
+                        }
+                    }
+                    if ((!ok && oki == OrganizationKind.Federation && names[0].Morph.Case.IsGenitive) && koef > 0) 
+                    {
+                        if (IsGeo(names[names.Count - 1].EndToken.Next, false) != null) 
+                            ok = true;
+                    }
+                    if (!ok && typ != null && typ.Root != null) 
+                    {
+                        if (names.Count == 1 && ((names[0].Chars.IsAllUpper || names[0].Chars.IsLastLower))) 
+                        {
+                            if ((ki == OrganizationKind.Bank || ki == OrganizationKind.Culture || ki == OrganizationKind.Hotel) || ki == OrganizationKind.Media || ki == OrganizationKind.Medical) 
+                                ok = true;
+                        }
+                    }
+                    if (((!ok && typ != null && typ.Typ == "компания") && names.Count == 1 && !names[0].Chars.IsAllLower) && (typ.WhitespacesAfterCount < 3)) 
+                        ok = true;
+                    if (ok) 
+                    {
+                        Pullenti.Ner.Token tt1 = t1;
+                        if (br1 != null) 
+                            tt1 = br1.BeginToken.Previous;
+                        if ((tt1.GetReferent() is Pullenti.Ner.Geo.GeoReferent) && (tt1.GetReferent() as Pullenti.Ner.Geo.GeoReferent).IsState) 
+                        {
+                            if (names[0].BeginToken != tt1) 
+                            {
+                                tt1 = t1.Previous;
+                                org.AddGeoObject(t1.GetReferent());
+                            }
+                        }
+                        string s = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, tt1, Pullenti.Ner.Core.GetTextAttr.No);
+                        if ((tt1 == names[0].EndToken && typ != null && typ.Typ != null) && typ.Typ.Contains("фермер") && names[0].Value != null) 
+                            s = names[0].Value;
+                        Pullenti.Morph.MorphClass cla = tt1.GetMorphClassInDictionary();
+                        if ((names[0].BeginToken == t1 && s != null && t1.Morph.Case.IsGenitive) && t1.Chars.IsCapitalUpper) 
+                        {
+                            if (cla.IsUndefined || cla.IsProperGeo) 
+                            {
+                                if (ki == OrganizationKind.Medical || ki == OrganizationKind.Justice) 
+                                {
+                                    Pullenti.Ner.Geo.GeoReferent geo = new Pullenti.Ner.Geo.GeoReferent();
+                                    geo.AddSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_NAME, t1.GetNormalCaseText(null, Pullenti.Morph.MorphNumber.Undefined, Pullenti.Morph.MorphGender.Undefined, false), false, 0);
+                                    geo.AddSlot(Pullenti.Ner.Geo.GeoReferent.ATTR_TYPE, (t1.Kit.BaseLanguage.IsUa ? "місто" : "город"), false, 0);
+                                    Pullenti.Ner.ReferentToken rt = new Pullenti.Ner.ReferentToken(geo, t1, t1);
+                                    rt.Data = OrganizationAnalyzer.GetData(t1);
+                                    org.AddGeoObject(rt);
+                                    s = null;
+                                }
+                            }
+                        }
+                        if (s != null) 
+                        {
+                            if (tmp.Length == 0) 
+                            {
+                                if (names[0].Morph.Case.IsGenitive || names[0].Preposition != null) 
+                                {
+                                    if (names[0].Chars.IsAllLower) 
+                                        tmp.Append(typ.Name ?? typ.Typ);
+                                }
+                            }
+                            if (tmp.Length > 0) 
+                                tmp.Append(' ');
+                            tmp.Append(s);
+                        }
+                        if (tmp.Length > MaxOrgName) 
+                            return null;
+                        org.AddName(tmp.ToString(), true, names[0].BeginToken);
+                        if (types.Count > 1 && types[0].Name != null) 
+                            org.AddTypeStr(types[0].Name.ToLower());
+                    }
+                }
+            }
+            else 
+            {
+                if (typ == null) 
+                    return null;
+                if (types.Count == 2 && types[0].Coef > typ.Coef) 
+                    typ = types[0];
+                if ((typ.Typ == "банк" && (t is Pullenti.Ner.ReferentToken) && !t.IsNewlineBefore) && typ.Morph.Number == Pullenti.Morph.MorphNumber.Singular) 
+                {
+                    if (typ.Name != null) 
+                    {
+                        if (typ.BeginToken.Chars.IsAllLower) 
+                            org.AddTypeStr(typ.Name.ToLower());
+                        else 
+                        {
+                            org.AddName(typ.Name, true, null);
+                            string s0 = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(typ, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
+                            if (s0 != typ.Name) 
+                                org.AddName(s0, true, null);
+                        }
+                    }
+                    Pullenti.Ner.Referent r = t.GetReferent();
+                    if (r.TypeName == GEONAME && !t.Morph.Case.Equals(Pullenti.Morph.MorphCase.Nominative)) 
+                    {
+                        org.AddGeoObject(r);
+                        if (types.Count == 1 && (t.WhitespacesAfterCount < 3)) 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, false);
+                            if (typ1 != null && typ1.Root != null && typ1.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.Prefix) 
+                            {
+                                org.AddType(typ1, false);
+                                t = typ1.EndToken;
+                            }
+                        }
+                        return new Pullenti.Ner.ReferentToken(org, t0, t);
+                    }
+                }
+                if (((typ.Root != null && typ.Root.IsPurePrefix)) && (typ.Coef < 4)) 
+                    return null;
+                if (typ.Root != null && typ.Root.MustHasCapitalName) 
+                    return null;
+                if (typ.Name == null) 
+                {
+                    if (((typ.Typ.EndsWith("университет") || typ.Typ.EndsWith("університет"))) && IsGeo(typ.EndToken.Next, false) != null) 
+                        always = true;
+                    else if (((org.Kind == OrganizationKind.Justice || org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport)) && org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
+                    {
+                    }
+                    else if (typ.Coef >= 4) 
+                        always = true;
+                    else if (typ.Chars.IsCapitalUpper) 
+                    {
+                        if (typ.EndToken.Next != null && ((typ.EndToken.Next.IsHiphen || typ.EndToken.Next.IsCharOf(":")))) 
+                        {
+                        }
+                        else 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgAnalyzerData ad = OrganizationAnalyzer.GetData(t);
+                            List<Pullenti.Ner.Core.IntOntologyItem> li = (ad == null || ad.LocalOntology.Items.Count > 1000 ? null : ad.LocalOntology.TryAttachByItem(org.CreateOntologyItem()));
+                            if (li != null && li.Count > 0) 
+                            {
+                                foreach (Pullenti.Ner.Core.IntOntologyItem ll in li) 
+                                {
+                                    Pullenti.Ner.Referent r = ll.Referent ?? (ll.Tag as Pullenti.Ner.Referent);
+                                    if (r != null) 
+                                    {
+                                        if (org.CanBeEquals(r, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
+                                        {
+                                            Pullenti.Ner.Token ttt = typ.EndToken;
+                                            Pullenti.Ner.Org.Internal.OrgItemNumberToken nu = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ttt.Next, true, null);
+                                            if (nu != null) 
+                                            {
+                                                if ((r as OrganizationReferent).Number != nu.Number) 
+                                                    ttt = null;
+                                                else 
+                                                {
+                                                    org.Number = nu.Number;
+                                                    ttt = nu.EndToken;
+                                                }
+                                            }
+                                            else if (li.Count > 1) 
+                                                ttt = null;
+                                            if (ttt != null) 
+                                                return new Pullenti.Ner.ReferentToken(r, typ.BeginToken, ttt);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                    else 
+                    {
+                        int cou = 0;
+                        for (Pullenti.Ner.Token tt = typ.BeginToken.Previous; tt != null && (cou < 200); tt = tt.Previous,cou++) 
+                        {
+                            OrganizationReferent org0 = tt.GetReferent() as OrganizationReferent;
+                            if (org0 == null) 
+                                continue;
+                            if (!org0.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
+                                continue;
+                            tt = AttachTailAttributes(org, typ.EndToken.Next, false, attachTyp, false) ?? typ.EndToken;
+                            if (!org0.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
+                                break;
+                            org.MergeSlots(org0, true);
+                            return new Pullenti.Ner.ReferentToken(org, typ.BeginToken, tt);
+                        }
+                        if (typ.Root != null && typ.Root.CanBeSingleGeo && t1.Next != null) 
+                        {
+                            object ggg = IsGeo(t1.Next, false);
+                            if (ggg != null) 
+                            {
+                                org.AddGeoObject(ggg);
+                                t1 = GetGeoEndToken(ggg, t1.Next);
+                                return new Pullenti.Ner.ReferentToken(org, t0, t1);
+                            }
+                        }
+                        return null;
+                    }
+                }
+                if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural || typ == multTyp) 
+                    return null;
+                float koef = typ.Coef;
+                if (typ.NameWordsCount == 1 && typ.Name != null && typ.Name.Length > typ.Typ.Length) 
+                    koef++;
+                if (specWordBefore) 
+                    koef += 1;
+                ok = false;
+                if (typ.CharsRoot.IsCapitalUpper) 
+                {
+                    koef += ((float)0.5);
+                    if (typ.NameWordsCount == 1) 
+                        koef += ((float)0.5);
+                }
+                if (epon != null) 
+                    koef += 2;
+                bool hasNonstdWords = false;
+                for (Pullenti.Ner.Token to = typ.BeginToken; to != typ.EndToken && to != null; to = to.Next) 
+                {
+                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsStdAdjective(to, false)) 
+                    {
+                        if (typ.Root != null && typ.Root.Coeff > 0) 
+                            koef += (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsStdAdjective(to, true) ? 1 : (int)0.5F);
+                    }
+                    else 
+                        hasNonstdWords = true;
+                    if (to.Chars.IsCapitalUpper && !to.Morph.Class.IsPronoun) 
+                        koef += ((float)0.5);
+                }
+                if (!hasNonstdWords && org.Kind == OrganizationKind.Govenment) 
+                    koef -= 2;
+                if (typ.Chars.IsAllLower && (typ.Coef < 4)) 
+                    koef -= 2;
+                if (koef > 1 && typ.NameWordsCount > 2) 
+                    koef += 2;
+                for (Pullenti.Ner.Token ttt = typ.BeginToken.Previous; ttt != null; ttt = ttt.Previous) 
+                {
+                    if (ttt.GetReferent() is OrganizationReferent) 
+                    {
+                        koef += 1;
+                        break;
+                    }
+                    else if (!(ttt is Pullenti.Ner.TextToken)) 
+                        break;
+                    else if (ttt.Chars.IsLetter) 
+                        break;
+                }
+                for (Pullenti.Ner.Token ttt = typ.EndToken.Next; ttt != null; ttt = ttt.Next) 
+                {
+                    if (ttt.GetReferent() is OrganizationReferent) 
+                    {
+                        koef += 1;
+                        break;
+                    }
+                    else if (!(ttt is Pullenti.Ner.TextToken)) 
+                        break;
+                    else if (ttt.Chars.IsLetter) 
+                        break;
+                }
+                if (typ.WhitespacesBeforeCount > 4 && typ.WhitespacesAfterCount > 4) 
+                    koef += ((float)0.5);
+                if (typ.CanBeOrganization) 
+                {
+                    foreach (Pullenti.Ner.Slot s in org.Slots) 
+                    {
+                        if ((s.TypeName == OrganizationReferent.ATTR_EPONYM || s.TypeName == OrganizationReferent.ATTR_NAME || s.TypeName == OrganizationReferent.ATTR_GEO) || s.TypeName == OrganizationReferent.ATTR_NUMBER) 
+                        {
+                            koef += 3;
+                            break;
+                        }
+                    }
+                }
+                org.AddType(typ, false);
+                if (((org.Kind == OrganizationKind.Bank || org.Kind == OrganizationKind.Justice)) && typ.Name != null && typ.Name.Length > typ.Typ.Length) 
+                    koef += 1;
+                if (org.Kind == OrganizationKind.Justice && org.GeoObjects.Count > 0) 
+                    always = true;
+                if (org.Kind == OrganizationKind.Airport || org.Kind == OrganizationKind.Seaport) 
+                {
+                    foreach (Pullenti.Ner.Geo.GeoReferent g in org.GeoObjects) 
+                    {
+                        if (g.IsCity) 
+                            always = true;
+                    }
+                }
+                if (koef > 3 || always) 
+                    ok = true;
+                if (((org.Kind == OrganizationKind.Party || org.Kind == OrganizationKind.Justice)) && typ.Morph.Number == Pullenti.Morph.MorphNumber.Singular) 
+                {
+                    if (org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null && typ.Name != null && typ.Name.Length > typ.Typ.Length) 
+                        ok = true;
+                    else if (typ.Coef >= 4) 
+                        ok = true;
+                    else if (typ.NameWordsCount > 2) 
+                        ok = true;
+                }
+                if (ok) 
+                {
+                    if (typ.Name != null && !typ.IsNotTyp) 
+                    {
+                        if (typ.Name.Length > MaxOrgName || string.Compare(typ.Name, typ.Typ, true) == 0) 
+                            return null;
+                        org.AddName(typ.Name, true, null);
+                    }
+                    t1 = typ.EndToken;
+                }
+            }
+            if (!ok || org.Slots.Count == 0) 
+                return null;
+            if (attachTyp == AttachType.Normal || attachTyp == AttachType.NormalAfterDep) 
+            {
+                ok = always;
+                foreach (Pullenti.Ner.Slot s in org.Slots) 
+                {
+                    if (s.TypeName != OrganizationReferent.ATTR_TYPE && s.TypeName != OrganizationReferent.ATTR_PROFILE) 
+                    {
+                        ok = true;
+                        break;
+                    }
+                }
+                if (!ok) 
+                    return null;
+            }
+            if (tMax != null && (t1.EndChar < tMax.BeginChar)) 
+                t1 = tMax;
+            t = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+            if (t != null) 
+                t1 = t;
+            if (ownOrg != null && org.Higher == null) 
+            {
+                if (doHigherAlways || Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(ownOrg.Referent as OrganizationReferent, org, false)) 
+                {
+                    org.Higher = ownOrg.Referent as OrganizationReferent;
+                    if (ownOrg.BeginChar > t1.BeginChar) 
+                    {
+                        t1 = ownOrg;
+                        t = AttachTailAttributes(org, t1.Next, true, attachTyp, false);
+                        if (t != null) 
+                            t1 = t;
+                    }
+                }
+            }
+            if (((ownOrg != null && typ != null && typ.Typ == "банк") && typ.Geo != null && org.Higher == ownOrg.Referent) && ownOrg.Referent.ToString().Contains("Сбербанк")) 
+            {
+                Pullenti.Ner.Token tt2 = t1.Next;
+                if (tt2 != null) 
+                {
+                    if (tt2.IsComma || tt2.IsValue("В", null)) 
+                        tt2 = tt2.Next;
+                }
+                if (tt2 != null && (tt2.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                {
+                    Pullenti.Ner.Slot s = org.FindSlot(OrganizationReferent.ATTR_GEO, null, true);
+                    if (s != null) 
+                        org.Slots.Remove(s);
+                    if (org.AddGeoObject(tt2)) 
+                        t1 = tt2;
+                }
+            }
+            if (t1.IsNewlineAfter && t0.IsNewlineBefore) 
+            {
+                Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next, false);
+                if (typ1 != null && typ1.IsNewlineAfter) 
+                {
+                    if (TryAttachOrg(t1.Next, AttachType.Normal, null, false, -1) == null) 
+                    {
+                        org.AddType(typ1, false);
+                        t1 = typ1.EndToken;
+                    }
+                }
+                if (t1.Next != null && t1.Next.IsChar('(')) 
+                {
+                    if ((((typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t1.Next.Next, false)))) != null) 
+                    {
+                        if (typ1.EndToken.Next != null && typ1.EndToken.Next.IsChar(')') && typ1.EndToken.Next.IsNewlineAfter) 
+                        {
+                            org.AddType(typ1, false);
+                            t1 = typ1.EndToken.Next;
+                        }
+                    }
+                }
+            }
+            if (attachTyp == AttachType.Normal && ((typ == null || (typ.Coef < 4)))) 
+            {
+                if (org.FindSlot(OrganizationReferent.ATTR_GEO, null, true) == null || ((typ != null && typ.Geo != null))) 
+                {
+                    bool isAllLow = true;
+                    for (t = t0; t != null && t.EndChar <= t1.EndChar; t = t.Next) 
+                    {
+                        if (t.Chars.IsLetter) 
+                        {
+                            if (!t.Chars.IsAllLower) 
+                                isAllLow = false;
+                        }
+                        else if (!(t is Pullenti.Ner.TextToken)) 
+                            isAllLow = false;
+                    }
+                    if (isAllLow && !specWordBefore) 
+                        return null;
+                }
+            }
+            if (t0.BeginChar > t1.BeginChar) 
+                return null;
+            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(org, t0, t1);
+            if (types != null && types.Count > 0) 
+            {
+                res.Morph = types[0].Morph;
+                if (types[0].IsNotTyp && types[0].BeginToken == t0 && (types[0].EndChar < t1.EndChar)) 
+                    res.BeginToken = types[0].EndToken.Next;
+            }
+            else 
+                res.Morph = t0.Morph;
+            if ((org.Number == null && t1.Next != null && (t1.WhitespacesAfterCount < 2)) && typ != null && ((typ.Root == null || typ.Root.CanHasNumber))) 
+            {
+                Pullenti.Ner.Org.Internal.OrgItemNumberToken num1 = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next, false, typ);
+                if (num1 == null && t1.Next.IsHiphen) 
+                    num1 = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next.Next, false, typ);
+                if (num1 != null) 
+                {
+                    if (Pullenti.Ner.Org.Internal.OrgItemTypeToken.IsDecreeKeyword(t0.Previous, 2)) 
+                    {
+                    }
+                    else 
+                    {
+                        org.Number = num1.Number;
+                        t1 = num1.EndToken;
+                        res.EndToken = t1;
+                    }
+                }
+            }
+            return res;
+        }
+        Pullenti.Ner.ReferentToken TryAttachOrgBefore(Pullenti.Ner.Token t)
+        {
+            if (t == null || t.Previous == null || (t.Previous is Pullenti.Ner.ReferentToken)) 
+                return null;
+            OrganizationReferent org0 = t.GetReferent() as OrganizationReferent;
+            int minEndChar = t.Previous.EndChar;
+            int maxEndChar = t.EndChar;
+            Pullenti.Ner.Token t0 = t.Previous;
+            if ((t0 is Pullenti.Ner.ReferentToken) && (t0.GetReferent() is OrganizationReferent) && t0.Previous != null) 
+            {
+                minEndChar = t0.Previous.EndChar;
+                t0 = t0.Previous;
+            }
+            Pullenti.Ner.ReferentToken res = null;
+            for (; t0 != null; t0 = t0.Previous) 
+            {
+                if (t0.WhitespacesAfterCount > 1) 
+                    break;
+                int cou = 0;
+                Pullenti.Ner.Token tt0 = t0;
+                string num = null;
+                Pullenti.Ner.Token numEt = null;
+                for (Pullenti.Ner.Token ttt = t0; ttt != null; ttt = ttt.Previous) 
+                {
+                    if (ttt.WhitespacesAfterCount > 1) 
+                        break;
+                    if (ttt is Pullenti.Ner.ReferentToken) 
+                        break;
+                    if (ttt.IsHiphen || ttt.IsChar('.')) 
+                        continue;
+                    if (ttt is Pullenti.Ner.NumberToken) 
+                    {
+                        if (num != null) 
+                            break;
+                        num = (ttt as Pullenti.Ner.NumberToken).Value.ToString();
+                        numEt = ttt;
+                        tt0 = ttt.Previous;
+                        continue;
+                    }
+                    Pullenti.Ner.Org.Internal.OrgItemNumberToken nn = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ttt, false, null);
+                    if (nn != null) 
+                    {
+                        num = nn.Number;
+                        numEt = nn.EndToken;
+                        tt0 = ttt.Previous;
+                        continue;
+                    }
+                    if ((++cou) > 10) 
+                        break;
+                    if (ttt.IsValue("НАПРАВЛЕНИЕ", "НАПРЯМОК")) 
+                    {
+                        if (num != null || (((ttt.Previous is Pullenti.Ner.NumberToken) && (ttt.WhitespacesBeforeCount < 3)))) 
+                        {
+                            OrganizationReferent oo = new OrganizationReferent();
+                            oo.AddProfile(OrgProfile.Unit);
+                            oo.AddTypeStr(((ttt.Morph.Language.IsUa ? "НАПРЯМОК" : "НАПРАВЛЕНИЕ")).ToLower());
+                            Pullenti.Ner.ReferentToken rt0 = new Pullenti.Ner.ReferentToken(oo, ttt, ttt);
+                            if (numEt != null && num != null) 
+                            {
+                                oo.AddSlot(OrganizationReferent.ATTR_NUMBER, num, false, 0);
+                                rt0.EndToken = numEt;
+                                return rt0;
+                            }
+                            if (ttt.Previous is Pullenti.Ner.NumberToken) 
+                            {
+                                rt0.BeginToken = ttt.Previous;
+                                oo.AddSlot(OrganizationReferent.ATTR_NUMBER, (ttt.Previous as Pullenti.Ner.NumberToken).Value.ToString(), false, 0);
+                                return rt0;
+                            }
+                        }
+                    }
+                    Pullenti.Morph.MorphClass mc = ttt.GetMorphClassInDictionary();
+                    if (mc.IsVerb && !mc.IsPreposition) 
+                        break;
+                    Pullenti.Ner.Org.Internal.OrgItemTypeToken typ1 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(ttt, true);
+                    if (typ1 == null || typ1.BeginToken != ttt) 
+                    {
+                        if (cou == 1) 
+                            break;
+                        continue;
+                    }
+                    if (typ1.EndToken == tt0) 
+                        t0 = ttt;
+                }
+                if ((t0.GetReferent() is OrganizationReferent) && org0 != null) 
+                {
+                    OrganizationReferent oo = t0.GetReferent() as OrganizationReferent;
+                    if (oo.Higher == null && Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org0, oo, false)) 
+                    {
+                        if ((t0.EndChar + 4) > t.BeginChar) 
+                        {
+                            oo.Higher = org0;
+                            return new Pullenti.Ner.ReferentToken(oo, t0, t);
+                        }
+                    }
+                }
+                if (t0 is Pullenti.Ner.ReferentToken) 
+                    break;
+                Pullenti.Ner.ReferentToken rt = TryAttachOrg(t0, AttachType.Normal, null, false, -1);
+                if (rt != null) 
+                {
+                    if (rt.BeginToken != t0) 
+                        return null;
+                    if (rt.EndChar >= minEndChar && rt.EndChar <= maxEndChar) 
+                    {
+                        OrganizationReferent oo = rt.Referent as OrganizationReferent;
+                        if (oo.Higher != null && oo.Higher.Higher != null && oo.Higher == rt.EndToken.GetReferent()) 
+                            return rt;
+                        if (rt.BeginChar < t.BeginChar) 
+                            return rt;
+                        res = rt;
+                    }
+                    else 
+                        break;
+                }
+                else if (!(t0 is Pullenti.Ner.TextToken)) 
+                    break;
+                else if (!t0.Chars.IsLetter) 
+                {
+                    if (!Pullenti.Ner.Core.BracketHelper.IsBracket(t0, false)) 
+                        break;
+                }
+                else 
+                {
+                    Pullenti.Morph.MorphClass mc = t0.GetMorphClassInDictionary();
+                    if (mc.IsVerb && !mc.IsPreposition) 
+                        break;
+                    if (mc.IsAdverb || mc.IsConjunction) 
+                        break;
+                }
+            }
+            if (res != null) 
+                return null;
+            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ = null;
+            for (t0 = t.Previous; t0 != null; t0 = t0.Previous) 
+            {
+                if (t0.WhitespacesAfterCount > 1) 
+                    break;
+                if (t0 is Pullenti.Ner.NumberToken) 
+                    continue;
+                if (t0.IsChar('.') || t0.IsHiphen) 
+                    continue;
+                if (!(t0 is Pullenti.Ner.TextToken)) 
+                    break;
+                if (!t0.Chars.IsLetter) 
+                    break;
+                Pullenti.Ner.Org.Internal.OrgItemTypeToken ty = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t0, true);
+                if (ty != null) 
+                {
+                    Pullenti.Ner.Org.Internal.OrgItemNumberToken nn = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(ty.EndToken.Next, true, ty);
+                    if (nn != null) 
+                    {
+                        ty.EndToken = nn.EndToken;
+                        ty.Number = nn.Number;
+                    }
+                    else if ((ty.EndToken.Next is Pullenti.Ner.NumberToken) && (ty.WhitespacesAfterCount < 2)) 
+                    {
+                        ty.EndToken = ty.EndToken.Next;
+                        ty.Number = (ty.EndToken as Pullenti.Ner.NumberToken).Value.ToString();
+                    }
+                    if (typ != null && ty.BeginChar > typ.BeginChar) 
+                        break;
+                    if (ty.EndChar >= minEndChar && ty.EndChar <= maxEndChar) 
+                        typ = ty;
+                    else 
+                        break;
+                }
+            }
+            if (typ != null && typ.IsDep) 
+                res = TryAttachDepBeforeOrg(typ, null);
+            return res;
+        }
+        static Pullenti.Ner.ReferentToken TryAttachDepBeforeOrg(Pullenti.Ner.Org.Internal.OrgItemTypeToken typ, Pullenti.Ner.ReferentToken rtOrg)
+        {
+            if (typ == null) 
+                return null;
+            OrganizationReferent org = (rtOrg == null ? null : rtOrg.Referent as OrganizationReferent);
+            Pullenti.Ner.Token t = typ.EndToken;
+            if (org == null) 
+            {
+                t = t.Next;
+                if (t != null && ((t.IsValue("ПРИ", null) || t.IsValue("AT", null) || t.IsValue("OF", null)))) 
+                    t = t.Next;
+                if (t == null) 
+                    return null;
+                org = t.GetReferent() as OrganizationReferent;
+            }
+            else 
+                t = rtOrg.EndToken;
+            if (org == null) 
+                return null;
+            Pullenti.Ner.Token t1 = t;
+            if (t1.Next is Pullenti.Ner.ReferentToken) 
+            {
+                Pullenti.Ner.Geo.GeoReferent geo0 = t1.Next.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
+                if (geo0 != null && geo0.Alpha2 == "RU") 
+                    t1 = t1.Next;
+            }
+            OrganizationReferent dep = new OrganizationReferent();
+            dep.AddType(typ, false);
+            if (typ.Name != null) 
+            {
+                string nam = typ.Name;
+                if (char.IsDigit(nam[0])) 
+                {
+                    int i = nam.IndexOf(' ');
+                    if (i > 0) 
+                    {
+                        dep.Number = nam.Substring(0, i);
+                        nam = nam.Substring(i + 1).Trim();
+                    }
+                }
+                dep.AddName(nam, true, null);
+            }
+            string ttt = (typ.Root != null ? typ.Root.CanonicText : typ.Typ.ToUpper());
+            if ((((ttt == "ОТДЕЛЕНИЕ" || ttt == "ИНСПЕКЦИЯ" || ttt == "ВІДДІЛЕННЯ") || ttt == "ІНСПЕКЦІЯ")) && !t1.IsNewlineAfter) 
+            {
+                Pullenti.Ner.Org.Internal.OrgItemNumberToken num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t1.Next, false, typ);
+                if (num != null) 
+                {
+                    dep.Number = num.Number;
+                    t1 = num.EndToken;
+                }
+            }
+            if (dep.Types.Contains("главное управление") || dep.Types.Contains("головне управління") || dep.TypeName.Contains("пограничное управление")) 
+            {
+                if (typ.BeginToken == typ.EndToken) 
+                {
+                    if (org.Kind != OrganizationKind.Govenment && org.Kind != OrganizationKind.Bank) 
+                        return null;
+                }
+            }
+            if (!Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org, dep, false) && ((typ.Root == null || !typ.Root.CanBeNormalDep))) 
+            {
+                if (dep.Types.Count > 0 && org.Types.Contains(dep.Types[0]) && dep.CanBeEquals(org, Pullenti.Ner.Core.ReferentsEqualType.ForMerging)) 
+                    dep.MergeSlots(org, false);
+                else if (typ.Typ == "управление" || typ.Typ == "управління") 
+                    dep.Higher = org;
+                else 
+                    return null;
+            }
+            else 
+                dep.Higher = org;
+            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(dep, typ.BeginToken, t1);
+            if ((res.BeginToken.Previous is Pullenti.Ner.ReferentToken) && org != null && org.CanBeEquals(res.BeginToken.Previous.GetReferent(), Pullenti.Ner.Core.ReferentsEqualType.WithinOneText)) 
+                res.BeginToken = res.BeginToken.Previous;
+            CorrectDepAttrs(res, typ, false);
+            if (typ.Root != null && !typ.Root.CanBeNormalDep && dep.Number == null) 
+            {
+                if (typ.Name != null && typ.Name.Contains(" ")) 
+                {
+                }
+                else if (dep.FindSlot(OrganizationReferent.ATTR_GEO, null, true) != null) 
+                {
+                }
+                else if (typ.Root.Coeff > 0 && typ.Morph.Number != Pullenti.Morph.MorphNumber.Plural) 
+                {
+                }
+                else if (typ.Typ == "управління" && typ.Chars.IsCapitalUpper) 
+                {
+                }
+                else 
+                    return null;
+            }
+            return res;
+        }
+        static Pullenti.Ner.ReferentToken TryAttachDepAfterOrg(Pullenti.Ner.Org.Internal.OrgItemTypeToken typ)
+        {
+            if (typ == null) 
+                return null;
+            Pullenti.Ner.Token t = typ.BeginToken.Previous;
+            if (t != null && t.IsCharOf(":(")) 
+                t = t.Previous;
+            if (t == null) 
+                return null;
+            OrganizationReferent org = t.GetReferent() as OrganizationReferent;
+            if (org == null) 
+                return null;
+            Pullenti.Ner.Token t1 = typ.EndToken;
+            OrganizationReferent dep = new OrganizationReferent();
+            dep.AddType(typ, false);
+            if (typ.Name != null) 
+                dep.AddName(typ.Name, true, null);
+            if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(org, dep, false)) 
+                dep.Higher = org;
+            else if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(dep, org, false) && org.Higher == null) 
+            {
+                org.Higher = dep;
+                t = t.Next;
+            }
+            else 
+                t = t.Next;
+            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(dep, t, t1);
+            CorrectDepAttrs(res, typ, false);
+            if (dep.FindSlot(OrganizationReferent.ATTR_GEO, null, true) == null) 
+            {
+                if (typ.Root.CanHasNumber && dep.Number != null && dep.Higher != null) 
+                {
+                }
+                else 
+                    return null;
+            }
+            return res;
+        }
+        static Pullenti.Ner.ReferentToken TryAttachDep(Pullenti.Ner.Org.Internal.OrgItemTypeToken typ, AttachType attachTyp, bool specWordBefore)
+        {
+            if (typ == null) 
+                return null;
+            OrganizationReferent afterOrg = null;
+            bool afterOrgTemp = false;
+            if ((typ.IsNewlineAfter && typ.Name == null && typ.Typ != "курс") && ((typ.Root == null || !typ.Root.CanBeNormalDep))) 
+            {
+                Pullenti.Ner.Token tt2 = typ.EndToken.Next;
+                if (!specWordBefore || tt2 == null) 
+                    return null;
+                if (Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(tt2, false, false)) 
+                {
+                }
+                else 
+                    return null;
+            }
+            if (typ.EndToken.Next != null && (typ.EndToken.WhitespacesAfterCount < 2)) 
+            {
+                if (typ.EndToken.Next.GetReferent() is OrganizationReferent) 
+                    afterOrg = typ.EndToken.Next.GetReferent() as OrganizationReferent;
+                else 
+                {
+                    Pullenti.Ner.Org.Internal.OrgItemNameToken na0 = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(typ.EndToken.Next, null, false, true);
+                    bool inBr = false;
+                    if (na0 != null) 
+                    {
+                        if (typ.Typ == "созыв" || typ.Typ == "курс") 
+                            return null;
+                    }
+                    if (na0 != null && ((na0.StdOrgNameNouns > 0 || na0.IsStdName))) 
+                    {
+                        if (typ.Typ == "управление" && na0.Morph != null && na0.Morph.Case.IsInstrumental) 
+                        {
+                        }
+                        else 
+                            specWordBefore = true;
+                    }
+                    else 
+                    {
+                        Pullenti.Ner.ReferentToken rt00 = TryAttachOrg(typ.EndToken.Next, AttachType.NormalAfterDep, null, false, -1);
+                        if (rt00 == null && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(typ.EndToken.Next, true, false)) 
+                        {
+                            rt00 = TryAttachOrg(typ.EndToken.Next.Next, AttachType.NormalAfterDep, null, false, -1);
+                            if (rt00 != null) 
+                            {
+                                inBr = true;
+                                if (rt00.EndToken.Next == null) 
+                                {
+                                }
+                                else if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt00.EndToken, true, null, false)) 
+                                {
+                                }
+                                else if (Pullenti.Ner.Core.BracketHelper.CanBeEndOfSequence(rt00.EndToken.Next, true, null, false)) 
+                                    rt00.EndToken = rt00.EndToken.Next;
+                                else 
+                                    rt00 = null;
+                                if (rt00 != null) 
+                                    rt00.BeginToken = typ.EndToken.Next;
+                            }
+                        }
+                        if (rt00 != null) 
+                        {
+                            afterOrg = rt00.Referent as OrganizationReferent;
+                            specWordBefore = true;
+                            afterOrgTemp = true;
+                            if (afterOrg.ContainsProfile(OrgProfile.Unit) && inBr) 
+                            {
+                                afterOrg = null;
+                                afterOrgTemp = false;
+                            }
+                        }
+                        else if ((typ.EndToken.Next is Pullenti.Ner.TextToken) && typ.EndToken.Next.Chars.IsAllUpper) 
+                        {
+                            List<Pullenti.Ner.ReferentToken> rrr = TryAttachOrgs(typ.EndToken.Next, 0);
+                            if (rrr != null && rrr.Count == 1) 
+                            {
+                                afterOrg = rrr[0].Referent as OrganizationReferent;
+                                specWordBefore = true;
+                                afterOrgTemp = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if ((((((((typ.Root != null && typ.Root.CanBeNormalDep && !specWordBefore) && typ.Typ != "отдел" && typ.Typ != "отделение") && typ.Typ != "инспекция" && typ.Typ != "филиал") && typ.Typ != "аппарат" && typ.Typ != "відділення") && typ.Typ != "інспекція" && typ.Typ != "філія") && typ.Typ != "апарат" && typ.Typ != "совет") && typ.Typ != "рада" && (typ.Typ.IndexOf(' ') < 0)) && attachTyp != AttachType.ExtOntology) 
+                return null;
+            if (typ.Morph.Number == Pullenti.Morph.MorphNumber.Plural) 
+            {
+                if (!typ.BeginToken.IsValue("ОСП", null)) 
+                    return null;
+            }
+            OrganizationReferent dep = null;
+            Pullenti.Ner.Token t0 = typ.BeginToken;
+            Pullenti.Ner.Token t1 = typ.EndToken;
+            dep = new OrganizationReferent();
+            dep.AddTypeStr(typ.Typ.ToLower());
+            dep.AddProfile(OrgProfile.Unit);
+            if (typ.Number != null) 
+                dep.Number = typ.Number;
+            else if (typ.Typ == "курс" && !typ.IsNewlineBefore) 
+            {
+                Pullenti.Ner.NumberToken nnn = Pullenti.Ner.Core.NumberHelper.TryParseRomanBack(typ.BeginToken.Previous);
+                if (nnn != null && nnn.IntValue != null) 
+                {
+                    if (nnn.IntValue.Value >= 1 && nnn.IntValue.Value <= 6) 
+                    {
+                        dep.Number = nnn.Value.ToString();
+                        t0 = nnn.BeginToken;
+                    }
+                }
+            }
+            Pullenti.Ner.Token t = typ.EndToken.Next;
+            t1 = typ.EndToken;
+            if ((typ.Number == null && ((typ.Typ == "отдел" || typ.Typ == "лаборатория")) && (typ.EndToken.Next is Pullenti.Ner.NumberToken)) && specWordBefore && (typ.WhitespacesAfterCount < 3)) 
+            {
+                t1 = typ.EndToken.Next;
+                dep.Number = (t1 as Pullenti.Ner.NumberToken).Value;
+                typ.Coef += 2;
+            }
+            if ((t is Pullenti.Ner.TextToken) && afterOrg == null && (((Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "аппарат") || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "апарат") || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "совет")) || Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "рада")))) 
+            {
+                Pullenti.Ner.Token tt1 = t;
+                if (tt1.IsValue("ПРИ", null)) 
+                    tt1 = tt1.Next;
+                Pullenti.Ner.ReferentToken pr1 = t.Kit.ProcessReferent("PERSON", tt1, null);
+                if (pr1 != null && pr1.Referent.TypeName == "PERSONPROPERTY") 
+                {
+                    dep.AddSlot(OrganizationReferent.ATTR_OWNER, pr1.Referent, true, 0);
+                    pr1.SetDefaultLocalOnto(t.Kit.Processor);
+                    dep.AddExtReferent(pr1);
+                    if (Pullenti.Morph.LanguageHelper.EndsWith(typ.Typ, "рат")) 
+                        return new Pullenti.Ner.ReferentToken(dep, t0, pr1.EndToken);
+                    t1 = pr1.EndToken;
+                    t = t1.Next;
+                }
+            }
+            Pullenti.Ner.Referent beforeOrg = null;
+            for (Pullenti.Ner.Token ttt = typ.BeginToken.Previous; ttt != null; ttt = ttt.Previous) 
+            {
+                if (ttt.GetReferent() is OrganizationReferent) 
+                {
+                    beforeOrg = ttt.GetReferent();
+                    break;
+                }
+                else if (!(ttt is Pullenti.Ner.TextToken)) 
+                    break;
+                else if (ttt.Chars.IsLetter) 
+                    break;
+            }
+            Pullenti.Ner.Org.Internal.OrgItemNumberToken num = null;
+            List<Pullenti.Ner.Org.Internal.OrgItemNameToken> names = null;
+            Pullenti.Ner.Core.BracketSequenceToken br = null;
+            Pullenti.Ner.Core.BracketSequenceToken br00 = null;
+            Pullenti.Ner.Org.Internal.OrgItemNameToken pr = null;
+            Pullenti.Ner.Org.Internal.OrgItemTypeToken ty0;
+            bool isPureOrg = false;
+            bool isPureDep = false;
+            if (typ.Typ == "операционное управление" || typ.Typ == "операційне управління") 
+                isPureDep = true;
+            Pullenti.Ner.Token afterOrgTok = null;
+            Pullenti.Ner.Core.BracketSequenceToken brName = null;
+            float coef = typ.Coef;
+            for (; t != null; t = t.Next) 
+            {
+                if (afterOrgTemp) 
+                    break;
+                if (t.IsChar(':')) 
+                {
+                    if (t.IsNewlineAfter) 
+                        break;
+                    if (names != null || typ.Name != null) 
+                        break;
+                    continue;
+                }
+                if ((((num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(t, false, typ)))) != null) 
+                {
+                    if (t.IsNewlineBefore || typ.Number != null) 
+                        break;
+                    if (typ.Root != null && !typ.Root.CanHasNumber) 
+                        break;
+                    if ((typ.BeginToken.Previous is Pullenti.Ner.NumberToken) && (typ.WhitespacesBeforeCount < 2)) 
+                    {
+                        Pullenti.Ner.Org.Internal.OrgItemTypeToken typ2 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(num.EndToken.Next, true);
+                        if (typ2 != null && typ2.Root != null && ((typ2.Root.CanHasNumber || typ2.IsDep))) 
+                        {
+                            typ.BeginToken = typ.BeginToken.Previous;
+                            typ.Number = (typ.BeginToken as Pullenti.Ner.NumberToken).Value;
+                            dep.Number = typ.Number;
+                            num = null;
+                            coef += 1;
+                            break;
+                        }
+                    }
+                    t1 = num.EndToken;
+                    t = num.EndToken.Next;
+                    break;
+                }
+                else if ((((ty0 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t, true)))) != null && ty0.Morph.Number != Pullenti.Morph.MorphNumber.Plural && !ty0.IsDoubtRootWord) 
+                    break;
+                else if ((((br00 = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100)))) != null && names == null) 
+                {
+                    br = br00;
+                    if (!br.IsQuoteType || brName != null) 
+                        br = null;
+                    else if (t.IsNewlineBefore && !specWordBefore) 
+                        br = null;
+                    else 
+                    {
+                        bool ok1 = true;
+                        for (Pullenti.Ner.Token tt = br.BeginToken; tt != br.EndToken; tt = tt.Next) 
+                        {
+                            if (tt is Pullenti.Ner.ReferentToken) 
+                            {
+                                ok1 = false;
+                                break;
+                            }
+                        }
+                        if (ok1) 
+                        {
+                            brName = br;
+                            t1 = br.EndToken;
+                            t = t1.Next;
+                        }
+                        else 
+                            br = null;
+                    }
+                    break;
+                }
+                else 
+                {
+                    Pullenti.Ner.Referent r = t.GetReferent();
+                    if ((r == null && t.Morph.Class.IsPreposition && t.Next != null) && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                    {
+                        dep.AddGeoObject(t.Next.GetReferent());
+                        t = t.Next;
+                        break;
+                    }
+                    if (r != null) 
+                    {
+                        if (r is OrganizationReferent) 
+                        {
+                            afterOrg = r as OrganizationReferent;
+                            afterOrgTok = t;
+                            if (names == null && (t.WhitespacesAfterCount < 3) && Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t.Next, true, false)) 
+                                continue;
+                            break;
+                        }
+                        if ((r is Pullenti.Ner.Geo.GeoReferent) && names != null && t.Previous != null) 
+                        {
+                            bool isName = false;
+                            if (t.Previous.IsValue("СУБЪЕКТ", null) || t.Previous.IsValue("СУБЄКТ", null)) 
+                                isName = true;
+                            if (!isName) 
+                                break;
+                        }
+                        else 
+                            break;
+                    }
+                    Pullenti.Ner.Org.Internal.OrgItemEponymToken epo = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t, true);
+                    if (epo != null) 
+                    {
+                        foreach (string e in epo.Eponyms) 
+                        {
+                            dep.AddEponym(e);
+                        }
+                        t1 = epo.EndToken;
+                        break;
+                    }
+                    if (!typ.Chars.IsAllUpper && t.Chars.IsAllUpper) 
+                    {
+                        Pullenti.Ner.Org.Internal.OrgItemNameToken na1 = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t, pr, attachTyp == AttachType.ExtOntology, false);
+                        if (na1 != null && ((na1.IsStdName || na1.StdOrgNameNouns > 0))) 
+                        {
+                        }
+                        else 
+                            break;
+                    }
+                    if ((t is Pullenti.Ner.NumberToken) && typ.Root != null && dep.Number == null) 
+                    {
+                        if (t.WhitespacesBeforeCount > 1 || !typ.Root.CanHasNumber) 
+                            break;
+                        if ((typ.BeginToken.Previous is Pullenti.Ner.NumberToken) && (typ.WhitespacesBeforeCount < 2)) 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ2 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(t.Next, true);
+                            if (typ2 != null && typ2.Root != null && ((typ2.Root.CanHasNumber || typ2.IsDep))) 
+                            {
+                                typ.BeginToken = typ.BeginToken.Previous;
+                                dep.Number = (typ.Number = (typ.BeginToken as Pullenti.Ner.NumberToken).Value);
+                                coef += 1;
+                                break;
+                            }
+                        }
+                        dep.Number = (t as Pullenti.Ner.NumberToken).Value.ToString();
+                        t1 = t;
+                        continue;
+                    }
+                    if (isPureDep) 
+                        break;
+                    if (!t.Chars.IsAllLower) 
+                    {
+                        Pullenti.Ner.ReferentToken rtp = t.Kit.ProcessReferent("PERSON", t, null);
+                        if (rtp != null && rtp.Referent.TypeName == "PERSONPROPERTY") 
+                        {
+                            if (rtp.Morph.Case.IsGenitive && t == typ.EndToken.Next && (t.WhitespacesBeforeCount < 4)) 
+                                rtp = null;
+                        }
+                        if (rtp != null) 
+                            break;
+                    }
+                    if (typ.Typ == "генеральный штаб" || typ.Typ == "генеральний штаб") 
+                    {
+                        Pullenti.Ner.ReferentToken rtp = t.Kit.ProcessReferent("PERSONPROPERTY", t, null);
+                        if (rtp != null) 
+                            break;
+                    }
+                    Pullenti.Ner.Org.Internal.OrgItemNameToken na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(t, pr, attachTyp == AttachType.ExtOntology, names == null);
+                    if (t.IsValue("ПО", null) && t.Next != null) 
+                    {
+                        Pullenti.Ner.Token tt = t.Next;
+                        if (tt.IsValue("ОБСЛУЖИВАНИЕ", null) && tt.Next != null) 
+                            tt = tt.Next;
+                        if (tt.IsValue("РАЙОН", null) || tt.IsValue("МИКРОРАЙОН", null)) 
+                            na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(tt.Next, pr, attachTyp == AttachType.ExtOntology, true);
+                    }
+                    if (t.Morph.Class.IsPreposition && ((t.IsValue("ПРИ", null) || t.IsValue("OF", null) || t.IsValue("AT", null)))) 
+                    {
+                        if ((t.Next is Pullenti.Ner.ReferentToken) && (t.Next.GetReferent() is OrganizationReferent)) 
+                        {
+                            afterOrg = t.Next.GetReferent() as OrganizationReferent;
+                            break;
+                        }
+                        Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t.Next, AttachType.NormalAfterDep, null, false, -1);
+                        if (rt0 != null) 
+                        {
+                            afterOrg = rt0.Referent as OrganizationReferent;
+                            afterOrgTemp = true;
+                            break;
+                        }
+                    }
+                    if (na == null) 
+                        break;
+                    if (names == null) 
+                    {
+                        if (t.IsNewlineBefore) 
+                            break;
+                        if (Pullenti.Ner.Core.NumberHelper.TryParseRoman(t) != null) 
+                            break;
+                        Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t, AttachType.NormalAfterDep, null, false, -1);
+                        if (rt0 != null) 
+                        {
+                            afterOrg = rt0.Referent as OrganizationReferent;
+                            afterOrgTemp = true;
+                            break;
+                        }
+                        names = new List<Pullenti.Ner.Org.Internal.OrgItemNameToken>();
+                    }
+                    else 
+                    {
+                        if (t.WhitespacesBeforeCount > 2 && !na.Chars.Equals(pr.Chars)) 
+                            break;
+                        if (t.NewlinesBeforeCount > 2) 
+                            break;
+                    }
+                    names.Add(na);
+                    pr = na;
+                    t1 = (t = na.EndToken);
+                }
+            }
+            if (afterOrg == null) 
+            {
+                for (Pullenti.Ner.Token ttt = t; ttt != null; ttt = ttt.Next) 
+                {
+                    if (ttt.GetReferent() is OrganizationReferent) 
+                    {
+                        afterOrg = ttt.GetReferent() as OrganizationReferent;
+                        break;
+                    }
+                    else if (!(ttt is Pullenti.Ner.TextToken)) 
+                        break;
+                    else if ((ttt.Chars.IsLetter && !ttt.IsValue("ПРИ", null) && !ttt.IsValue("В", null)) && !ttt.IsValue("OF", null) && !ttt.IsValue("AT", null)) 
+                        break;
+                    else if (ttt.IsChar(';') && attachTyp == AttachType.ExtOntology) 
+                        break;
+                }
+            }
+            if ((afterOrg == null && t != null && t != t0) && (t.WhitespacesBeforeCount < 2)) 
+            {
+                Pullenti.Ner.ReferentToken rt0 = TryAttachOrg(t, AttachType.NormalAfterDep, null, false, -1);
+                if (rt0 == null && (((t.IsValue("В", null) || t.IsValue("ПРИ", null) || t.IsValue("OF", null)) || t.IsValue("AT", null)))) 
+                    rt0 = TryAttachOrg(t.Next, AttachType.NormalAfterDep, null, false, -1);
+                if (rt0 != null) 
+                {
+                    afterOrg = rt0.Referent as OrganizationReferent;
+                    afterOrgTemp = true;
+                }
+            }
+            if (typ.Chars.IsCapitalUpper) 
+                coef += 0.5F;
+            else if (!typ.Chars.IsAllLower && typ.BeginToken.Chars.IsCapitalUpper) 
+                coef += 0.5F;
+            if (br != null && names == null) 
+            {
+                string nam = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
+                if (!string.IsNullOrEmpty(nam)) 
+                {
+                    if (nam.Length > 100) 
+                        return null;
+                    coef += 3;
+                    Pullenti.Ner.Org.Internal.OrgItemNameToken na = Pullenti.Ner.Org.Internal.OrgItemNameToken.TryAttach(br.BeginToken.Next, null, false, true);
+                    if (na != null && na.IsStdName) 
+                    {
+                        coef += 1;
+                        if (typ.Typ == "группа") 
+                        {
+                            dep.Slots.Clear();
+                            typ.Typ = "группа компаний";
+                            isPureOrg = true;
+                        }
+                        else if (typ.Typ == "група") 
+                        {
+                            dep.Slots.Clear();
+                            typ.Typ = "група компаній";
+                            isPureOrg = true;
+                        }
+                    }
+                    if (isPureOrg) 
+                    {
+                        dep.AddType(typ, false);
+                        dep.AddName(nam, true, null);
+                    }
+                    else 
+                        dep.AddNameStr(nam, typ, 1);
+                }
+            }
+            else if (names != null) 
+            {
+                int j;
+                if (afterOrg != null || attachTyp == AttachType.High) 
+                {
+                    coef += 3;
+                    j = names.Count;
+                }
+                else 
+                    for (j = 0; j < names.Count; j++) 
+                    {
+                        if (((names[j].IsNewlineBefore && !typ.IsNewlineBefore && !names[j].IsAfterConjunction)) || ((!names[j].Chars.Equals(names[0].Chars) && names[j].StdOrgNameNouns == 0))) 
+                            break;
+                        else 
+                        {
+                            if (names[j].Chars.Equals(typ.Chars) && !typ.Chars.IsAllLower) 
+                                coef += ((float)0.5);
+                            if (names[j].IsStdName) 
+                                coef += 2;
+                            if (names[j].StdOrgNameNouns > 0) 
+                            {
+                                if (!typ.Chars.IsAllLower) 
+                                    coef += names[j].StdOrgNameNouns;
+                            }
+                        }
+                    }
+                if (names[j - 1].EndChar > t1.EndChar) 
+                    t1 = names[j - 1].EndToken;
+                string s = Pullenti.Ner.Core.MiscHelper.GetTextValue(names[0].BeginToken, t1, Pullenti.Ner.Core.GetTextAttr.No);
+                if (!string.IsNullOrEmpty(s)) 
+                {
+                    if (s.Length > 150 && attachTyp != AttachType.ExtOntology) 
+                        return null;
+                    dep.AddNameStr(s, typ, 1);
+                }
+                if (num != null) 
+                {
+                    dep.Number = num.Number;
+                    coef += 2;
+                    t1 = num.EndToken;
+                }
+            }
+            else if (num != null) 
+            {
+                dep.Number = num.Number;
+                coef += 2;
+                t1 = num.EndToken;
+                if (typ != null && ((typ.Typ == "лаборатория" || typ.Typ == "лабораторія"))) 
+                    coef += 1;
+                if (typ.Name != null) 
+                    dep.AddNameStr(null, typ, 1);
+            }
+            else if (typ.Name != null) 
+            {
+                if (typ.Typ == "курс" && char.IsDigit(typ.Name[0])) 
+                    dep.Number = typ.Name.Substring(0, typ.Name.IndexOf(' '));
+                else 
+                    dep.AddNameStr(null, typ, 1);
+            }
+            else if (typ.Typ == "кафедра" || typ.Typ == "факультет") 
+            {
+                t = typ.EndToken.Next;
+                if (t != null && t.IsChar(':')) 
+                    t = t.Next;
+                if ((t != null && (t is Pullenti.Ner.TextToken) && !t.IsNewlineBefore) && t.Morph.Class.IsAdjective) 
+                {
+                    if (typ.Morph.Gender == t.Morph.Gender) 
+                    {
+                        string s = t.GetNormalCaseText(Pullenti.Morph.MorphClass.Adjective, Pullenti.Morph.MorphNumber.Undefined, Pullenti.Morph.MorphGender.Undefined, false);
+                        if (s != null) 
+                        {
+                            dep.AddNameStr(string.Format("{0} {1}", s, typ.Typ.ToUpper()), null, 1);
+                            coef += 2;
+                            t1 = t;
+                        }
+                    }
+                }
+            }
+            else if (typ.Typ == "курс") 
+            {
+                t = typ.EndToken.Next;
+                if (t != null && t.IsChar(':')) 
+                    t = t.Next;
+                if (t != null && !t.IsNewlineBefore) 
+                {
+                    int val = 0;
+                    if (t is Pullenti.Ner.NumberToken) 
+                    {
+                        if (!t.Morph.Class.IsNoun && (t as Pullenti.Ner.NumberToken).IntValue != null) 
+                        {
+                            if (t.IsWhitespaceAfter || t.Next.IsCharOf(";,")) 
+                                val = (t as Pullenti.Ner.NumberToken).IntValue.Value;
+                        }
+                    }
+                    else 
+                    {
+                        Pullenti.Ner.NumberToken nt = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t);
+                        if (nt != null && nt.IntValue != null) 
+                        {
+                            val = nt.IntValue.Value;
+                            t = nt.EndToken;
+                        }
+                    }
+                    if (val > 0 && (val < 8)) 
+                    {
+                        dep.Number = val.ToString();
+                        t1 = t;
+                        coef += 4;
+                    }
+                }
+                if (dep.Number == null) 
+                {
+                    t = typ.BeginToken.Previous;
+                    if (t != null && !t.IsNewlineAfter) 
+                    {
+                        int val = 0;
+                        if (t is Pullenti.Ner.NumberToken) 
+                        {
+                            if (!t.Morph.Class.IsNoun && (t as Pullenti.Ner.NumberToken).IntValue != null) 
+                            {
+                                if (t.IsWhitespaceBefore || t.Previous.IsCharOf(",")) 
+                                    val = (t as Pullenti.Ner.NumberToken).IntValue.Value;
+                            }
+                        }
+                        else 
+                        {
+                            Pullenti.Ner.NumberToken nt = Pullenti.Ner.Core.NumberHelper.TryParseRomanBack(t);
+                            if (nt != null && nt.IntValue != null) 
+                            {
+                                val = nt.IntValue.Value;
+                                t = nt.BeginToken;
+                            }
+                        }
+                        if (val > 0 && (val < 8)) 
+                        {
+                            dep.Number = val.ToString();
+                            t0 = t;
+                            coef += 4;
+                        }
+                    }
+                }
+            }
+            else if (typ.Root != null && typ.Root.CanBeNormalDep && afterOrg != null) 
+            {
+                coef += 3;
+                if (!afterOrgTemp) 
+                    dep.Higher = afterOrg as OrganizationReferent;
+                else 
+                    dep.m_TempParentOrg = afterOrg as OrganizationReferent;
+                if (afterOrgTok != null) 
+                    t1 = afterOrgTok;
+            }
+            else if (typ.Typ == "генеральный штаб" || typ.Typ == "генеральний штаб") 
+                coef += 3;
+            if (beforeOrg != null) 
+                coef += 1;
+            if (afterOrg != null) 
+            {
+                coef += 2;
+                if (((typ.Name != null || ((typ.Root != null && typ.Root.CanBeNormalDep)))) && Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(afterOrg as OrganizationReferent, dep, false)) 
+                {
+                    coef += 1;
+                    if (!typ.Chars.IsAllLower) 
+                        coef += 0.5F;
+                }
+            }
+            if (typ.Typ == "курс" || typ.Typ == "группа" || typ.Typ == "група") 
+            {
+                if (dep.Number == null) 
+                    coef = 0;
+                else if (typ.Typ == "курс") 
+                {
+                    int n;
+                    if (int.TryParse(dep.Number, out n)) 
+                    {
+                        if (n > 0 && (n < 9)) 
+                            coef += 2;
+                    }
+                }
+            }
+            if (t1.Next != null && t1.Next.IsChar('(')) 
+            {
+                Pullenti.Ner.Token ttt = t1.Next.Next;
+                if ((ttt != null && ttt.Next != null && ttt.Next.IsChar(')')) && (ttt is Pullenti.Ner.TextToken)) 
+                {
+                    if (dep.NameVars.ContainsKey((ttt as Pullenti.Ner.TextToken).Term)) 
+                    {
+                        coef += 2;
+                        dep.AddName((ttt as Pullenti.Ner.TextToken).Term, true, ttt);
+                        t1 = ttt.Next;
+                    }
+                }
+            }
+            Pullenti.Ner.Org.Internal.OrgItemEponymToken ep = Pullenti.Ner.Org.Internal.OrgItemEponymToken.TryAttach(t1.Next, false);
+            if (ep != null) 
+            {
+                coef += 2;
+                foreach (string e in ep.Eponyms) 
+                {
+                    dep.AddEponym(e);
+                }
+                t1 = ep.EndToken;
+            }
+            if (brName != null) 
+            {
+                string str1 = Pullenti.Ner.Core.MiscHelper.GetTextValue(brName.BeginToken.Next, brName.EndToken.Previous, Pullenti.Ner.Core.GetTextAttr.No);
+                if (str1 != null) 
+                    dep.AddName(str1, true, null);
+            }
+            if (dep.Slots.Count == 0) 
+                return null;
+            Pullenti.Ner.ReferentToken res = new Pullenti.Ner.ReferentToken(dep, t0, t1);
+            CorrectDepAttrs(res, typ, afterOrgTemp);
+            if (afterOrg != null && dep.Higher == null && !afterOrgTemp) 
+            {
+                if (Pullenti.Ner.Org.Internal.OrgOwnershipHelper.CanBeHigher(afterOrg, dep, false)) 
+                    dep.Higher = afterOrg;
+            }
+            if (dep.Number != null) 
+                coef += 2;
+            if (isPureDep) 
+                coef += 2;
+            if (specWordBefore) 
+            {
+                if (dep.FindSlot(OrganizationReferent.ATTR_NAME, null, true) != null) 
+                    coef += 2;
+            }
+            if ((typ != null && typ.Root != null && typ.Root.CanBeNormalDep) && typ.Name != null && typ.Name.IndexOf(' ') > 0) 
+                coef += 4;
+            if (((typ != null && typ.Root != null && !typ.Root.CanBeNormalDep) && dep.Higher == null && !afterOrgTemp) && afterOrg == null && dep.Number == null) 
+            {
+                if (typ.Typ == "руководство") 
+                    return null;
+            }
+            if (coef > 3 || attachTyp == AttachType.ExtOntology) 
+                return res;
+            else 
+                return null;
+        }
+        static void CorrectDepAttrs(Pullenti.Ner.ReferentToken res, Pullenti.Ner.Org.Internal.OrgItemTypeToken typ, bool afterTempOrg = false)
+        {
+            Pullenti.Ner.Token t0 = res.BeginToken;
+            OrganizationReferent dep = res.Referent as OrganizationReferent;
+            bool isUnit = false;
+            foreach (string ty in dep.Types) 
+            {
+                if ((((((ty.Contains("офис") || ty.Contains("офіс") || ty.Contains("отдел")) || ty.Contains("отделение") || ty.Contains("инспекция")) || ty.Contains("лаборатория") || ty.Contains("управление")) || ty.Contains("управління") || ty.Contains("відділ")) || ty.Contains("відділення") || ty.Contains("інспекція")) || ty.Contains("лабораторія")) 
+                    isUnit = true;
+            }
+            if (((typ != null && typ.Root != null && typ.Root.CanHasNumber)) || isUnit) 
+            {
+                if ((t0.Previous is Pullenti.Ner.NumberToken) && (t0.WhitespacesBeforeCount < 3) && t0.Previous.IsWhitespaceBefore) 
+                {
+                    if (t0.Previous.Morph.Class.IsNoun && !t0.Previous.Morph.Class.IsAdjective) 
+                    {
+                    }
+                    else 
+                    {
+                        bool ok = true;
+                        int cou = 3;
+                        for (Pullenti.Ner.Token tt1 = t0.Previous.Previous; tt1 != null && cou >= 0; tt1 = tt1.Previous,cou--) 
+                        {
+                            Pullenti.Ner.Org.Internal.OrgItemTypeToken typ00 = Pullenti.Ner.Org.Internal.OrgItemTypeToken.TryAttach(tt1, false);
+                            if (typ00 != null && typ00.Root != null && typ00.Root.Typ == Pullenti.Ner.Org.Internal.OrgItemTypeTyp.DepAdd) 
+                            {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        if (ok) 
+                        {
+                            string nn = (t0.Previous as Pullenti.Ner.NumberToken).Value.ToString();
+                            if (dep.Number == null || dep.Number == nn) 
+                            {
+                                dep.Number = nn;
+                                t0 = t0.Previous;
+                                res.BeginToken = t0;
+                            }
+                        }
+                    }
+                }
+                if (Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(res.EndToken.Next) != null && (res.EndToken.WhitespacesAfterCount < 3) && dep.Number == null) 
+                {
+                    Pullenti.Ner.Org.Internal.OrgItemNumberToken num = Pullenti.Ner.Org.Internal.OrgItemNumberToken.TryAttach(res.EndToken.Next, false, typ);
+                    if (num != null) 
+                    {
+                        dep.Number = num.Number;
+                        res.EndToken = num.EndToken;
+                    }
+                }
+            }
+            if (dep.Types.Contains("управление") || dep.Types.Contains("департамент") || dep.Types.Contains("управління")) 
+            {
+                foreach (Pullenti.Ner.Slot s in dep.Slots) 
+                {
+                    if (s.TypeName == OrganizationReferent.ATTR_GEO && (s.Value is Pullenti.Ner.Geo.GeoReferent)) 
+                    {
+                        Pullenti.Ner.Geo.GeoReferent g = s.Value as Pullenti.Ner.Geo.GeoReferent;
+                        if (g.IsState && g.Alpha2 == "RU") 
+                        {
+                            dep.Slots.Remove(s);
+                            break;
+                        }
+                    }
+                }
+            }
+            Pullenti.Ner.Token t1 = res.EndToken;
+            if (t1.Next == null || afterTempOrg) 
+                return;
+            Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+            if (br != null && (t1.WhitespacesAfterCount < 2) && br.IsQuoteType) 
+            {
+                object g = IsGeo(br.BeginToken.Next, false);
+                if (g is Pullenti.Ner.ReferentToken) 
+                {
+                    if ((g as Pullenti.Ner.ReferentToken).EndToken.Next == br.EndToken) 
+                    {
+                        dep.AddGeoObject(g);
+                        t1 = (res.EndToken = br.EndToken);
+                    }
+                }
+                else if ((g is Pullenti.Ner.Referent) && br.BeginToken.Next.Next == br.EndToken) 
+                {
+                    dep.AddGeoObject(g);
+                    t1 = (res.EndToken = br.EndToken);
+                }
+                else if (br.BeginToken.Next.IsValue("О", null) || br.BeginToken.Next.IsValue("ОБ", null)) 
+                {
+                }
+                else 
+                {
+                    string nam = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(br, Pullenti.Ner.Core.GetTextAttr.No);
+                    if (nam != null) 
+                    {
+                        dep.AddName(nam, true, br.BeginToken.Next);
+                        t1 = (res.EndToken = br.EndToken);
+                    }
+                }
+            }
+            bool prep = false;
+            if (t1.Next != null) 
+            {
+                if (t1.Next.Morph.Class.IsPreposition) 
+                {
+                    if (t1.Next.IsValue("В", null) || t1.Next.IsValue("ПО", null)) 
+                    {
+                        t1 = t1.Next;
+                        prep = true;
+                    }
+                }
+                if (t1.Next != null && (t1.Next.WhitespacesBeforeCount < 3)) 
+                {
+                    if (t1.Next.IsValue("НА", null) && t1.Next.Next != null && t1.Next.Next.IsValue("ТРАНСПОРТ", null)) 
+                        res.EndToken = (t1 = t1.Next.Next);
+                }
+            }
+            for (int k = 0; k < 2; k++) 
+            {
+                if (t1.Next == null) 
+                    return;
+                Pullenti.Ner.Geo.GeoReferent geo = t1.Next.GetReferent() as Pullenti.Ner.Geo.GeoReferent;
+                bool ge = false;
+                if (geo != null) 
+                {
+                    if (!dep.AddGeoObject(geo)) 
+                        return;
+                    res.EndToken = t1.Next;
+                    ge = true;
+                }
+                else 
+                {
+                    Pullenti.Ner.ReferentToken rgeo = t1.Kit.ProcessReferent("GEO", t1.Next, null);
+                    if (rgeo != null) 
+                    {
+                        if (!rgeo.Morph.Class.IsAdjective) 
+                        {
+                            if (!dep.AddGeoObject(rgeo)) 
+                                return;
+                            res.EndToken = rgeo.EndToken;
+                            ge = true;
+                        }
+                    }
+                }
+                if (!ge) 
+                    return;
+                t1 = res.EndToken;
+                if (t1.Next == null) 
+                    return;
+                bool isAnd = false;
+                if (t1.Next.IsAnd) 
+                    t1 = t1.Next;
+                if (t1 == null) 
+                    return;
+            }
+        }
     }
 }

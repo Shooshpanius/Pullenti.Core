@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -593,7 +593,7 @@ namespace Pullenti.Ner.Person.Internal
                 if (pit.IsInDictionary) 
                     res.Coef--;
                 Pullenti.Ner.TextToken tt = pit.BeginToken as Pullenti.Ner.TextToken;
-                if ((tt != null && !tt.Chars.IsLatinLetter && tt.Chars.IsCapitalUpper) && tt.LengthChar > 2 && !tt.Chars.IsLatinLetter) 
+                if ((tt != null && !tt.Chars.IsLatinLetter && tt.Chars.IsCapitalUpper) && tt.LengthChar > 2) 
                 {
                     bool ok = true;
                     foreach (Pullenti.Morph.MorphBaseInfo wf in tt.Morph.Items) 
@@ -1485,7 +1485,7 @@ namespace Pullenti.Ner.Person.Internal
                 if (pits[ind].IsNewlineBefore && pits[ind + 2].IsNewlineAfter) 
                 {
                 }
-                else if (pits[ind].BeginToken.Previous != null && pits[ind].BeginToken.Previous.IsTableControlChar) 
+                else if (pits[ind].BeginToken.Previous != null && ((pits[ind].BeginToken.Previous.IsTableControlChar || pits[ind].BeginToken.Previous.IsChar(']')))) 
                 {
                 }
                 else 
@@ -1500,7 +1500,7 @@ namespace Pullenti.Ner.Person.Internal
                 if (pits[ind].IsNewlineBefore && pits[ind + 2].IsNewlineAfter) 
                 {
                 }
-                else if (pits[ind].BeginToken.Previous != null && pits[ind].BeginToken.Previous.IsTableControlChar) 
+                else if (pits[ind].BeginToken.Previous != null && ((pits[ind].BeginToken.Previous.IsTableControlChar || pits[ind].BeginToken.Previous.IsChar(']')))) 
                 {
                 }
                 else 

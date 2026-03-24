@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -469,6 +469,18 @@ namespace Pullenti.Ner.Phone.Internal
                     res.RemoveAt(res.Count - 1);
                 else 
                     break;
+            }
+            for (int i = 0; i < (res.Count - 2); i++) 
+            {
+                if (res[i].ItemType == PhoneItemType.CityCode && res[i + 1].ItemType == PhoneItemType.CityCode && res[i + 2].ItemType == PhoneItemType.CityCode) 
+                {
+                    for (i = i + 1; i < res.Count; i++) 
+                    {
+                        if (res[i].ItemType == PhoneItemType.CityCode) 
+                            res[i].ItemType = PhoneItemType.Number;
+                    }
+                    break;
+                }
             }
             return res;
         }

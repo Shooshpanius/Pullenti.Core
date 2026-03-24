@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -625,6 +625,8 @@ namespace Pullenti.Ner.Core
                         if (!Pullenti.Morph.LanguageHelper.IsCyrillicVowel(t1.Term[t1.Term.Length - 1])) 
                             return null;
                     }
+                    else 
+                        return null;
                 }
                 return new Pullenti.Ner.Core.TerminToken(t0, t1);
             }
@@ -1024,6 +1026,25 @@ namespace Pullenti.Ner.Core
                     {
                         if (tt.Next != null && tt.IsCharOf(".,") && Terms[i].CheckByToken(tt.Next)) 
                             tt = tt.Next;
+                        else if ((tt is Pullenti.Ner.ReferentToken) && Terms[i].CheckByToken((tt as Pullenti.Ner.ReferentToken).BeginToken)) 
+                        {
+                            for (Pullenti.Ner.Token tt2 = (tt as Pullenti.Ner.ReferentToken).BeginToken.Next; tt2 != null && tt2.EndChar <= tt.EndChar; tt2 = tt2.Next) 
+                            {
+                                if ((i + 1) >= Terms.Count) 
+                                {
+                                    ok = false;
+                                    break;
+                                }
+                                if (!Terms[i + 1].CheckByToken(tt2)) 
+                                {
+                                    ok = false;
+                                    break;
+                                }
+                                i++;
+                            }
+                            if (!ok) 
+                                break;
+                        }
                         else if (((i > 0 && tt.Next != null && (tt is Pullenti.Ner.TextToken)) && ((tt.Morph.Class.IsPreposition || MiscHelper.IsEngArticle(tt))) && Terms[i].CheckByToken(tt.Next)) && !Terms[i - 1].IsPatternAny) 
                             tt = tt.Next;
                         else 

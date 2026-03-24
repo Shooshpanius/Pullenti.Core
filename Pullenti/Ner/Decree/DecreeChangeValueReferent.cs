@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -100,7 +100,7 @@ namespace Pullenti.Ner.Decree
                     if (res is DecreeChangeValueKind) 
                         return (DecreeChangeValueKind)res;
                 }
-                catch(Exception ex1830) 
+                catch(Exception ex1894) 
                 {
                 }
                 return DecreeChangeValueKind.Undefined;
@@ -186,5 +186,6 @@ namespace Pullenti.Ner.Decree
         {
             return obj == this;
         }
+        internal bool IsContent;
     }
 }

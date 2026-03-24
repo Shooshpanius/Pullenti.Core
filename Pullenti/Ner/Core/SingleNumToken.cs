@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -107,8 +107,10 @@ namespace Pullenti.Ner.Core
                 {
                     res.BeginToken = t;
                     res.Prefix = "(";
+                    return res;
                 }
-                return res;
+                else 
+                    return null;
             }
             if (t.IsChar('<') && !t.IsWhitespaceAfter) 
             {
@@ -149,7 +151,7 @@ namespace Pullenti.Ner.Core
                         hasPref = true;
                         t = tt;
                     }
-                    else if ((t.Previous != null && _checkKeyword(t.Previous)) || t.Previous.IsNewlineBefore) 
+                    else if (t.Previous != null && ((_checkKeyword(t.Previous) || t.Previous.IsNewlineBefore))) 
                     {
                         hasPref = true;
                         t = tt;
@@ -173,6 +175,11 @@ namespace Pullenti.Ner.Core
                     {
                     }
                     else 
+                        return null;
+                }
+                if (t.Next != null) 
+                {
+                    if (t.Next.IsValue("ГОД", null) || t.Next.IsValue("ЛЕТ", null)) 
                         return null;
                 }
                 res = new SingleNumToken(t0, t);
@@ -241,6 +248,11 @@ namespace Pullenti.Ner.Core
                     res._addNum(5, true, up);
                 if (ch == 'X' || ch == 'Х') 
                     res._addNum(10, true, up);
+            }
+            else if (t.IsCharOf("ˡ¹²³")) 
+            {
+                res = new SingleNumToken(t, t);
+                res._addNum((t.IsCharOf("ˡ¹") ? 1 : (t.IsChar('²') ? 2 : 3)), false, false);
             }
             else 
             {

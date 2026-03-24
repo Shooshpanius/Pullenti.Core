@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -175,6 +175,515 @@ namespace Pullenti.Ner.Geo.Internal
             {
             }
             return li;
+        }
+        public static void Initialize()
+        {
+            if (m_Ontology != null) 
+                return;
+            m_Ontology = new Pullenti.Ner.Core.IntOntologyCollection();
+            m_OntologyEx = new Pullenti.Ner.Core.IntOntologyCollection();
+            m_CityAdjectives = new Pullenti.Ner.Core.TerminCollection();
+            Pullenti.Ner.Core.Termin t;
+            t = new Pullenti.Ner.Core.Termin("ГОРОД");
+            t.AddAbridge("ГОР.");
+            t.AddAbridge("Г.");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("ГОРД");
+            t.AddAbridge("ГРД");
+            t.AddAbridge("МУН.");
+            t.AddVariant("ГОРОД ФЕДЕРАЛЬНОГО ЗНАЧЕНИЯ", false);
+            t.AddVariant("ГОРОД ГОРОДСКОЕ ПОСЕЛЕНИЕ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ГОРОДОК");
+            t.Tag = ItemType.Noun;
+            t.AddVariant("ШАХТЕРСКИЙ ГОРОДОК", false);
+            t.AddVariant("ПРИМОРСКИЙ ГОРОДОК", false);
+            t.AddVariant("МАЛЕНЬКИЙ ГОРОДОК", false);
+            t.AddVariant("НЕБОЛЬШОЙ ГОРОДОК", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("CITY");
+            t.Tag = ItemType.Noun;
+            t.AddVariant("TOWN", false);
+            t.AddVariant("CAPITAL", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("LOCALITY");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("VILLAGE");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МІСТО", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("МІС.");
+            t.AddAbridge("М.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ГОРОД-ГЕРОЙ") { CanonicText = "ГОРОД" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МІСТО-ГЕРОЙ", Pullenti.Morph.MorphLang.UA) { CanonicText = "МІСТО" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ГОРОД-КУРОРТ") { CanonicText = "ГОРОД" };
+            t.AddAbridge("Г.К.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МІСТО-КУРОРТ", Pullenti.Morph.MorphLang.UA) { CanonicText = "МІСТО" };
+            t.AddAbridge("М.К.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕЛО");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ДЕРЕВНЯ");
+            t.AddAbridge("ДЕР.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕЛЕНИЕ");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("СЕЛ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕЛО", Pullenti.Morph.MorphLang.UA);
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПОСЕЛЕНИЕ");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("АГРОГОРОДОК");
+            t.Tag = ItemType.Noun;
+            t.AddVariant("АГРО ГОРОДОК", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПОСЕЛОК");
+            t.AddAbridge("ПОС.");
+            t.Tag = ItemType.Noun;
+            t.AddVariant("ЖИЛОЙ ПОСЕЛОК", false);
+            t.AddVariant("КУРОРТНЫЙ ПОСЕЛОК", false);
+            t.AddVariant("ВАХТОВЫЙ ПОСЕЛОК", false);
+            t.AddVariant("ШАХТЕРСКИЙ ПОСЕЛОК", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕЛИЩЕ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("СЕЛ.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПОСЕЛОК ГОРОДСКОГО ТИПА");
+            t.Acronym = (t.AcronymSmart = "ПГТ");
+            t.AddAbridge("ПГТ.");
+            t.AddAbridge("П.Г.Т.");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("ПОС.Г.Т.");
+            t.AddVariant("ГОРОДСКОЙ ПОСЕЛОК", false);
+            t.AddAbridge("ГОРОДСКОЙ ПОС.");
+            t.AddAbridge("ГОР.ПОС.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕЛИЩЕ МІСЬКОГО ТИПУ", Pullenti.Morph.MorphLang.UA);
+            t.Acronym = (t.AcronymSmart = "СМТ");
+            t.AddAbridge("СМТ.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("РАБОЧИЙ ПОСЕЛОК");
+            t.AddAbridge("Р.П.");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("РАБ.П.");
+            t.AddAbridge("Р.ПОС.");
+            t.AddAbridge("РАБ.ПОС.");
+            t.AddAbridge("РП");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("РОБОЧЕ СЕЛИЩЕ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("Р.С.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ДАЧНЫЙ ПОСЕЛОК");
+            t.AddAbridge("Д.П.");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("ДАЧ.П.");
+            t.AddAbridge("Д.ПОС.");
+            t.AddAbridge("ДАЧ.ПОС.");
+            t.AddVariant("ЖИЛИЩНО ДАЧНЫЙ ПОСЕЛОК", false);
+            t.AddVariant("ДАЧНОЕ ПОСЕЛЕНИЕ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ДАЧНЕ СЕЛИЩЕ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("Д.С.");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("ДАЧ.С.");
+            t.AddAbridge("Д.СЕЛ.");
+            t.AddAbridge("ДАЧ.СЕЛ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ГОРОДСКОЕ ПОСЕЛЕНИЕ") { Acronym = "ГП", AcronymCanBeLower = true };
+            t.AddAbridge("Г.П.");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("Г.ПОС.");
+            t.AddAbridge("ГОР.П.");
+            t.AddAbridge("ГОР.ПОС.");
+            t.AddAbridge("ГП.");
+            t.AddVariant("ГОРОДСКОЙ ПОСЕЛОК", false);
+            t.AddAbridge("Г.О.Г.");
+            t.AddAbridge("ГОРОДСКОЙ ОКРУГ Г.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПОСЕЛКОВОЕ ПОСЕЛЕНИЕ") { CanonicText = "ПОСЕЛОК", Tag = ItemType.Noun };
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МІСЬКЕ ПОСЕЛЕННЯ", Pullenti.Morph.MorphLang.UA);
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕЛЬСКОЕ ПОСЕЛЕНИЕ");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("С.ПОС.");
+            t.AddAbridge("С.П.");
+            t.AddVariant("СЕЛЬСКИЙ ПОСЕЛОК", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СІЛЬСЬКЕ ПОСЕЛЕННЯ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("С.ПОС.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТАНИЦА");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("СТ-ЦА");
+            t.AddAbridge("СТАН-ЦА");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТАНИЦЯ", Pullenti.Morph.MorphLang.UA);
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТОЛИЦА") { CanonicText = "ГОРОД" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТОЛИЦЯ", Pullenti.Morph.MorphLang.UA) { CanonicText = "МІСТО" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТАНЦИЯ");
+            t.AddAbridge("СТАНЦ.");
+            t.AddAbridge("СТ.");
+            t.AddAbridge("СТАН.");
+            t.AddVariant("ПЛАТФОРМА", false);
+            t.AddAbridge("ПЛАТФ.");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПОЛУСТАНОК");
+            t.AddAbridge("П.СТ.");
+            t.AddAbridge("П/СТ");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТАНЦІЯ", Pullenti.Morph.MorphLang.UA);
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ЖЕЛЕЗНОДОРОЖНАЯ СТАНЦИЯ");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("Ж/Д СТАНЦИЯ");
+            t.AddAbridge("Ж/Д СТ.");
+            t.AddAbridge("Ж/Д СТАНЦ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ЗАЛІЗНИЧНА СТАНЦІЯ", Pullenti.Morph.MorphLang.UA);
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НАСЕЛЕННЫЙ ПУНКТ");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("Н.П.");
+            t.AddAbridge("Б.Н.П.");
+            t.AddAbridge("НП");
+            m_NaselPunkt = t;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НАСЕЛЕНИЙ ПУНКТ", Pullenti.Morph.MorphLang.UA);
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("НП");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("РАЙОННЫЙ ЦЕНТР") { CanonicText = "НАСЕЛЕННЫЙ ПУНКТ" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("РАЙОННИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { CanonicText = "НАСЕЛЕНИЙ ПУНКТ" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ОБЛАСТНОЙ ЦЕНТР") { CanonicText = "НАСЕЛЕННЫЙ ПУНКТ" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ОБЛАСНИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { CanonicText = "НАСЕЛЕНИЙ ПУНКТ" };
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ПОЧИНОК");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ХУТОР");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЛОБОДА");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("СЛ.");
+            t.AddAbridge("СЛОБ.");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("АУЛ");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ААЛ");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("КИШЛАК");
+            t.Tag = ItemType.Noun;
+            t.AddAbridge("К-К");
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("УЛУС");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НАСЛЕГ");
+            t.Tag = ItemType.Noun;
+            t.AddVariant("НАЦИОНАЛЬНЫЙ НАСЛЕГ", false);
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("АРБАН");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ВЫСЕЛКИ");
+            t.Tag = ItemType.Noun;
+            m_Ontology.Add(t);
+            foreach (string s in new string[] {"ЖИТЕЛЬ", "МЭР"}) 
+            {
+                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s) { Tag = ItemType.Misc });
+            }
+            foreach (string s in new string[] {"ЖИТЕЛЬ", "МЕР"}) 
+            {
+                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.UA) { Tag = ItemType.Misc });
+            }
+            t = new Pullenti.Ner.Core.Termin("АДМИНИСТРАЦИЯ") { Tag = ItemType.Misc };
+            t.AddAbridge("АДМ.");
+            m_Ontology.Add(t);
+            m_StdAdjectives = new Pullenti.Ner.Core.IntOntologyCollection();
+            t = new Pullenti.Ner.Core.Termin("ВЕЛИКИЙ");
+            t.AddAbridge("ВЕЛ.");
+            t.AddAbridge("ВЕЛИК.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("БОЛЬШОЙ");
+            t.AddAbridge("БОЛ.");
+            t.AddAbridge("БОЛЬШ.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МАЛЫЙ");
+            t.AddAbridge("МАЛ.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ВЕРХНИЙ");
+            t.AddAbridge("ВЕР.");
+            t.AddAbridge("ВЕРХ.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НИЖНИЙ");
+            t.AddAbridge("НИЖ.");
+            t.AddAbridge("НИЖН.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СРЕДНИЙ");
+            t.AddAbridge("СРЕД.");
+            t.AddAbridge("СРЕДН.");
+            t.AddAbridge("СР.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТАРЫЙ");
+            t.AddAbridge("СТ.");
+            t.AddAbridge("СТАР.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НОВЫЙ");
+            t.AddAbridge("НОВ.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ВЕЛИКИЙ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("ВЕЛ.");
+            t.AddAbridge("ВЕЛИК.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("МАЛИЙ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("МАЛ.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("ВЕРХНІЙ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("ВЕР.");
+            t.AddAbridge("ВЕРХ.");
+            t.AddAbridge("ВЕРХН.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НИЖНІЙ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("НИЖ.");
+            t.AddAbridge("НИЖН.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СЕРЕДНІЙ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("СЕР.");
+            t.AddAbridge("СЕРЕД.");
+            t.AddAbridge("СЕРЕДН.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("СТАРИЙ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("СТ.");
+            t.AddAbridge("СТАР.");
+            m_StdAdjectives.Add(t);
+            t = new Pullenti.Ner.Core.Termin("НОВИЙ", Pullenti.Morph.MorphLang.UA);
+            t.AddAbridge("НОВ.");
+            m_StdAdjectives.Add(t);
+            m_StdAdjectives.Add(new Pullenti.Ner.Core.Termin("SAN"));
+            m_StdAdjectives.Add(new Pullenti.Ner.Core.Termin("LOS"));
+            m_SpecNames = new Pullenti.Ner.Core.TerminCollection();
+            foreach (string s in NameToken.StandardNames) 
+            {
+                string[] pp = s.Split(';');
+                t = new Pullenti.Ner.Core.Termin(pp[0]) { IgnoreTermsOrder = true };
+                for (int kk = 1; kk < pp.Length; kk++) 
+                {
+                    if (pp[kk].IndexOf('.') > 0) 
+                        t.AddAbridge(pp[kk]);
+                    else if (t.Acronym == null && (pp[kk].Length < 4)) 
+                        t.Acronym = pp[kk];
+                    else 
+                        t.AddVariant(pp[kk], false);
+                }
+                m_SpecNames.Add(t);
+            }
+            m_SpecAbbrs = new Pullenti.Ner.Core.TerminCollection();
+            byte[] dat = Pullenti.Ner.Address.Internal.ResourceHelper.GetBytes("c.dat");
+            if (dat == null) 
+                throw new Exception("Not found resource file c.dat in Analyzer.Location");
+            using (MemoryStream tmp = new MemoryStream(MiscLocationHelper.Deflate(dat))) 
+            {
+                tmp.Position = 0;
+                XmlDocument xml = new XmlDocument();
+                xml.Load(tmp);
+                foreach (XmlNode x in xml.DocumentElement.ChildNodes) 
+                {
+                    if (x.Name == "bigcity") 
+                        LoadBigCity(x);
+                    else if (x.Name == "city") 
+                        LoadCity(x);
+                }
+            }
+        }
+        static void LoadCity(XmlNode xml)
+        {
+            Pullenti.Ner.Core.IntOntologyItem ci = new Pullenti.Ner.Core.IntOntologyItem(null);
+            Pullenti.Ner.Core.IntOntologyCollection onto = m_OntologyEx;
+            Pullenti.Morph.MorphLang lang = Pullenti.Morph.MorphLang.RU;
+            if (xml.Attributes["l"] != null && xml.Attributes["l"].InnerText == "ua") 
+                lang = Pullenti.Morph.MorphLang.UA;
+            foreach (XmlNode x in xml.ChildNodes) 
+            {
+                if (x.Name == "n") 
+                {
+                    string v = x.InnerText;
+                    Pullenti.Ner.Core.Termin t = new Pullenti.Ner.Core.Termin();
+                    t.InitByNormalText(v, lang);
+                    ci.Termins.Add(t);
+                    t.AddStdAbridges();
+                    if (v.StartsWith("SAINT ")) 
+                        t.AddAbridge("ST. " + v.Substring(6));
+                    else if (v.StartsWith("SAITNE ")) 
+                        t.AddAbridge("STE. " + v.Substring(7));
+                }
+            }
+            onto.AddItem(ci);
+        }
+        static void LoadBigCity(XmlNode xml)
+        {
+            Pullenti.Ner.Core.IntOntologyItem ci = new Pullenti.Ner.Core.IntOntologyItem(null);
+            ci.MiscAttr = ci;
+            string adj = null;
+            Pullenti.Ner.Core.IntOntologyCollection onto = m_OntologyEx;
+            Pullenti.Ner.Core.TerminCollection cityAdj = m_CityAdjectives;
+            Pullenti.Morph.MorphLang lang = Pullenti.Morph.MorphLang.RU;
+            if (xml.Attributes["l"] != null) 
+            {
+                string la = xml.Attributes["l"].InnerText;
+                if (la == "ua") 
+                    lang = Pullenti.Morph.MorphLang.UA;
+                else if (la == "en") 
+                    lang = Pullenti.Morph.MorphLang.EN;
+            }
+            foreach (XmlNode x in xml.ChildNodes) 
+            {
+                if (x.Name == "n") 
+                {
+                    string v = x.InnerText;
+                    if (string.IsNullOrEmpty(v)) 
+                        continue;
+                    Pullenti.Ner.Core.Termin t = new Pullenti.Ner.Core.Termin();
+                    t.InitByNormalText(v, lang);
+                    ci.Termins.Add(t);
+                    if (v == "САНКТ-ПЕТЕРБУРГ") 
+                    {
+                        if (m_StPeterburg == null) 
+                            m_StPeterburg = ci;
+                        t.Acronym = "СПБ";
+                        t.AddAbridge("С.ПЕТЕРБУРГ");
+                        t.AddAbridge("СП-Б");
+                        t.AddAbridge("С-ПБ");
+                        t.AddVariant("ПИТЕР", false);
+                        ci.Termins.Add(new Pullenti.Ner.Core.Termin("ПЕТЕРБУРГ", lang));
+                    }
+                    else if (v.StartsWith("SAINT ")) 
+                        t.AddAbridge("ST. " + v.Substring(6));
+                    else if (v.StartsWith("SAITNE ")) 
+                        t.AddAbridge("STE. " + v.Substring(7));
+                    else if (v.StartsWith("НИЖН") && v.IndexOf(' ') > 0) 
+                    {
+                        int ii = v.IndexOf(' ');
+                        string vv = v.Substring(ii + 1);
+                        t.AddAbridge("Н." + vv);
+                        t.AddAbridge("H." + vv);
+                        t.AddAbridge("Н-" + vv);
+                        t.AddAbridge("H-" + vv);
+                        t.AddAbridge("НИЖ." + vv);
+                        t.AddAbridge("НИЖН." + vv);
+                        t.AddAbridge("Н" + vv);
+                        t.IgnoreTermsOrder = true;
+                    }
+                }
+                else if (x.Name == "a") 
+                    adj = x.InnerText;
+            }
+            onto.AddItem(ci);
+            if (!string.IsNullOrEmpty(adj)) 
+            {
+                Pullenti.Ner.Core.Termin at = new Pullenti.Ner.Core.Termin();
+                at.InitByNormalText(adj, lang);
+                at.Tag = ci;
+                cityAdj.Add(at);
+                bool spb = adj == "САНКТ-ПЕТЕРБУРГСКИЙ" || adj == "САНКТ-ПЕТЕРБУРЗЬКИЙ";
+                if (spb) 
+                    cityAdj.Add(new Pullenti.Ner.Core.Termin(adj.Substring(6), lang) { Tag = ci });
+            }
+        }
+        static Pullenti.Ner.Core.IntOntologyCollection m_Ontology;
+        static Pullenti.Ner.Core.IntOntologyCollection m_OntologyEx;
+        static Pullenti.Ner.Core.IntOntologyItem m_StPeterburg;
+        public static Pullenti.Ner.Core.TerminCollection m_CityAdjectives;
+        static Pullenti.Ner.Core.IntOntologyCollection m_StdAdjectives;
+        static Pullenti.Ner.Core.TerminCollection m_SpecNames;
+        static Pullenti.Ner.Core.TerminCollection m_SpecAbbrs;
+        static Pullenti.Ner.Core.Termin m_NaselPunkt;
+        public static Pullenti.Ner.Core.IntOntologyToken CheckOntoItem(Pullenti.Ner.Token t)
+        {
+            if (!(t is Pullenti.Ner.TextToken)) 
+                return null;
+            List<Pullenti.Ner.Core.IntOntologyToken> li = m_OntologyEx.TryAttach(t, null, false);
+            if (li != null) 
+            {
+                foreach (Pullenti.Ner.Core.IntOntologyToken nt in li) 
+                {
+                    if (nt.Item != null) 
+                        return nt;
+                }
+            }
+            return null;
+        }
+        public static Pullenti.Ner.Core.IntOntologyToken CheckKeyword(Pullenti.Ner.Token t)
+        {
+            if (!(t is Pullenti.Ner.TextToken)) 
+                return null;
+            List<Pullenti.Ner.Core.IntOntologyToken> li = m_Ontology.TryAttach(t, null, false);
+            if (li != null) 
+            {
+                foreach (Pullenti.Ner.Core.IntOntologyToken nt in li) 
+                {
+                    if (nt.Item == null) 
+                    {
+                        if (nt.Termin.CanonicText == "ГОРОДОК" && MiscLocationHelper.IsUserParamAddress(t)) 
+                            return null;
+                        return nt;
+                    }
+                }
+            }
+            return null;
+        }
+        public static Pullenti.Ner.MetaToken CheckKeywordBefore(Pullenti.Ner.Token last)
+        {
+            int cou = 5;
+            for (Pullenti.Ner.Token tt = last; tt != null && cou > 0; tt = tt.Previous,cou--) 
+            {
+                Pullenti.Ner.Core.IntOntologyToken res = CheckKeyword(tt);
+                if (res == null) 
+                    continue;
+                if (res.EndToken == last) 
+                    return res;
+            }
+            return null;
         }
         public CityItemToken(Pullenti.Ner.Token begin, Pullenti.Ner.Token end) : base(begin, end, null)
         {
@@ -797,7 +1306,7 @@ namespace Pullenti.Ner.Geo.Internal
                             return null;
                         if (tt0.IsComma && tt0.Next != null) 
                             tt0 = tt0.Next;
-                        string txt = (tt as Pullenti.Ner.TextToken).Term;
+                        string txt = (tt as Pullenti.Ner.TextToken).Term ?? "";
                         if (((txt == "Д" || txt == "С" || txt == "C") || txt == "П" || txt == "Х") || ((((txt == "А" || txt == "У")) && MiscLocationHelper.IsUserParamAddress(tt)))) 
                         {
                             if (tt.Chars.IsAllLower || MiscLocationHelper.IsUserParamAddress(tt) || ((tt.Next != null && tt.Next.IsCharOf(".,")))) 
@@ -824,11 +1333,42 @@ namespace Pullenti.Ner.Geo.Internal
                                     if (Pullenti.Ner.Address.Internal.AddressItemToken.TryParsePureItem(tt.Previous, null, null) != null) 
                                         return null;
                                 }
-                                if (txt == "Д") 
+                                if (txt == "Д" || txt == "С") 
                                 {
-                                    Pullenti.Ner.Address.Internal.AddressItemToken hou = Pullenti.Ner.Address.Internal.AddressItemToken.TryParsePureItem(tt, null, ad);
-                                    if ((hou != null && hou.Typ == Pullenti.Ner.Address.Internal.AddressItemType.House && !string.IsNullOrEmpty(hou.Value)) && char.IsDigit(hou.Value[0])) 
+                                    Pullenti.Ner.Token tt22 = tt.Next;
+                                    if (tt22 != null && tt22.IsChar('.')) 
+                                        tt22 = tt22.Next;
+                                    Pullenti.Ner.Address.Internal.AddressItemToken hou = Pullenti.Ner.Address.Internal.AddressItemToken.TryParsePureItem(tt22, null, ad);
+                                    if ((hou != null && hou.Typ == Pullenti.Ner.Address.Internal.AddressItemType.Number && !string.IsNullOrEmpty(hou.Value)) && char.IsDigit(hou.Value[0])) 
+                                    {
+                                        CityItemToken nam = TryParse(hou.EndToken.Next, null, false, null);
+                                        if (nam == null || nam.Typ != ItemType.ProperName) 
+                                        {
+                                        }
+                                        else 
+                                        {
+                                            Pullenti.Ner.Token tt3 = nam.EndToken.Next;
+                                            if (tt3 != null && tt3.IsComma) 
+                                                tt3 = tt3.Next;
+                                            bool ok2 = false;
+                                            List<Pullenti.Ner.Address.Internal.AddressItemToken> li2 = Pullenti.Ner.Address.Internal.AddressItemToken.TryParseList(tt3, 3);
+                                            if (li2 == null || li2.Count == 0) 
+                                            {
+                                            }
+                                            else if (li2[0].Typ == Pullenti.Ner.Address.Internal.AddressItemType.House || li2[0].Typ == Pullenti.Ner.Address.Internal.AddressItemType.Plot) 
+                                                ok2 = true;
+                                            else if (li2.Count > 1 && li2[0].Typ == Pullenti.Ner.Address.Internal.AddressItemType.Street && ((li2[1].Typ == Pullenti.Ner.Address.Internal.AddressItemType.House || li2[1].Typ == Pullenti.Ner.Address.Internal.AddressItemType.Plot))) 
+                                                ok2 = true;
+                                            if (ok2) 
+                                            {
+                                                res = new CityItemToken(tt, tt) { Typ = ItemType.Noun, Value = (txt == "Д" ? "ДЕРЕВНЯ" : "СЕЛО") };
+                                                if (tt.Next != null && tt.Next.IsChar('.')) 
+                                                    res.EndToken = tt.Next;
+                                                return res;
+                                            }
+                                        }
                                         return null;
+                                    }
                                 }
                                 if (txt == "А" || txt == "С") 
                                 {
@@ -1499,7 +2039,7 @@ namespace Pullenti.Ner.Geo.Internal
                     {
                         if (nt.Item != null && nt.Item.CanonicText == tt.Term) 
                         {
-                            if (MiscLocationHelper.IsUserParamAddress(nt) || !Pullenti.Ner.Core.MiscHelper.IsAllCharactersLower(nt.BeginToken, nt.EndToken, false)) 
+                            if (MiscLocationHelper.IsUserParamAddress(nt) || MiscLocationHelper.IsUserParamQuiry(nt) || !Pullenti.Ner.Core.MiscHelper.IsAllCharactersLower(nt.BeginToken, nt.EndToken, false)) 
                             {
                                 CityItemToken ci = new CityItemToken(nt.BeginToken, nt.EndToken) { Typ = ItemType.City, OntoItem = nt.Item, Morph = nt.Morph };
                                 if (nt.BeginToken == nt.EndToken && !isInLocOnto) 
@@ -2447,509 +2987,6 @@ namespace Pullenti.Ner.Geo.Internal
             if (MiscLocationHelper.CheckGeoObjectAfterBrief(tt, null)) 
                 return false;
             return true;
-        }
-        public static void Initialize()
-        {
-            if (m_Ontology != null) 
-                return;
-            m_Ontology = new Pullenti.Ner.Core.IntOntologyCollection();
-            m_OntologyEx = new Pullenti.Ner.Core.IntOntologyCollection();
-            m_CityAdjectives = new Pullenti.Ner.Core.TerminCollection();
-            Pullenti.Ner.Core.Termin t;
-            t = new Pullenti.Ner.Core.Termin("ГОРОД");
-            t.AddAbridge("ГОР.");
-            t.AddAbridge("Г.");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("ГОРД");
-            t.AddAbridge("ГРД");
-            t.AddAbridge("МУН.");
-            t.AddVariant("ГОРОД ФЕДЕРАЛЬНОГО ЗНАЧЕНИЯ", false);
-            t.AddVariant("ГОРОД ГОРОДСКОЕ ПОСЕЛЕНИЕ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ГОРОДОК");
-            t.Tag = ItemType.Noun;
-            t.AddVariant("ШАХТЕРСКИЙ ГОРОДОК", false);
-            t.AddVariant("ПРИМОРСКИЙ ГОРОДОК", false);
-            t.AddVariant("МАЛЕНЬКИЙ ГОРОДОК", false);
-            t.AddVariant("НЕБОЛЬШОЙ ГОРОДОК", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("CITY");
-            t.Tag = ItemType.Noun;
-            t.AddVariant("TOWN", false);
-            t.AddVariant("CAPITAL", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МІСТО", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("МІС.");
-            t.AddAbridge("М.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ГОРОД-ГЕРОЙ") { CanonicText = "ГОРОД" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МІСТО-ГЕРОЙ", Pullenti.Morph.MorphLang.UA) { CanonicText = "МІСТО" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ГОРОД-КУРОРТ") { CanonicText = "ГОРОД" };
-            t.AddAbridge("Г.К.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МІСТО-КУРОРТ", Pullenti.Morph.MorphLang.UA) { CanonicText = "МІСТО" };
-            t.AddAbridge("М.К.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕЛО");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ДЕРЕВНЯ");
-            t.AddAbridge("ДЕР.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕЛЕНИЕ");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("СЕЛ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕЛО", Pullenti.Morph.MorphLang.UA);
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПОСЕЛЕНИЕ");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("АГРОГОРОДОК");
-            t.Tag = ItemType.Noun;
-            t.AddVariant("АГРО ГОРОДОК", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПОСЕЛОК");
-            t.AddAbridge("ПОС.");
-            t.Tag = ItemType.Noun;
-            t.AddVariant("ЖИЛОЙ ПОСЕЛОК", false);
-            t.AddVariant("КУРОРТНЫЙ ПОСЕЛОК", false);
-            t.AddVariant("ВАХТОВЫЙ ПОСЕЛОК", false);
-            t.AddVariant("ШАХТЕРСКИЙ ПОСЕЛОК", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕЛИЩЕ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("СЕЛ.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПОСЕЛОК ГОРОДСКОГО ТИПА");
-            t.Acronym = (t.AcronymSmart = "ПГТ");
-            t.AddAbridge("ПГТ.");
-            t.AddAbridge("П.Г.Т.");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("ПОС.Г.Т.");
-            t.AddVariant("ГОРОДСКОЙ ПОСЕЛОК", false);
-            t.AddAbridge("ГОРОДСКОЙ ПОС.");
-            t.AddAbridge("ГОР.ПОС.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕЛИЩЕ МІСЬКОГО ТИПУ", Pullenti.Morph.MorphLang.UA);
-            t.Acronym = (t.AcronymSmart = "СМТ");
-            t.AddAbridge("СМТ.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("РАБОЧИЙ ПОСЕЛОК");
-            t.AddAbridge("Р.П.");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("РАБ.П.");
-            t.AddAbridge("Р.ПОС.");
-            t.AddAbridge("РАБ.ПОС.");
-            t.AddAbridge("РП");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("РОБОЧЕ СЕЛИЩЕ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("Р.С.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ДАЧНЫЙ ПОСЕЛОК");
-            t.AddAbridge("Д.П.");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("ДАЧ.П.");
-            t.AddAbridge("Д.ПОС.");
-            t.AddAbridge("ДАЧ.ПОС.");
-            t.AddVariant("ЖИЛИЩНО ДАЧНЫЙ ПОСЕЛОК", false);
-            t.AddVariant("ДАЧНОЕ ПОСЕЛЕНИЕ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ДАЧНЕ СЕЛИЩЕ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("Д.С.");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("ДАЧ.С.");
-            t.AddAbridge("Д.СЕЛ.");
-            t.AddAbridge("ДАЧ.СЕЛ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ГОРОДСКОЕ ПОСЕЛЕНИЕ") { Acronym = "ГП", AcronymCanBeLower = true };
-            t.AddAbridge("Г.П.");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("Г.ПОС.");
-            t.AddAbridge("ГОР.П.");
-            t.AddAbridge("ГОР.ПОС.");
-            t.AddAbridge("ГП.");
-            t.AddVariant("ГОРОДСКОЙ ПОСЕЛОК", false);
-            t.AddAbridge("Г.О.Г.");
-            t.AddAbridge("ГОРОДСКОЙ ОКРУГ Г.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПОСЕЛКОВОЕ ПОСЕЛЕНИЕ") { CanonicText = "ПОСЕЛОК", Tag = ItemType.Noun };
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МІСЬКЕ ПОСЕЛЕННЯ", Pullenti.Morph.MorphLang.UA);
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕЛЬСКОЕ ПОСЕЛЕНИЕ");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("С.ПОС.");
-            t.AddAbridge("С.П.");
-            t.AddVariant("СЕЛЬСКИЙ ПОСЕЛОК", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СІЛЬСЬКЕ ПОСЕЛЕННЯ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("С.ПОС.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТАНИЦА");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("СТ-ЦА");
-            t.AddAbridge("СТАН-ЦА");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТАНИЦЯ", Pullenti.Morph.MorphLang.UA);
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТОЛИЦА") { CanonicText = "ГОРОД" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТОЛИЦЯ", Pullenti.Morph.MorphLang.UA) { CanonicText = "МІСТО" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТАНЦИЯ");
-            t.AddAbridge("СТАНЦ.");
-            t.AddAbridge("СТ.");
-            t.AddAbridge("СТАН.");
-            t.AddVariant("ПЛАТФОРМА", false);
-            t.AddAbridge("ПЛАТФ.");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПОЛУСТАНОК");
-            t.AddAbridge("П.СТ.");
-            t.AddAbridge("П/СТ");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТАНЦІЯ", Pullenti.Morph.MorphLang.UA);
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ЖЕЛЕЗНОДОРОЖНАЯ СТАНЦИЯ");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("Ж/Д СТАНЦИЯ");
-            t.AddAbridge("Ж/Д СТ.");
-            t.AddAbridge("Ж/Д СТАНЦ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ЗАЛІЗНИЧНА СТАНЦІЯ", Pullenti.Morph.MorphLang.UA);
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НАСЕЛЕННЫЙ ПУНКТ");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("Н.П.");
-            t.AddAbridge("Б.Н.П.");
-            t.AddAbridge("НП");
-            m_NaselPunkt = t;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НАСЕЛЕНИЙ ПУНКТ", Pullenti.Morph.MorphLang.UA);
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("НП");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("РАЙОННЫЙ ЦЕНТР") { CanonicText = "НАСЕЛЕННЫЙ ПУНКТ" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("РАЙОННИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { CanonicText = "НАСЕЛЕНИЙ ПУНКТ" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ОБЛАСТНОЙ ЦЕНТР") { CanonicText = "НАСЕЛЕННЫЙ ПУНКТ" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ОБЛАСНИЙ ЦЕНТР", Pullenti.Morph.MorphLang.UA) { CanonicText = "НАСЕЛЕНИЙ ПУНКТ" };
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ПОЧИНОК");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ХУТОР");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЛОБОДА");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("СЛ.");
-            t.AddAbridge("СЛОБ.");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("АУЛ");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ААЛ");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("КИШЛАК");
-            t.Tag = ItemType.Noun;
-            t.AddAbridge("К-К");
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("УЛУС");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НАСЛЕГ");
-            t.Tag = ItemType.Noun;
-            t.AddVariant("НАЦИОНАЛЬНЫЙ НАСЛЕГ", false);
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("АРБАН");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ВЫСЕЛКИ");
-            t.Tag = ItemType.Noun;
-            m_Ontology.Add(t);
-            foreach (string s in new string[] {"ЖИТЕЛЬ", "МЭР"}) 
-            {
-                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s) { Tag = ItemType.Misc });
-            }
-            foreach (string s in new string[] {"ЖИТЕЛЬ", "МЕР"}) 
-            {
-                m_Ontology.Add(new Pullenti.Ner.Core.Termin(s, Pullenti.Morph.MorphLang.UA) { Tag = ItemType.Misc });
-            }
-            t = new Pullenti.Ner.Core.Termin("АДМИНИСТРАЦИЯ") { Tag = ItemType.Misc };
-            t.AddAbridge("АДМ.");
-            m_Ontology.Add(t);
-            m_StdAdjectives = new Pullenti.Ner.Core.IntOntologyCollection();
-            t = new Pullenti.Ner.Core.Termin("ВЕЛИКИЙ");
-            t.AddAbridge("ВЕЛ.");
-            t.AddAbridge("ВЕЛИК.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("БОЛЬШОЙ");
-            t.AddAbridge("БОЛ.");
-            t.AddAbridge("БОЛЬШ.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МАЛЫЙ");
-            t.AddAbridge("МАЛ.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ВЕРХНИЙ");
-            t.AddAbridge("ВЕР.");
-            t.AddAbridge("ВЕРХ.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НИЖНИЙ");
-            t.AddAbridge("НИЖ.");
-            t.AddAbridge("НИЖН.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СРЕДНИЙ");
-            t.AddAbridge("СРЕД.");
-            t.AddAbridge("СРЕДН.");
-            t.AddAbridge("СР.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТАРЫЙ");
-            t.AddAbridge("СТ.");
-            t.AddAbridge("СТАР.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НОВЫЙ");
-            t.AddAbridge("НОВ.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ВЕЛИКИЙ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("ВЕЛ.");
-            t.AddAbridge("ВЕЛИК.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("МАЛИЙ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("МАЛ.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("ВЕРХНІЙ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("ВЕР.");
-            t.AddAbridge("ВЕРХ.");
-            t.AddAbridge("ВЕРХН.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НИЖНІЙ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("НИЖ.");
-            t.AddAbridge("НИЖН.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СЕРЕДНІЙ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("СЕР.");
-            t.AddAbridge("СЕРЕД.");
-            t.AddAbridge("СЕРЕДН.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("СТАРИЙ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("СТ.");
-            t.AddAbridge("СТАР.");
-            m_StdAdjectives.Add(t);
-            t = new Pullenti.Ner.Core.Termin("НОВИЙ", Pullenti.Morph.MorphLang.UA);
-            t.AddAbridge("НОВ.");
-            m_StdAdjectives.Add(t);
-            m_StdAdjectives.Add(new Pullenti.Ner.Core.Termin("SAN"));
-            m_StdAdjectives.Add(new Pullenti.Ner.Core.Termin("LOS"));
-            m_SpecNames = new Pullenti.Ner.Core.TerminCollection();
-            foreach (string s in NameToken.StandardNames) 
-            {
-                string[] pp = s.Split(';');
-                t = new Pullenti.Ner.Core.Termin(pp[0]) { IgnoreTermsOrder = true };
-                for (int kk = 1; kk < pp.Length; kk++) 
-                {
-                    if (pp[kk].IndexOf('.') > 0) 
-                        t.AddAbridge(pp[kk]);
-                    else if (t.Acronym == null && (pp[kk].Length < 4)) 
-                        t.Acronym = pp[kk];
-                    else 
-                        t.AddVariant(pp[kk], false);
-                }
-                m_SpecNames.Add(t);
-            }
-            m_SpecAbbrs = new Pullenti.Ner.Core.TerminCollection();
-            byte[] dat = Pullenti.Ner.Address.Internal.ResourceHelper.GetBytes("c.dat");
-            if (dat == null) 
-                throw new Exception("Not found resource file c.dat in Analyzer.Location");
-            using (MemoryStream tmp = new MemoryStream(MiscLocationHelper.Deflate(dat))) 
-            {
-                tmp.Position = 0;
-                XmlDocument xml = new XmlDocument();
-                xml.Load(tmp);
-                foreach (XmlNode x in xml.DocumentElement.ChildNodes) 
-                {
-                    if (x.Name == "bigcity") 
-                        LoadBigCity(x);
-                    else if (x.Name == "city") 
-                        LoadCity(x);
-                }
-            }
-        }
-        static void LoadCity(XmlNode xml)
-        {
-            Pullenti.Ner.Core.IntOntologyItem ci = new Pullenti.Ner.Core.IntOntologyItem(null);
-            Pullenti.Ner.Core.IntOntologyCollection onto = m_OntologyEx;
-            Pullenti.Morph.MorphLang lang = Pullenti.Morph.MorphLang.RU;
-            if (xml.Attributes["l"] != null && xml.Attributes["l"].InnerText == "ua") 
-                lang = Pullenti.Morph.MorphLang.UA;
-            foreach (XmlNode x in xml.ChildNodes) 
-            {
-                if (x.Name == "n") 
-                {
-                    string v = x.InnerText;
-                    Pullenti.Ner.Core.Termin t = new Pullenti.Ner.Core.Termin();
-                    t.InitByNormalText(v, lang);
-                    ci.Termins.Add(t);
-                    t.AddStdAbridges();
-                    if (v.StartsWith("SAINT ")) 
-                        t.AddAbridge("ST. " + v.Substring(6));
-                    else if (v.StartsWith("SAITNE ")) 
-                        t.AddAbridge("STE. " + v.Substring(7));
-                }
-            }
-            onto.AddItem(ci);
-        }
-        static void LoadBigCity(XmlNode xml)
-        {
-            Pullenti.Ner.Core.IntOntologyItem ci = new Pullenti.Ner.Core.IntOntologyItem(null);
-            ci.MiscAttr = ci;
-            string adj = null;
-            Pullenti.Ner.Core.IntOntologyCollection onto = m_OntologyEx;
-            Pullenti.Ner.Core.TerminCollection cityAdj = m_CityAdjectives;
-            Pullenti.Morph.MorphLang lang = Pullenti.Morph.MorphLang.RU;
-            if (xml.Attributes["l"] != null) 
-            {
-                string la = xml.Attributes["l"].InnerText;
-                if (la == "ua") 
-                    lang = Pullenti.Morph.MorphLang.UA;
-                else if (la == "en") 
-                    lang = Pullenti.Morph.MorphLang.EN;
-            }
-            foreach (XmlNode x in xml.ChildNodes) 
-            {
-                if (x.Name == "n") 
-                {
-                    string v = x.InnerText;
-                    if (string.IsNullOrEmpty(v)) 
-                        continue;
-                    Pullenti.Ner.Core.Termin t = new Pullenti.Ner.Core.Termin();
-                    t.InitByNormalText(v, lang);
-                    ci.Termins.Add(t);
-                    if (v == "САНКТ-ПЕТЕРБУРГ") 
-                    {
-                        if (m_StPeterburg == null) 
-                            m_StPeterburg = ci;
-                        t.Acronym = "СПБ";
-                        t.AddAbridge("С.ПЕТЕРБУРГ");
-                        t.AddAbridge("СП-Б");
-                        t.AddAbridge("С-ПБ");
-                        t.AddVariant("ПИТЕР", false);
-                        ci.Termins.Add(new Pullenti.Ner.Core.Termin("ПЕТЕРБУРГ", lang));
-                    }
-                    else if (v.StartsWith("SAINT ")) 
-                        t.AddAbridge("ST. " + v.Substring(6));
-                    else if (v.StartsWith("SAITNE ")) 
-                        t.AddAbridge("STE. " + v.Substring(7));
-                    else if (v.StartsWith("НИЖН") && v.IndexOf(' ') > 0) 
-                    {
-                        int ii = v.IndexOf(' ');
-                        string vv = v.Substring(ii + 1);
-                        t.AddAbridge("Н." + vv);
-                        t.AddAbridge("H." + vv);
-                        t.AddAbridge("Н-" + vv);
-                        t.AddAbridge("H-" + vv);
-                        t.AddAbridge("НИЖ." + vv);
-                        t.AddAbridge("НИЖН." + vv);
-                        t.AddAbridge("Н" + vv);
-                        t.IgnoreTermsOrder = true;
-                    }
-                }
-                else if (x.Name == "a") 
-                    adj = x.InnerText;
-            }
-            onto.AddItem(ci);
-            if (!string.IsNullOrEmpty(adj)) 
-            {
-                Pullenti.Ner.Core.Termin at = new Pullenti.Ner.Core.Termin();
-                at.InitByNormalText(adj, lang);
-                at.Tag = ci;
-                cityAdj.Add(at);
-                bool spb = adj == "САНКТ-ПЕТЕРБУРГСКИЙ" || adj == "САНКТ-ПЕТЕРБУРЗЬКИЙ";
-                if (spb) 
-                    cityAdj.Add(new Pullenti.Ner.Core.Termin(adj.Substring(6), lang) { Tag = ci });
-            }
-        }
-        static Pullenti.Ner.Core.IntOntologyCollection m_Ontology;
-        static Pullenti.Ner.Core.IntOntologyCollection m_OntologyEx;
-        static Pullenti.Ner.Core.IntOntologyItem m_StPeterburg;
-        public static Pullenti.Ner.Core.TerminCollection m_CityAdjectives;
-        static Pullenti.Ner.Core.IntOntologyCollection m_StdAdjectives;
-        static Pullenti.Ner.Core.TerminCollection m_SpecNames;
-        static Pullenti.Ner.Core.TerminCollection m_SpecAbbrs;
-        static Pullenti.Ner.Core.Termin m_NaselPunkt;
-        public static Pullenti.Ner.Core.IntOntologyToken CheckOntoItem(Pullenti.Ner.Token t)
-        {
-            if (!(t is Pullenti.Ner.TextToken)) 
-                return null;
-            List<Pullenti.Ner.Core.IntOntologyToken> li = m_OntologyEx.TryAttach(t, null, false);
-            if (li != null) 
-            {
-                foreach (Pullenti.Ner.Core.IntOntologyToken nt in li) 
-                {
-                    if (nt.Item != null) 
-                        return nt;
-                }
-            }
-            return null;
-        }
-        public static Pullenti.Ner.Core.IntOntologyToken CheckKeyword(Pullenti.Ner.Token t)
-        {
-            if (!(t is Pullenti.Ner.TextToken)) 
-                return null;
-            List<Pullenti.Ner.Core.IntOntologyToken> li = m_Ontology.TryAttach(t, null, false);
-            if (li != null) 
-            {
-                foreach (Pullenti.Ner.Core.IntOntologyToken nt in li) 
-                {
-                    if (nt.Item == null) 
-                    {
-                        if (nt.Termin.CanonicText == "ГОРОДОК" && MiscLocationHelper.IsUserParamAddress(t)) 
-                            return null;
-                        return nt;
-                    }
-                }
-            }
-            return null;
-        }
-        public static Pullenti.Ner.MetaToken CheckKeywordBefore(Pullenti.Ner.Token last)
-        {
-            int cou = 5;
-            for (Pullenti.Ner.Token tt = last; tt != null && cou > 0; tt = tt.Previous,cou--) 
-            {
-                Pullenti.Ner.Core.IntOntologyToken res = CheckKeyword(tt);
-                if (res == null) 
-                    continue;
-                if (res.EndToken == last) 
-                    return res;
-            }
-            return null;
         }
     }
 }

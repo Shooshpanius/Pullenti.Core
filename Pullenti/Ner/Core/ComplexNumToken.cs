@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -8,6 +8,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Pullenti.Ner.Core
 {
@@ -24,6 +25,9 @@ namespace Pullenti.Ner.Core
         /// Элементы составного номера
         /// </summary>
         public List<SingleNumToken> Nums = new List<SingleNumToken>();
+        /// <summary>
+        /// Нормализация
+        /// </summary>
         public string Normal
         {
             get
@@ -36,6 +40,34 @@ namespace Pullenti.Ner.Core
                     res = string.Format("{0}.{1}", res, Nums[i].Normal);
                 }
                 return res;
+            }
+        }
+        /// <summary>
+        /// Сигнатура (фактически структура)
+        /// </summary>
+        public string Signature
+        {
+            get
+            {
+                StringBuilder res = new StringBuilder();
+                if (Prefix != null) 
+                    res.Append(Prefix);
+                foreach (SingleNumToken n in Nums) 
+                {
+                    if (n.Vals.Count == 0) 
+                        continue;
+                    if (n.Vals[0].Typ == SingleNumValueType.Digit) 
+                        res.Append('n');
+                    else if (n.Vals[0].Typ == SingleNumValueType.Roman) 
+                        res.Append('r');
+                    else if (n.Vals[0].Typ == SingleNumValueType.Letter) 
+                        res.Append('l');
+                    else 
+                        res.Append('?');
+                }
+                if (Suffix != null) 
+                    res.Append(Suffix);
+                return res.ToString();
             }
         }
         public string Prefix
@@ -72,7 +104,7 @@ namespace Pullenti.Ner.Core
             string res = Nums[0].Value;
             for (int i = 1; i < Nums.Count; i++) 
             {
-                res += Nums[i].Value;
+                res = string.Format("{0}{1}{2}{3}", res, Nums[i].Prefix ?? "", Nums[i].Value, (Nums[i].Suffix == null || Nums[i].Value.EndsWith(Nums[i].Suffix) ? "" : Nums[i].Suffix));
             }
             if (ignoreSuffix && Suffix != null && res.EndsWith(Suffix)) 
                 res = res.Substring(0, res.Length - Suffix.Length);
@@ -130,12 +162,28 @@ namespace Pullenti.Ner.Core
                 if (nt.Vals[0].Typ == SingleNumValueType.Letter) 
                 {
                     if (res.Nums[0].Vals[0].Typ == SingleNumValueType.Letter) 
+                    {
+                        if (res.Nums[0].Suffix == ")") 
+                            break;
                         return null;
+                    }
                     if (res.Nums[res.Nums.Count - 1].Vals[0].Typ == SingleNumValueType.Letter) 
+                    {
+                        if (res.Nums[res.Nums.Count - 1].Suffix == ")") 
+                            break;
                         return null;
+                    }
                 }
-                if (nt.Suffix == null && res.Suffix == ")") 
+                if (nt.Suffix == null && res.Suffix == ")" && !nt.Value.StartsWith("<")) 
                     break;
+                if (t.GetMorphClassInDictionary().IsPreposition && res.Suffix != null) 
+                {
+                    if (t.Next != null && t.Next.IsCharOf("<.]>)")) 
+                    {
+                    }
+                    else 
+                        break;
+                }
                 res.Nums.Add(nt);
                 res.EndToken = (t = nt.EndToken);
             }

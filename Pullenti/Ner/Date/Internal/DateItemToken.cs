@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -477,7 +477,7 @@ namespace Pullenti.Ner.Date.Internal
                         bool ok = false;
                         if (nt.WhitespacesAfterCount == 1) 
                             ok = true;
-                        else if (nt.IsNewlineAfter && nt.IsNewlineAfter) 
+                        else if (nt.IsNewlineAfter) 
                             ok = true;
                         if (ok) 
                         {
@@ -610,6 +610,23 @@ namespace Pullenti.Ner.Date.Internal
                             res.Typ = DateItemType.Year;
                         if (((nt.Typ == Pullenti.Ner.NumberSpellingType.Digit && res.Typ == DateItemType.Number && res.CanBeYear) && t.Previous != null && t.Previous.IsChar('(')) && t.Next != null && t.Next.IsChar(')')) 
                             res.Typ = DateItemType.Year;
+                        if (res.Typ == DateItemType.Number && res.CanBeYear && res.LengthChar == 4) 
+                        {
+                            int cou = 2;
+                            for (Pullenti.Ner.Token tt2 = t.Previous; tt2 != null && cou >= 0; tt2 = tt2.Previous) 
+                            {
+                                if (tt2.IsValue("ГОД", null)) 
+                                {
+                                    res.Typ = DateItemType.Year;
+                                    break;
+                                }
+                                if (tt2.IsNewlineBefore) 
+                                    break;
+                                if (tt2.LengthChar == 1 || tt2.IsTableControlChar) 
+                                    continue;
+                                cou--;
+                            }
+                        }
                     }
                     else if (tt != null && (nt.WhitespacesAfterCount < 2) && (nt.EndChar - nt.BeginChar) == 1) 
                     {
@@ -686,7 +703,7 @@ namespace Pullenti.Ner.Date.Internal
                 {
                     if (t1.IsValue("ЧАС", "ГОДИНА") || t1.IsValue("HOUR", null) || t1.IsValue("Ч", null)) 
                     {
-                        if ((((prev != null && prev.Count == 2 && prev[0].CanBeHour) && prev[1].Typ == DateItemType.Delim && !prev[1].IsWhitespaceAfter) && !prev[1].IsWhitespaceAfter && res.IntValue >= 0) && (res.IntValue < 59)) 
+                        if (((prev != null && prev.Count == 2 && prev[0].CanBeHour) && prev[1].Typ == DateItemType.Delim && !prev[1].IsWhitespaceAfter) && res.IntValue >= 0 && (res.IntValue < 59)) 
                         {
                             prev[0].Typ = DateItemType.Hour;
                             res.Typ = DateItemType.Minute;
@@ -829,6 +846,13 @@ namespace Pullenti.Ner.Date.Internal
             }
             if (tok != null) 
                 return new DateItemToken(t, tok.EndToken) { Typ = DateItemType.Pointer, Ptr = (Pullenti.Ner.Date.DatePointerType)tok.Termin.Tag };
+            if (((((t.IsValue("Н", null) || t.IsValue("НАСТ", null))) && t.Next != null && t.Next.IsChar('.')) && t.Next.Next != null && ((t.Next.Next.IsValue("В", null) || t.Next.Next.IsValue("ВР", null)))) && t.Next.Next.Next != null && t.Next.Next.Next.IsChar('.')) 
+            {
+                if (t.Previous != null && ((t.Previous.IsValue("ПО", null) || t.Previous.IsHiphen))) 
+                    return new DateItemToken(t, t.Next.Next.Next) { Typ = DateItemType.Pointer, Ptr = Pullenti.Ner.Date.DatePointerType.Today, StringValue = "сегодня" };
+            }
+            if (((t.IsValue("СЕЙЧАС", null) || t.IsValue("СЕГОДНЯ", null))) && t.Previous != null && t.Previous.IsHiphen) 
+                return new DateItemToken(t, t) { Typ = DateItemType.Pointer, Ptr = Pullenti.Ner.Date.DatePointerType.Today, StringValue = "сегодня" };
             Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
             if (npt != null) 
             {
@@ -879,7 +903,7 @@ namespace Pullenti.Ner.Date.Internal
                     else if (npt.BeginToken.IsValue("ЭТОТ", "ЦЕЙ")) 
                         ok = true;
                     int cou = 0;
-                    for (Pullenti.Ner.Token tt = t.Previous; tt != null; tt = tt.Previous) 
+                    for (Pullenti.Ner.Token tt = t.Previous; tt != null; tt = tt.Previous,cou++) 
                     {
                         if (cou > 200) 
                             break;
@@ -1176,6 +1200,11 @@ namespace Pullenti.Ner.Date.Internal
                     res.RemoveAt(i);
                 else 
                     break;
+            }
+            for (int i = res.Count - 2; i > 0; i--) 
+            {
+                if (res[i].Typ == DateItemType.Delim && res[i + 1].Typ == DateItemType.Pointer && res[i].BeginToken.IsHiphen) 
+                    res.RemoveRange(i, res.Count - i);
             }
             if (res.Count > 0 && res[res.Count - 1].Typ == DateItemType.Number) 
             {

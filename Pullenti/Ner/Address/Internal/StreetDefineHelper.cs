@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -25,7 +25,7 @@ namespace Pullenti.Ner.Address.Internal
             List<StreetItemToken> li = StreetItemToken.TryParseList(t, 10, null);
             if (li == null) 
                 return false;
-            AddressItemToken rt = TryParseStreet(li, false, false, false, null);
+            AddressItemToken rt = TryParseStreet(li, false, false, false, null, false);
             if (rt != null && rt.BeginToken == t) 
                 return true;
             else 
@@ -33,12 +33,12 @@ namespace Pullenti.Ner.Address.Internal
         }
         public static Pullenti.Ner.ReferentToken TryParseExtStreet(List<StreetItemToken> sli)
         {
-            AddressItemToken a = TryParseStreet(sli, true, false, false, null);
+            AddressItemToken a = TryParseStreet(sli, true, false, false, null, false);
             if (a != null) 
                 return new Pullenti.Ner.ReferentToken(a.Referent, a.BeginToken, a.EndToken);
             return null;
         }
-        internal static AddressItemToken TryParseStreet(List<StreetItemToken> sli, bool extOntoRegim = false, bool forMetro = false, bool streetBefore = false, Pullenti.Ner.Address.StreetReferent crossStreet = null)
+        public static AddressItemToken TryParseStreet(List<StreetItemToken> sli, bool extOntoRegim = false, bool forMetro = false, bool streetBefore = false, Pullenti.Ner.Address.StreetReferent crossStreet = null, bool always = false)
         {
             if (sli == null || sli.Count == 0) 
                 return null;
@@ -101,12 +101,12 @@ namespace Pullenti.Ner.Address.Internal
                 List<StreetItemToken> tmp = new List<StreetItemToken>();
                 tmp.Add(sli[0]);
                 tmp.Add(sli[2]);
-                AddressItemToken res1 = TryParseStreet(tmp, extOntoRegim, forMetro, streetBefore, crossStreet);
+                AddressItemToken res1 = TryParseStreet(tmp, extOntoRegim, forMetro, streetBefore, crossStreet, false);
                 if (res1 == null) 
                     return null;
                 tmp.Clear();
                 tmp.Add(sli[1]);
-                AddressItemToken res2 = TryParseStreet(tmp, extOntoRegim, forMetro, streetBefore, crossStreet);
+                AddressItemToken res2 = TryParseStreet(tmp, extOntoRegim, forMetro, streetBefore, crossStreet, false);
                 if (res2 != null) 
                     res1.OrtoTerr = res2;
                 return res1;
@@ -149,7 +149,7 @@ namespace Pullenti.Ner.Address.Internal
                             {
                                 sli1.Add(sli[ii]);
                             }
-                            AddressItemToken str1 = TryParseStreet(sli1, extOntoRegim, true, false, null);
+                            AddressItemToken str1 = TryParseStreet(sli1, extOntoRegim, true, false, null, false);
                             if (str1 != null) 
                             {
                                 str1.BeginToken = sli[i].BeginToken;
@@ -200,7 +200,7 @@ namespace Pullenti.Ner.Address.Internal
                 }
             }
             if (i >= sli.Count) 
-                return TryDetectNonNoun(sli, extOntoRegim, forMetro, streetBefore, crossStreet);
+                return TryDetectNonNoun(sli, extOntoRegim, forMetro, streetBefore, crossStreet, always);
             StreetItemToken name = null;
             string number = null;
             string age = null;
@@ -267,6 +267,8 @@ namespace Pullenti.Ner.Address.Internal
                         isProezd = true;
                     }
                     else if (j == 1 && sli.Count == 3 && sli[2].Typ == StreetItemType.Number) 
+                        altNoun = sli[j];
+                    else if ((j == 2 && noun == sli[0] && sli[1].Typ == StreetItemType.Number) && sli.Count == 4 && sli[3].Typ == StreetItemType.StdName) 
                         altNoun = sli[j];
                     else if (((j + 1) < sli.Count) && !sli[j].IsNewlineAfter) 
                         break;
@@ -683,6 +685,8 @@ namespace Pullenti.Ner.Address.Internal
                         return null;
                 }
                 res.IsDoubt = true;
+                if (name != null && name.Typ == StreetItemType.StdName) 
+                    res.IsDoubt = false;
             }
             else if (noun.Termin.CanonicText == "ПУНКТ") 
             {
@@ -714,6 +718,8 @@ namespace Pullenti.Ner.Address.Internal
                     else if (AddressItemToken.CheckHouseAfter(res.EndToken.Next, false, false)) 
                         res.IsDoubt = false;
                     else if (name.Chars.IsCapitalUpper && noun.NounIsDoubtCoef == 1) 
+                        res.IsDoubt = false;
+                    else if (name.Typ == StreetItemType.StdName) 
                         res.IsDoubt = false;
                 }
             }
@@ -1312,7 +1318,7 @@ namespace Pullenti.Ner.Address.Internal
             }
             return res;
         }
-        static AddressItemToken TryDetectNonNoun(List<StreetItemToken> sli, bool ontoRegim, bool forMetro, bool streetBefore, Pullenti.Ner.Address.StreetReferent crossStreet)
+        static AddressItemToken TryDetectNonNoun(List<StreetItemToken> sli, bool ontoRegim, bool forMetro, bool streetBefore, Pullenti.Ner.Address.StreetReferent crossStreet, bool always)
         {
             if (sli.Count > 1 && sli[sli.Count - 1].Typ == StreetItemType.Number && !sli[sli.Count - 1].NumberHasPrefix) 
                 sli.RemoveAt(sli.Count - 1);
@@ -1337,7 +1343,7 @@ namespace Pullenti.Ner.Address.Internal
                     else if (tt == null || tt.IsComma || tt.IsNewlineBefore) 
                     {
                     }
-                    else 
+                    else if (!always) 
                         return null;
                 }
                 street = new Pullenti.Ner.Address.StreetReferent();
@@ -1357,16 +1363,18 @@ namespace Pullenti.Ner.Address.Internal
                     res0.IsDoubt = false;
                 return res0;
             }
-            if ((sli.Count == 1 && sli[0].Typ == StreetItemType.Number && sli[0].IsNumberKm) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0])) 
+            if ((sli.Count == 1 && sli[0].Typ == StreetItemType.Number && sli[0].IsNumberKm) && ((Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0]) || sli[0].OrtoTerr != null))) 
             {
                 street = new Pullenti.Ner.Address.StreetReferent();
                 street.Numbers = sli[0].Value + "км";
                 AddressItemToken res0 = new AddressItemToken(AddressItemType.Street, sli[0].BeginToken, sli[0].EndToken) { Referent = street, IsDoubt = true };
+                if (sli[0].OrtoTerr != null) 
+                    res0.OrtoTerr = sli[0].OrtoTerr;
                 return res0;
             }
             if ((sli.Count == 1 && sli[0].Typ == StreetItemType.Number && sli[0].BeginToken.Morph.Class.IsAdjective) && Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0])) 
             {
-                if (streetBefore) 
+                if (streetBefore && !always) 
                     return null;
                 street = new Pullenti.Ner.Address.StreetReferent();
                 street.Numbers = sli[0].Value;
@@ -1414,7 +1422,7 @@ namespace Pullenti.Ner.Address.Internal
                             tt = sli2[sli2.Count - 1].EndToken;
                             continue;
                         }
-                        if (!tt.IsAnd && !isStreetBefore) 
+                        if (!tt.IsAnd && !isStreetBefore && !always) 
                             break;
                         if (noun == sli2[0]) 
                         {
@@ -1431,7 +1439,7 @@ namespace Pullenti.Ner.Address.Internal
                         List<StreetItemToken> tmp = new List<StreetItemToken>();
                         tmp.Add(sli[0]);
                         tmp.Add(noun);
-                        AddressItemToken re = TryParseStreet(tmp, false, forMetro, false, null);
+                        AddressItemToken re = TryParseStreet(tmp, false, forMetro, false, null, false);
                         if (re != null) 
                         {
                             re.BeginToken = sli[0].BeginToken;
@@ -1446,7 +1454,7 @@ namespace Pullenti.Ner.Address.Internal
                         List<StreetItemToken> tmp = new List<StreetItemToken>();
                         tmp.Add(sli[0]);
                         tmp.Add(sBefor.Tag as StreetItemToken);
-                        AddressItemToken re = TryParseStreet(tmp, false, forMetro, false, null);
+                        AddressItemToken re = TryParseStreet(tmp, false, forMetro, false, null, false);
                         if (re != null) 
                         {
                             re.BeginToken = sli[0].BeginToken;
@@ -1482,7 +1490,7 @@ namespace Pullenti.Ner.Address.Internal
                         }
                     }
                 }
-                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0]) && !streetBefore) 
+                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0]) && !streetBefore && !always) 
                 {
                     if (Pullenti.Ner.Geo.Internal.MiscLocationHelper.CheckGeoObjectBefore(sli[0].BeginToken, false)) 
                     {
@@ -1505,13 +1513,13 @@ namespace Pullenti.Ner.Address.Internal
             }
             else if (sli.Count == 2 && ((sli[0].Typ == StreetItemType.StdAdjective || sli[0].Typ == StreetItemType.Number || sli[0].Typ == StreetItemType.Age)) && ((sli[1].Typ == StreetItemType.StdName || sli[1].Typ == StreetItemType.Name || sli[1].Typ == StreetItemType.StdAdjective))) 
             {
-                if (streetBefore) 
+                if (streetBefore && !always) 
                 {
                     AddressItemToken ait = AddressItemToken.TryParsePureItem(sli[0].BeginToken, null, null);
                     if (ait != null && ait.Value != null) 
                         return null;
                 }
-                if (sli[0].Typ == StreetItemType.Number && sli[1].Typ == StreetItemType.Name) 
+                if (sli[0].Typ == StreetItemType.Number && sli[1].Typ == StreetItemType.Name && !always) 
                 {
                     if (AddressItemToken.TryParsePureItem(sli[1].BeginToken, null, null) != null) 
                         return null;
@@ -1520,7 +1528,7 @@ namespace Pullenti.Ner.Address.Internal
             }
             else if (sli.Count == 2 && ((sli[0].Typ == StreetItemType.StdName || sli[0].Typ == StreetItemType.Name)) && ((sli[1].Typ == StreetItemType.Number || sli[1].Typ == StreetItemType.StdAdjective))) 
             {
-                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0])) 
+                if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0]) && !always) 
                     return null;
                 i1 = 0;
             }
@@ -1601,7 +1609,7 @@ namespace Pullenti.Ner.Address.Internal
                     else 
                     {
                         altVal = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(sli[i1], Pullenti.Ner.Core.GetTextAttr.No);
-                        if (val == null && te.Morph.Class.IsAdjective) 
+                        if (val == null && te != null && te.Morph.Class.IsAdjective) 
                         {
                             val = altVal;
                             altVal = null;
@@ -1624,6 +1632,11 @@ namespace Pullenti.Ner.Address.Internal
                 if ((t0 is Pullenti.Ner.ReferentToken) && (t0.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
                     val = Pullenti.Ner.Core.MiscHelper.GetTextValue(sli[0].BeginToken, sli[0].EndToken, Pullenti.Ner.Core.GetTextAttr.No);
             }
+            if (val == null && altVal != null && always) 
+            {
+                val = altVal;
+                altVal = null;
+            }
             if (val == null) 
                 return null;
             Pullenti.Ner.Token t = sli[sli.Count - 1].EndToken.Next;
@@ -1632,14 +1645,16 @@ namespace Pullenti.Ner.Address.Internal
                 if (!t.IsCharOf(",.")) 
                     break;
             }
-            if (t == null) 
+            if (t == null && !always) 
             {
                 if (!Pullenti.Ner.Geo.Internal.MiscLocationHelper.IsUserParamAddress(sli[0])) 
                     return null;
             }
             bool ok = false;
             bool doubt = true;
-            if (sli[i1].Termin != null && ((StreetItemType)sli[i1].Termin.Tag) == StreetItemType.Fix) 
+            if (always) 
+                ok = true;
+            else if (sli[i1].Termin != null && ((StreetItemType)sli[i1].Termin.Tag) == StreetItemType.Fix) 
             {
                 ok = true;
                 doubt = false;
@@ -2063,7 +2078,7 @@ namespace Pullenti.Ner.Address.Internal
             if (sli2 == null || sli2.Count == 0) 
                 return null;
             sli2.Insert(0, sli[0]);
-            AddressItemToken res = TryParseStreet(sli2, true, false, false, null);
+            AddressItemToken res = TryParseStreet(sli2, true, false, false, null, false);
             if (res == null) 
                 return null;
             res.BeginToken = sli2[1].BeginToken;

@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -691,22 +691,31 @@ namespace Pullenti.Ner.Geo.Internal
                     }
                 }
             }
-            if (m_Onto.TryParse(tokTyp.EndToken.Next, Pullenti.Ner.Core.TerminParseAttr.No) != null) 
+            Pullenti.Ner.Token tNext = tokTyp.EndToken.Next;
+            if (tNext != null && tNext.IsChar('.') && MiscLocationHelper.IsUserParamAddress(tNext)) 
+                tNext = tNext.Next;
+            if (m_Onto.TryParse(tNext, Pullenti.Ner.Core.TerminParseAttr.No) != null) 
             {
             }
-            else if (Pullenti.Ner.Address.Internal.StreetItemToken.CheckKeyword(tokTyp.EndToken.Next) && !tokTyp.EndToken.Next.Chars.IsCapitalUpper) 
+            else if (Pullenti.Ner.Address.Internal.StreetItemToken.CheckKeyword(tNext) && !tNext.Chars.IsCapitalUpper) 
             {
             }
-            else if ((tokTyp.EndToken.Next != null && tokTyp.EndToken.Next.Chars.IsAllLower && CityItemToken.CheckKeyword(tokTyp.EndToken.Next) != null) && NumToken.TryParse(tokTyp.EndToken.Next, GeoTokenType.Org) == null) 
+            else if ((tNext != null && tNext.Chars.IsAllLower && CityItemToken.CheckKeyword(tNext) != null) && NumToken.TryParse(tNext, GeoTokenType.Org) == null) 
             {
             }
             else 
             {
-                if (nam == null && (tokTyp.WhitespacesAfterCount < 3)) 
-                    nam = NameToken.TryParse(tokTyp.EndToken.Next, GeoTokenType.Org, 0, true);
-                if ((nam == null && tokTyp.EndToken.Next != null && tokTyp.Chars.IsAllUpper) && tokTyp.EndToken.Next.IsHiphen && !tokTyp.IsWhitespaceAfter) 
+                if (nam == null && tNext != null && (tNext.WhitespacesBeforeCount < 3)) 
                 {
-                    nam = NameToken.TryParse(tokTyp.EndToken.Next.Next, GeoTokenType.Org, 0, true);
+                    if (tokTyp.CanBeSingle && (tNext is Pullenti.Ner.NumberToken)) 
+                    {
+                    }
+                    else 
+                        nam = NameToken.TryParse(tNext, GeoTokenType.Org, 0, true);
+                }
+                if ((nam == null && tokTyp.Chars.IsAllUpper && tNext != null) && tNext.IsHiphen && !tNext.IsWhitespaceAfter) 
+                {
+                    nam = NameToken.TryParse(tNext.Next, GeoTokenType.Org, 0, true);
                     if (nam != null) 
                     {
                         if (nam.Chars.IsAllLower || (nam.LengthChar < 4)) 
@@ -890,6 +899,8 @@ namespace Pullenti.Ner.Geo.Internal
             if (nam == null) 
             {
                 res.SetGsk();
+                if (res.BeginToken == res.EndToken && res.IsDoubt) 
+                    return null;
                 return res;
             }
             if (nam != null && nam.Name != null) 

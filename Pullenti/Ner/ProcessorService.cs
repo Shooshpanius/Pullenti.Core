@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -23,7 +23,7 @@ namespace Pullenti.Ner
         {
             get
             {
-                return "4.31";
+                return "4.33";
             }
         }
         /// <summary>
@@ -33,7 +33,7 @@ namespace Pullenti.Ner
         {
             get
             {
-                return "2025.08.24";
+                return "2026.02.06";
             }
         }
         /// <summary>

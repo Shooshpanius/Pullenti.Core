@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -62,6 +62,20 @@ namespace Pullenti.Ner.Instrument.Internal
                 return Pullenti.Ner.Decree.Internal.PartToken.GetNumber(MinNumber);
             }
         }
+        public Pullenti.Ner.Core.ComplexNumToken Cnum
+        {
+            get
+            {
+                if (m_Cnum != null) 
+                    return m_Cnum;
+                if (NumBeginToken != null) 
+                    m_Cnum = Pullenti.Ner.Core.ComplexNumToken.TryParse(NumBeginToken, null, false, false);
+                else 
+                    m_Cnum = Pullenti.Ner.Core.ComplexNumToken.TryParse(BeginToken, null, false, false);
+                return m_Cnum;
+            }
+        }
+        Pullenti.Ner.Core.ComplexNumToken m_Cnum;
         public bool HasChanges
         {
             get
@@ -222,6 +236,22 @@ namespace Pullenti.Ner.Instrument.Internal
                 res.AppendFormat(": {0}", this.GetSourceText());
             return res.ToString();
         }
+        public bool CheckNext(InstrToken1 next, bool canFollow = false)
+        {
+            Pullenti.Ner.Core.ComplexNumToken n1 = Cnum;
+            if (n1 == null) 
+                return false;
+            Pullenti.Ner.Core.ComplexNumToken n2 = next.Cnum;
+            if (n2 == null) 
+                return false;
+            Pullenti.Ner.Core.ComplexNumComparer cmp = new Pullenti.Ner.Core.ComplexNumComparer();
+            cmp.Process(n1, n2);
+            if (cmp.Typ == Pullenti.Ner.Core.ComplexNumCompareType.Less && cmp.Delta == 1 && cmp.Rank >= 0.8) 
+                return true;
+            if (canFollow && cmp.CanFollow) 
+                return true;
+            return false;
+        }
         public static InstrToken1 Parse(Pullenti.Ner.Token t, bool ignoreDirectives, FragToken cur = null, int lev = 0, InstrToken1 prev = null, bool isCitat = false, int maxChar = 0, bool canBeTableCell = false, bool isInIndex = false)
         {
             if (t == null) 
@@ -335,7 +365,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     return res;
                 }
             }
-            if (t.IsValue("ПРИЛОЖЕНИЕ", "ДОДАТОК") && t.Morph.Case.IsNominative && t.Morph.Number == Pullenti.Morph.MorphNumber.Singular) 
+            if (t.IsValue("ПРИЛОЖЕНИЕ", "ДОДАТОК") && t.Morph.Case.IsNominative) 
             {
                 if (t.Next != null && ((((t.Next.IsValue("В", null) && !t.Next.IsNewlineAfter)) || t.Next.IsChar(':')))) 
                 {
@@ -404,6 +434,8 @@ namespace Pullenti.Ner.Instrument.Internal
                         }
                         if (t.IsValue("К", "ДО") && t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Decree.DecreeReferent)) 
                             break;
+                        if (t.IsValue("УТРАТИТЬ", null)) 
+                            break;
                         if (t.Chars.IsLetter) 
                         {
                             Pullenti.Ner.NumberToken lat = Pullenti.Ner.Core.NumberHelper.TryParseRoman(t);
@@ -443,6 +475,8 @@ namespace Pullenti.Ner.Instrument.Internal
                         }
                         break;
                     }
+                    if (res.Typ == Types.Appendix && res.Numbers.Count == 0 && t0.Morph.Number != Pullenti.Morph.MorphNumber.Singular) 
+                        res.Typ = Types.Line;
                     if (res.Typ != Types.Line) 
                         return res;
                 }
@@ -471,7 +505,10 @@ namespace Pullenti.Ner.Instrument.Internal
                     res.Typ = Types.Approved;
                 if ((t is Pullenti.Ner.TextToken) && (t as Pullenti.Ner.TextToken).Term == "ПРИМЕЧАНИЯ") 
                 {
-                    if (t.IsNewlineAfter) 
+                    if ((t.Previous != null && t.Previous.IsTableControlChar && t.Next != null) && t.Next.IsTableControlChar) 
+                    {
+                    }
+                    else if (t.IsNewlineAfter) 
                     {
                         res.Typ = Types.Notice;
                         return res;
@@ -739,24 +776,32 @@ namespace Pullenti.Ner.Instrument.Internal
                     }
                 }
             }
-            List<Pullenti.Ner.Decree.Internal.PartToken> pts = (t == null ? null : Pullenti.Ner.Decree.Internal.PartToken.TryAttachList((t.IsValue("ПОЛОЖЕНИЕ", "ПОЛОЖЕННЯ") ? t.Next : t), false, 40));
+            Pullenti.Ner.Token tt01 = (t != null && t.IsValue("ПОЛОЖЕНИЕ", "ПОЛОЖЕННЯ") ? t.Next : t);
+            List<Pullenti.Ner.Decree.Internal.PartToken> pts = Pullenti.Ner.Decree.Internal.PartToken.TryAttachList(tt01, false, 40);
+            tt = null;
             if ((pts != null && pts.Count > 0 && pts[0].Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.Prefix) && pts[0].Values.Count > 0 && !pts[0].IsNewlineAfter) 
-            {
-                bool ok = false;
                 tt = pts[pts.Count - 1].EndToken.Next;
-                if (tt != null && tt.IsCharOf(".)]")) 
+            if ((tt01 is Pullenti.Ner.ReferentToken) && !tt01.IsNewlineAfter) 
+            {
+                if ((tt01.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) || (tt01.GetReferent() is Pullenti.Ner.Decree.DecreeReferent)) 
+                    tt = tt01.Next;
+            }
+            if (tt != null) 
+            {
+                bool ok1 = false;
+                if (tt.IsCharOf(".)]")) 
                 {
                 }
                 else 
                     for (; tt != null; tt = tt.Next) 
                     {
                         if (tt.IsValue("ПРИМЕНЯТЬСЯ", "ЗАСТОСОВУВАТИСЯ")) 
-                            ok = true;
+                            ok1 = true;
                         if ((tt.IsValue("ВСТУПАТЬ", "ВСТУПАТИ") && tt.Next != null && tt.Next.Next != null) && tt.Next.Next.IsValue("СИЛА", "ЧИННІСТЬ")) 
-                            ok = true;
+                            ok1 = true;
                         if (tt.IsNewlineAfter) 
                         {
-                            if (ok) 
+                            if (ok1) 
                                 return new InstrToken1(t, tt) { Typ = Types.Comment };
                             break;
                         }
@@ -850,14 +895,20 @@ namespace Pullenti.Ner.Instrument.Internal
                     }
                     else if ((s == "ПРИМЕЧАНИЕ" || s == "ПРИМІТКА" || s == "ПРИМЕЧАНИЯ") || s == "ПРИМІТКИ") 
                     {
-                        res.Typ = Types.Notice;
-                        t = t.Next;
-                        if (t != null && t.IsCharOf(".:")) 
+                        if ((t.Previous != null && t.Previous.IsTableControlChar && t.Next != null) && t.Next.IsTableControlChar) 
                         {
-                            res.EndToken = t;
-                            t = t.Next;
                         }
-                        ok = true;
+                        else 
+                        {
+                            res.Typ = Types.Notice;
+                            t = t.Next;
+                            if (t != null && t.IsCharOf(".:")) 
+                            {
+                                res.EndToken = t;
+                                t = t.Next;
+                            }
+                            ok = true;
+                        }
                     }
                     else if (s == "§" || s == "ПАРАГРАФ") 
                     {
@@ -993,6 +1044,8 @@ namespace Pullenti.Ner.Instrument.Internal
                                 isNewLine = false;
                         }
                     }
+                    if (Pullenti.Ner.Core.MiscHelper.CheckFalseNewline(t)) 
+                        continue;
                     if (isNewLine) 
                         break;
                     else 
@@ -1105,6 +1158,8 @@ namespace Pullenti.Ner.Instrument.Internal
                     if (res.Numbers.Count > 0) 
                     {
                     }
+                    if (res.Typ == Types.Notice) 
+                        break;
                     if (res.Typ == Types.Form || res.Typ == Types.Table) 
                     {
                         if (res.Numbers.Count == 0) 
@@ -1201,7 +1256,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     break;
                 string tmp;
                 tt2 = _checkDirective(t, out tmp);
-                if (tt2 != null) 
+                if (tt2 != null && res.Numbers.Count == 0) 
                 {
                     if (tt2.Next != null && tt2.Next.IsCharOf(":.") && tt2.Next.IsNewlineAfter) 
                     {
@@ -1580,6 +1635,36 @@ namespace Pullenti.Ner.Instrument.Internal
                     break;
                 else 
                     res.EndToken = t;
+            }
+            if (res.Numbers.Count == 0 && res.HasVerb && res.Typ == Types.Line) 
+            {
+                if (res.BeginToken.IsValue3("В", "СООТВЕТСТВИИ", "С")) 
+                {
+                    bool hasDecr = false;
+                    bool hasDate = false;
+                    for (t = res.BeginToken.Next.Next.Next; t != null && t.EndChar <= res.EndChar; t = t.Next) 
+                    {
+                        Pullenti.Ner.Referent r = t.GetReferent();
+                        if (r != null) 
+                        {
+                            if ((r is Pullenti.Ner.Decree.DecreeReferent) || (r is Pullenti.Ner.Decree.DecreePartReferent)) 
+                                hasDecr = true;
+                            else if (r.TypeName == "DATE") 
+                                hasDate = true;
+                            else 
+                                break;
+                            continue;
+                        }
+                        if (t.LengthChar < 2) 
+                            continue;
+                        if (t.IsValue("БУДЕТ", null)) 
+                        {
+                            if (hasDate && hasDecr) 
+                                res.Typ = Types.Comment;
+                        }
+                        break;
+                    }
+                }
             }
             return res;
         }

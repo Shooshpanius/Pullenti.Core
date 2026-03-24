@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -26,6 +26,7 @@ namespace Pullenti.Ner.Measure.Internal
         public static Unit uHour;
         public static Unit uMinute;
         public static Unit uSec;
+        public static Unit uInch;
         static bool m_Inited = false;
         static Dictionary<Pullenti.Ner.Measure.MeasureKind, List<string>> m_KindsKeywords;
         public static Unit FindUnit(string v, UnitsFactors fact)
@@ -44,6 +45,8 @@ namespace Pullenti.Ner.Measure.Internal
             foreach (Unit u in Units) 
             {
                 if ((u.FullnameCyr == v || u.FullnameLat == v || u.NameCyr == v) || u.NameLat == v) 
+                    return u;
+                else if (v == "\"" && u.NameCyr == "дюйм") 
                     return u;
             }
             return null;
@@ -127,6 +130,7 @@ namespace Pullenti.Ner.Measure.Internal
             t.AddVariant("FOOT", false);
             Termins.Add(t);
             uu = new Unit("дюйм", "in", "дюйм", "inch") { BaseUnit = u, BaseMultiplier = 0.0254, Kind = Pullenti.Ner.Measure.MeasureKind.Length };
+            uInch = uu;
             Units.Add(uu);
             t = new Pullenti.Ner.Core.Termin("ДЮЙМ") { Tag = uu };
             t.AddAbridge("IN");
@@ -166,6 +170,7 @@ namespace Pullenti.Ner.Measure.Internal
             {
                 _addFactor(f, u, "Г.;ГР;", "G.;GR.", "ГРАМ;ГРАММ;ГРАММНЫЙ", "ГРАМ;ГРАМОВИЙ", "GRAM;GRAMME");
             }
+            u.NameCyr = "гр";
             uu = new Unit("ц", "centner", "центнер", "centner") { BaseUnit = u, BaseMultiplier = 100000, Kind = Pullenti.Ner.Measure.MeasureKind.Weight };
             Units.Add(uu);
             t = new Pullenti.Ner.Core.Termin("ЦЕНТНЕР") { Tag = uu };
@@ -874,7 +879,7 @@ namespace Pullenti.Ner.Measure.Internal
                     prefRu = "САНТИ";
                     prefUa = "САНТИ";
                     prefEn = "CENTI";
-                    mult = 0.1;
+                    mult = 0.01;
                     break;
                 case UnitsFactors.Deci:
                     prefCyr = "Д";
@@ -882,7 +887,7 @@ namespace Pullenti.Ner.Measure.Internal
                     prefRu = "ДЕЦИ";
                     prefUa = "ДЕЦИ";
                     prefEn = "DECI";
-                    mult = 0.01;
+                    mult = 0.1;
                     break;
                 case UnitsFactors.Giga:
                     prefCyr = "Г";

@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -179,7 +179,9 @@ namespace Pullenti.Ner.Geo.Internal
                             else 
                                 return false;
                         }
-                        if ((((((lot.Contains("поселок") || lot.Contains("селище") || lot.Contains("хутор")) || lot.Contains("станица") || lot.Contains("село")) || lot.Contains("деревня") || lot.Contains("городок")) || lot.Contains("местечко") || lot.Contains("аул")) || lot.Contains("кишлак") || lot.Contains("улус")) || lot.Contains("пункт") || lot.Contains("слобода")) 
+                        if ((((((lot.Contains("селище") || lot.Contains("хутор") || lot.Contains("станица")) || lot.Contains("село") || lot.Contains("деревня")) || lot.Contains("городок") || lot.Contains("местечко")) || lot.Contains("аул") || lot.Contains("кишлак")) || lot.Contains("улус") || lot.Contains("пункт")) || lot.Contains("слобода")) 
+                            return true;
+                        if (lot.Contains("внутригородск")) 
                             return true;
                     }
                     if (hit.Contains("улус")) 

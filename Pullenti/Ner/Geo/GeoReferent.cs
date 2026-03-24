@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -289,7 +289,6 @@ namespace Pullenti.Ner.Geo
             }
             int isState = -1;
             int isReg = -1;
-            bool ignore = false;
             foreach (Pullenti.Ner.Slot t in Slots) 
             {
                 if (t.TypeName == ATTR_TYPE) 
@@ -329,7 +328,7 @@ namespace Pullenti.Ner.Geo
                 if ((isState < 0) && ((m_TmpBits & BIT_ISCITY)) != 0) 
                 {
                 }
-                else if (!ignore) 
+                else 
                     m_TmpBits |= BIT_ISSTATE;
             }
             if (isReg != 0) 
@@ -337,7 +336,7 @@ namespace Pullenti.Ner.Geo
                 if ((isState < 0) && ((m_TmpBits & BIT_ISCITY)) != 0) 
                 {
                 }
-                else if (!ignore) 
+                else 
                     m_TmpBits |= BIT_ISREGION;
             }
         }
@@ -439,7 +438,7 @@ namespace Pullenti.Ner.Geo
         }
         static bool _isCity(string v)
         {
-            if (((((((((((((((v.Contains("поселок") || v.Contains("селение") || v.Contains("городок")) || v.Contains("село") || v.Contains("деревня")) || v.Contains("станица") || v.Contains("пункт")) || v.Contains("станция") || v.Contains("полустанок")) || v.Contains("аул") || v.Contains("улус")) || v.Contains("кишлак") || v.Contains("наслег")) || v.Contains("хутор") || v.Contains("слобода")) || v.Contains("местечко") || v.Contains("усадьба")) || v.Contains("починок") || v.Contains("заимка")) || v.Contains("аал") || v.Contains("выселки")) || v.Contains("арбан") || v == "участок") || v.Contains("місто") || v.Contains("селище")) || v.Contains("сіло") || v.Contains("станиця")) || v.Contains("станція") || v.Contains("city")) || v.Contains("municipality") || v.Contains("town")) 
+            if ((((((((((((((((v.Contains("селение") || v.Contains("городок") || v.Contains("село")) || v.Contains("деревня") || v.Contains("станица")) || v.Contains("пункт") || v.Contains("станция")) || v.Contains("полустанок") || v.Contains("аул")) || v.Contains("улус") || v.Contains("кишлак")) || v.Contains("наслег") || v.Contains("хутор")) || v.Contains("слобода") || v.Contains("местечко")) || v.Contains("усадьба") || v.Contains("починок")) || v.Contains("заимка") || v.Contains("аал")) || v.Contains("выселки") || v.Contains("арбан")) || v == "участок" || v.Contains("місто")) || v.Contains("селище") || v.Contains("сіло")) || v.Contains("станиця") || v.Contains("станція")) || v.Contains("city") || v.Contains("municipality")) || v.Contains("town") || v == "locality") || v == "village") 
                 return true;
             if (v.Contains("порт")) 
                 return true;

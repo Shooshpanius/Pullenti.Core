@@ -253,6 +253,10 @@
       <Compile Include="Ner\Keyword\KeywordAnalyzer.cs" />
       <Compile Include="Ner\Keyword\KeywordReferent.cs" />
       <Compile Include="Ner\Keyword\KeywordType.cs" />
+      <Compile Include="Ner\Link\LinkAnalyzer.cs" />
+      <Compile Include="Ner\Link\LinkReferent.cs" />
+      <Compile Include="Ner\Link\LinkType.cs" />
+      <Compile Include="Ner\Link\MetaLink.cs" />
       <Compile Include="Ner\Mail\Internal\MailLine.cs" />
       <Compile Include="Ner\Mail\Internal\MetaLetter.cs" />
       <Compile Include="Ner\Mail\MailAnalyzer.cs" />
@@ -314,12 +318,18 @@
       <Compile Include="Ner\Person\Internal\PersonIdToken.cs" />
       <Compile Include="Ner\Person\Internal\PersonItemToken.cs" />
       <Compile Include="Ner\Person\Internal\PersonMorphCollection.cs" />
+      <Compile Include="Ner\Person\Internal\PersonNormalHelper.cs" />
+      <Compile Include="Ner\Person\Internal\PersonNormalItem.cs" />
+      <Compile Include="Ner\Person\Internal\PersonNormalItemType.cs" />
+      <Compile Include="Ner\Person\Internal\PersonNormalNode.cs" />
       <Compile Include="Ner\Person\Internal\PersonPropAnalyzer.cs" />
       <Compile Include="Ner\Person\Internal\PersonTokenData.cs" />
       <Compile Include="Ner\Person\Internal\ResourceHelper.cs" />
       <Compile Include="Ner\Person\Internal\ShortNameHelper.cs" />
       <Compile Include="Ner\Person\PersonAnalyzer.cs" />
       <Compile Include="Ner\Person\PersonIdentityReferent.cs" />
+      <Compile Include="Ner\Person\PersonNormalData.cs" />
+      <Compile Include="Ner\Person\PersonNormalResult.cs" />
       <Compile Include="Ner\Person\PersonPropertyKind.cs" />
       <Compile Include="Ner\Person\PersonPropertyReferent.cs" />
       <Compile Include="Ner\Person\PersonReferent.cs" />
@@ -499,6 +509,7 @@
     <EmbeddedResource Include="Ner\Resources\kwobject.png" />
     <EmbeddedResource Include="Ner\Resources\kwpredicate.png" />
     <EmbeddedResource Include="Ner\Resources\kwreferent.png" />
+    <EmbeddedResource Include="Ner\Resources\link.png" />
     <EmbeddedResource Include="Ner\Resources\location.png" />
     <EmbeddedResource Include="Ner\Resources\mail.png" />
     <EmbeddedResource Include="Ner\Resources\man.png" />

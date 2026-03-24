@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -209,7 +209,7 @@ namespace Pullenti.Ner.Address
                 {
                     return (AddressHouseType)Enum.Parse(typeof(AddressHouseType), str, true);
                 }
-                catch(Exception ex645) 
+                catch(Exception ex649) 
                 {
                     return AddressHouseType.House;
                 }
@@ -247,7 +247,7 @@ namespace Pullenti.Ner.Address
                 {
                     return (AddressBuildingType)Enum.Parse(typeof(AddressBuildingType), str, true);
                 }
-                catch(Exception ex646) 
+                catch(Exception ex650) 
                 {
                     return AddressBuildingType.Building;
                 }
@@ -725,7 +725,7 @@ namespace Pullenti.Ner.Address
                 {
                     return (AddressDetailType)Enum.Parse(typeof(AddressDetailType), s, true);
                 }
-                catch(Exception ex647) 
+                catch(Exception ex651) 
                 {
                 }
                 return AddressDetailType.Undefined;
@@ -746,7 +746,7 @@ namespace Pullenti.Ner.Address
                 {
                     if (res.Length > 0) 
                         res.Append(' ');
-                    res.Append(Metro ?? "");
+                    res.Append(Metro);
                 }
             }
             else 

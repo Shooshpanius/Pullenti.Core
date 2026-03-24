@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -132,7 +132,7 @@ namespace Pullenti.Ner.Core.Internal
                         {
                             str = Pullenti.Morph.MorphologyService.GetWordform(v.SingleNumberValue, bi);
                         }
-                        catch(Exception ex763) 
+                        catch(Exception ex767) 
                         {
                         }
                         if (str != null) 
@@ -186,6 +186,14 @@ namespace Pullenti.Ner.Core.Internal
                     else if (res1 == "ЛЮДИ") 
                         res1 = "ЧЕЛОВЕК";
                 }
+                if (num == Pullenti.Morph.MorphNumber.Undefined) 
+                {
+                    if ((res1 == "КОДЫ" || res1 == "ПРАВИЛА" || res1 == "ОСНОВЫ") || res1 == "МЕТОДЫ") 
+                    {
+                        res = res1;
+                        break;
+                    }
+                }
                 maxCoef = v.UndefCoef;
                 if (v.UndefCoef > 0) 
                 {
@@ -202,6 +210,11 @@ namespace Pullenti.Ner.Core.Internal
                     defCo += 3;
                 if (num == Pullenti.Morph.MorphNumber.Singular && gender != Pullenti.Morph.MorphGender.Undefined && ((v.Gender & gender)) == Pullenti.Morph.MorphGender.Undefined) 
                     defCo--;
+                if (num == Pullenti.Morph.MorphNumber.Undefined && v.Case.IsNominative && ((gender == Pullenti.Morph.MorphGender.Undefined || ((gender & v.Gender)) != Pullenti.Morph.MorphGender.Undefined))) 
+                {
+                    if (Pullenti.Ner.Core.BracketHelper.IsBracket(Previous, true) || Pullenti.Ner.Core.BracketHelper.IsBracket(BeginToken.Previous, true)) 
+                        defCo += 3;
+                }
                 if (res == null || defCo > defCoef) 
                 {
                     res = res1;

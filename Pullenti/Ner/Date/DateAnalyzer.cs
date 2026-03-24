@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -119,7 +119,7 @@ namespace Pullenti.Ner.Date
                     bool high = false;
                     for (Pullenti.Ner.Token tt = t.Previous; tt != null; tt = tt.Previous) 
                     {
-                        if ((tt.IsValue("ДАТА", null) || tt.IsValue("DATE", null) || tt.IsValue("ВЫДАТЬ", null)) || tt.IsValue("ОБРАЗОВАНИЕ", null)) 
+                        if ((tt.IsValue("ДАТА", null) || tt.IsValue("DATE", null) || tt.IsValue("ВЫДАТЬ", null)) || tt.IsValue("ОБРАЗОВАНИЕ", null) || tt.IsValue("ГОД", null)) 
                         {
                             high = true;
                             break;
@@ -171,12 +171,9 @@ namespace Pullenti.Ner.Date
                 }
                 if (rts == null) 
                 {
-                    if (rts == null) 
-                    {
-                        if (t1 != null) 
-                            t = t1;
-                        continue;
-                    }
+                    if (t1 != null) 
+                        t = t1;
+                    continue;
                 }
                 DateReferent dat = null;
                 DateReferent hi = null;
@@ -393,6 +390,14 @@ namespace Pullenti.Ner.Date
             ad.Level++;
             List<Pullenti.Ner.ReferentToken> rts = TryAttach(pli, true);
             ad.Level--;
+            if (rts == null || rts.Count == 0) 
+            {
+                if (param == "YEAR" && pli[0].CanBeYear && pli.Count > 1) 
+                {
+                    pli.RemoveRange(1, pli.Count - 1);
+                    rts = TryAttach(pli, true);
+                }
+            }
             if (rts == null || rts.Count == 0) 
                 return null;
             Pullenti.Ner.ReferentToken res = rts[rts.Count - 1];
@@ -734,6 +739,20 @@ namespace Pullenti.Ner.Date
                         return res0;
                     }
                 }
+                if (((dts.Count == 3 && dts[0].CanByMonth && dts[1].Typ == Pullenti.Ner.Date.Internal.DateItemToken.DateItemType.Delim) && !dts[1].BeginToken.IsHiphen && dts[2].CanBeYear) && dts[2].LengthChar == 4) 
+                {
+                    bool ok1 = false;
+                    if (dts[2].EndToken.Next != null && ((dts[2].EndToken.Next.IsHiphen || dts[2].EndToken.Next.IsValue("ПО", null)))) 
+                        ok1 = true;
+                    if (ok1) 
+                    {
+                        List<Pullenti.Ner.ReferentToken> res0 = new List<Pullenti.Ner.ReferentToken>();
+                        DateReferent yea = new DateReferent() { Year = dts[2].Year };
+                        res0.Add(new Pullenti.Ner.ReferentToken(yea, dts[2].BeginToken, dts[2].EndToken));
+                        res0.Add(new Pullenti.Ner.ReferentToken(new DateReferent() { Month = dts[0].IntValue, Higher = yea }, dts[0].BeginToken, dts[2].EndToken));
+                        return res0;
+                    }
+                }
                 if ((dts.Count >= 3 && dts[0].CanByMonth && dts[1].Typ == Pullenti.Ner.Date.Internal.DateItemToken.DateItemType.Delim) && dts[2].CanBeYear && dts[1].StringValue == ".") 
                 {
                     if (((dts.Count >= 7 && dts[3].BeginToken.IsHiphen && dts[4].CanByMonth) && dts[5].StringValue == "." && dts[6].CanBeYear) && dts[2].IntValue <= dts[6].IntValue) 
@@ -813,6 +832,21 @@ namespace Pullenti.Ner.Date
                             ok = true;
                         else if (tt0.IsValue("IN", null) || tt0.IsValue("SINCE", null) || tt0.IsValue("В", "У")) 
                             ok = true;
+                        int cou = 0;
+                        for (Pullenti.Ner.Token tt2 = tt0; tt2 != null && (cou < 50); tt2 = tt2.Previous,cou++) 
+                        {
+                            if (tt2.IsValue("ОПЫТ", null) || tt2.IsValue("РАБОТА", null)) 
+                            {
+                                ok = true;
+                                break;
+                            }
+                            DateRangeReferent dr = tt2.GetReferent() as DateRangeReferent;
+                            if (dr != null && dr.DateFrom != null && dr.DateTo != null) 
+                            {
+                                ok = true;
+                                break;
+                            }
+                        }
                     }
                     if (ok) 
                     {
@@ -1071,6 +1105,25 @@ namespace Pullenti.Ner.Date
                     {
                         List<Pullenti.Ner.ReferentToken> res0 = new List<Pullenti.Ner.ReferentToken>();
                         res0.Add(new Pullenti.Ner.ReferentToken(new DateReferent() { Year = dts[0].IntValue }, dts[0].BeginToken, dts[0].EndToken));
+                        return res0;
+                    }
+                }
+                if ((dts.Count == 2 && dts[0].Typ == Pullenti.Ner.Date.Internal.DateItemToken.DateItemType.Month && dts[1].Typ == Pullenti.Ner.Date.Internal.DateItemToken.DateItemType.Number) && dts[0].BeginToken.Previous != null) 
+                {
+                    bool ok = false;
+                    if (dts[0].BeginToken.Previous.IsValue("С", null) && dts[1].EndToken.Next != null && dts[1].EndToken.Next.IsValue("ПО", null)) 
+                        ok = true;
+                    else if (dts[0].BeginToken.Previous.IsValue("ПО", null) && dts[0].BeginToken.Previous.Previous != null && (dts[0].BeginToken.Previous.Previous.GetReferent() is DateReferent)) 
+                        ok = true;
+                    else if (dts[1].EndToken.Next != null && dts[1].EndToken.Next.IsHiphen) 
+                        ok = true;
+                    if (ok) 
+                    {
+                        List<Pullenti.Ner.ReferentToken> res0 = new List<Pullenti.Ner.ReferentToken>();
+                        DateReferent yea = new DateReferent() { Year = dts[1].Year };
+                        res0.Add(new Pullenti.Ner.ReferentToken(yea, dts[1].BeginToken, dts[1].EndToken) { Morph = dts[1].Morph });
+                        DateReferent m = new DateReferent() { Month = dts[0].IntValue, Higher = yea };
+                        res0.Add(new Pullenti.Ner.ReferentToken(m, dts[0].BeginToken, dts[1].EndToken) { Morph = dts[1].Morph });
                         return res0;
                     }
                 }
@@ -1761,6 +1814,19 @@ namespace Pullenti.Ner.Date
                         i1 = i + 1;
                     }
                 }
+                else if ((i == (its.Count - 1) && i > 2 && its[i - 1].CanBeDay) && its[0].CanBeYear) 
+                {
+                    if (i == 2) 
+                    {
+                        year = its[0];
+                        day = its[1];
+                    }
+                    else if (i == 3 && its[1].Typ == Pullenti.Ner.Date.Internal.DateItemToken.DateItemType.Delim) 
+                    {
+                        year = its[0];
+                        day = its[2];
+                    }
+                }
                 if (year == null && i == 1 && its[i - 1].CanBeDay) 
                 {
                     for (int j = i + 1; j < its.Count; j++) 
@@ -2094,6 +2160,9 @@ namespace Pullenti.Ner.Date
                 else if (t1.IsValue("AND", null)) 
                     lang = Pullenti.Morph.MorphLang.EN;
                 else if (t1.IsHiphen && lang.Equals(Pullenti.Morph.MorphLang.EN)) 
+                {
+                }
+                else if (t1.IsHiphen && t1.Next != null && (t1.Next.GetReferent() is DateReferent)) 
                 {
                 }
                 else if (lang.IsUa && t1.IsValue("І", null)) 

@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -52,7 +52,7 @@ namespace Pullenti.Ner.Org.Internal
                     return new OrgItemNumberToken(t, t) { Number = (t as Pullenti.Ner.NumberToken).Value.ToString() };
                 if (typ != null && typ.Typ != null && (((typ.Typ == "войсковая часть" || typ.Typ == "військова частина" || typ.Typ.Contains("колония")) || typ.Typ.Contains("колонія") || typ.Typ.Contains("школа")))) 
                 {
-                    if (t.LengthChar >= 4 || t.LengthChar <= 6) 
+                    if (t.LengthChar <= 6) 
                     {
                         OrgItemNumberToken res = new OrgItemNumberToken(t, t) { Number = (t as Pullenti.Ner.NumberToken).Value.ToString() };
                         if (t.Next != null && ((t.Next.IsHiphen || t.Next.IsCharOf("\\/"))) && !t.Next.IsWhitespaceAfter) 

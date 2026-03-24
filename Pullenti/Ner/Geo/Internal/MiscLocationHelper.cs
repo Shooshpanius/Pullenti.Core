@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -20,7 +20,7 @@ namespace Pullenti.Ner.Geo.Internal
                 return false;
             if (t.Kit.Sofa.UserParams != null) 
             {
-                if (t.Kit.Sofa.UserParams.Contains("ADDRESS") || t.Kit.Sofa.UserParams.Contains("GARADDRESS")) 
+                if (t.Kit.Sofa.UserParams.Contains("ADDRESS")) 
                     return true;
             }
             return false;
@@ -32,6 +32,17 @@ namespace Pullenti.Ner.Geo.Internal
             if (t.Kit.Sofa.UserParams != null) 
             {
                 if (t.Kit.Sofa.UserParams.Contains("GARADDRESS")) 
+                    return true;
+            }
+            return false;
+        }
+        public static bool IsUserParamQuiry(Pullenti.Ner.Token t)
+        {
+            if (t == null) 
+                return false;
+            if (t.Kit.Sofa.UserParams != null) 
+            {
+                if (t.Kit.Sofa.UserParams.Contains("QUIRY")) 
                     return true;
             }
             return false;

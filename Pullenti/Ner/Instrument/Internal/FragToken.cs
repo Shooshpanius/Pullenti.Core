@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -157,6 +157,31 @@ namespace Pullenti.Ner.Instrument.Internal
             set
             {
                 Value = GetRestoredNameMT(this, false);
+            }
+        }
+        public void CheckExpired()
+        {
+            Pullenti.Ner.Token tt = BeginToken;
+            if (Itok != null && Itok.NumEndToken != null) 
+                tt = Itok.NumEndToken.Next;
+            if (tt != null && (tt.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent)) 
+                tt = tt.Next;
+            else 
+            {
+                Pullenti.Ner.Decree.Internal.PartToken pp = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(tt, null, false, false);
+                if (pp == null) 
+                    pp = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(tt, null, false, true);
+                if (pp != null) 
+                    tt = pp.EndToken.Next;
+            }
+            if ((tt != null && tt.IsValue("УТРАТИТЬ", "ВТРАТИТИ") && tt.Next != null) && tt.Next.IsValue("СИЛА", "ЧИННІСТЬ")) 
+                IsExpired = true;
+            else if (tt != null && tt.IsValue("ИСКЛЮЧИТЬ", null)) 
+            {
+                if (tt.IsNewlineAfter) 
+                    IsExpired = true;
+                else if (tt.Next != null && ((tt.Next.IsHiphen || tt.Next.IsCharOf(".;")))) 
+                    IsExpired = true;
             }
         }
         internal static string GetRestoredNameMT(Pullenti.Ner.MetaToken mt, bool indexItem = false)
@@ -564,6 +589,8 @@ namespace Pullenti.Ner.Instrument.Internal
                     {
                         if (li[j].Typ == ILTypes.Appendix) 
                         {
+                            if (li[j].WhitespacesBeforeCount > 1) 
+                                break;
                             if (li[j].Value != li[i].Value) 
                             {
                                 if (li[i].Value == "ПРИЛОЖЕНИЕ" || li[i].Value == "ДОДАТОК") 
@@ -912,6 +939,8 @@ namespace Pullenti.Ner.Instrument.Internal
                     {
                         if (li[j].Value == li[i1].Value) 
                             break;
+                        if (li[j].Typ == li[i1].Typ) 
+                            break;
                         if (li[j].Value != null && li[i1].Value == null) 
                             break;
                         continue;
@@ -989,6 +1018,11 @@ namespace Pullenti.Ner.Instrument.Internal
                     {
                         app.Name = title.Name;
                         title.Name = null;
+                    }
+                    if (title.IsExpired) 
+                    {
+                        app.IsExpired = true;
+                        title.IsExpired = false;
                     }
                     app.Children.Add(title);
                     if (app.EndChar < title.EndChar) 
@@ -1377,7 +1411,7 @@ namespace Pullenti.Ner.Instrument.Internal
             Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
             if (npt != null) 
             {
-                if (npt.EndToken.IsValue("ОБРАЗЕЦ", null) && t.Chars.IsAllLower) 
+                if (npt.EndToken.IsValue("ОБРАЗЕЦ", null) && ((t.Chars.IsAllLower || npt.IsNewlineAfter))) 
                     return new FragToken(t, npt.EndToken);
             }
             if (t.IsChar('(')) 
@@ -1407,6 +1441,24 @@ namespace Pullenti.Ner.Instrument.Internal
                 if (tt != null) 
                     return null;
                 t = t.Next;
+            }
+            for (; t != null; t = t.Next) 
+            {
+                if (t.IsChar('|')) 
+                {
+                }
+                else 
+                    break;
+            }
+            if (t == null) 
+                return null;
+            if (t.IsValue3("МЕСТО", "ДЛЯ", "QR")) 
+            {
+                for (Pullenti.Ner.Token tt = t.Next.Next; tt != null; tt = tt.Next) 
+                {
+                    if (tt.IsNewlineAfter) 
+                        return new FragToken(t0, tt);
+                }
             }
             if (t.IsValue("ЗАКАЗ", null)) 
             {
@@ -1949,7 +2001,7 @@ namespace Pullenti.Ner.Instrument.Internal
                 {
                     if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.Indention) 
                         abzCount++;
-                    if (ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Keyword && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Number && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Number) 
+                    if ((ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Keyword && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Number && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Number) && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Editions && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Comment) 
                         cou++;
                 }
                 if (abzCount == cou && cou > 0) 
@@ -2011,7 +2063,7 @@ namespace Pullenti.Ner.Instrument.Internal
             }
             else 
                 return false;
-            if (Itok != null && Itok.HasChanges) 
+            if (Itok != null && Itok.HasChanges && !Itok.BeginToken.IsTableControlChar) 
                 return false;
             int endChar = EndChar;
             if (EndToken.Next == null) 
@@ -2022,7 +2074,13 @@ namespace Pullenti.Ner.Instrument.Internal
             for (Pullenti.Ner.Token tt = BeginToken; tt != null && tt.EndChar <= endChar; tt = tt.Next) 
             {
                 if (!tt.IsNewlineBefore) 
-                    continue;
+                {
+                    if (tt.Previous != null && tt.Previous.IsChar((char)0x1F)) 
+                    {
+                    }
+                    else 
+                        continue;
+                }
                 if (tt.IsChar((char)0x1E)) 
                 {
                 }
@@ -2067,7 +2125,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     Pullenti.Ner.Token t00 = head[0].BeginToken.Next.Next;
                     if (head[0].NumEndToken != head[0].EndToken && head[0].NumEndToken != null) 
                         t00 = head[0].NumEndToken.Next;
-                    if (t00 != null) 
+                    if (t00 != null && t00.EndChar <= head[0].EndChar) 
                     {
                         FragToken frName = new FragToken(t00, head[0].EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, DefVal2 = true, Itok = head[0] };
                         tab.Children.Add(frName);
@@ -2136,32 +2194,2050 @@ namespace Pullenti.Ner.Instrument.Internal
             }
             return tabs;
         }
-        public void _analizeContent(FragToken topDoc, bool isCitat, Pullenti.Ner.Instrument.InstrumentKind rootKind = Pullenti.Ner.Instrument.InstrumentKind.Undefined)
+        static FragToken CreateDocTitle(Pullenti.Ner.Token t0, Pullenti.Ner.Instrument.InstrumentReferent doc)
         {
-            Kind = Pullenti.Ner.Instrument.InstrumentKind.Content;
-            if (BeginToken.Previous != null && BeginToken.Previous.IsChar((char)0x1E)) 
-                BeginToken = BeginToken.Previous;
-            ContentAnalyzeWhapper wr = new ContentAnalyzeWhapper();
-            wr.Analyze(this, topDoc, isCitat, rootKind);
-            foreach (FragToken ch in topDoc.Children) 
+            if (t0 == null) 
+                return null;
+            if (t0.IsValue3("ДАННЫЕ", "ЭЛЕКТРОННОЙ", "ПОДПИСИ")) 
             {
-                if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.Head) 
+                int cou = 0;
+                for (Pullenti.Ner.Token tt = t0; tt != null; tt = tt.Next) 
                 {
-                    foreach (FragToken chh in ch.Children) 
+                    t0 = tt;
+                    InstrToken1 line = InstrToken1.Parse(tt, true, null, 0, null, false, 0, false, false);
+                    if (line == null) 
+                        continue;
+                    if (tt.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
                     {
-                        if (chh.Kind == Pullenti.Ner.Instrument.InstrumentKind.Editions && chh.Referents != null) 
+                        t0 = tt.Kit.DebedToken(tt);
+                        break;
+                    }
+                    Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt, null, false);
+                    if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                        break;
+                    if ((((tt.IsValue("ДАННЫЕ", null) || tt.IsValue("ДОКУМЕНТ", null) || tt.IsValue("ВЛАДЕЛЕЦ", null)) || tt.IsValue("ОРГАНИЗАЦИЯ", null) || tt.IsValue("ПОДПИСАНО", null)) || tt.IsValue2("СЕРИЙНЫЙ", "НОМЕР") || tt.IsValue2("СРОК", "ДЕЙСТВИЯ")) || tt.IsChar('(')) 
+                        cou = 0;
+                    else 
+                    {
+                        cou++;
+                        if (cou > 3) 
+                            break;
+                    }
+                    tt = line.EndToken;
+                }
+            }
+            FragToken title = CreateContractTitle(t0, doc);
+            if (title != null) 
+                return title;
+            title = CreateGostTitle(t0, doc);
+            if (title != null) 
+                return title;
+            title = CreateZapiskaTitle(t0, doc);
+            if (title != null) 
+                return title;
+            title = CreateTZTitle(t0, doc);
+            if (title != null) 
+                return title;
+            doc.Slots.Clear();
+            title = CreateProjectTitle(t0, doc);
+            if (title != null) 
+                return title;
+            doc.Slots.Clear();
+            title = _createDocTitle_(t0, doc);
+            if (title != null && title.Children.Count == 1 && title.Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Name) 
+            {
+                FragToken title2 = _createDocTitle_(title.EndToken.Next, doc);
+                if (title2 != null && doc.Typ != null) 
+                {
+                    title.Children.AddRange(title2.Children);
+                    title.EndToken = title2.EndToken;
+                }
+            }
+            if ((title != null && title.Children.Count >= 1 && title.Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Name) && doc.Typ == null) 
+            {
+                for (Pullenti.Ner.Token t = title.EndToken.Next; t != null; t = t.Next) 
+                {
+                    if (t.IsValue("ПРИКАЗЫВАТЬ", null) && t.Next != null && t.Next.IsChar(':')) 
+                    {
+                        doc.Typ = "ПРИКАЗ";
+                        break;
+                    }
+                }
+            }
+            return title;
+        }
+        static FragToken _createDocTitle_(Pullenti.Ner.Token t0, Pullenti.Ner.Instrument.InstrumentReferent doc)
+        {
+            for (; t0 != null; t0 = t0.Next) 
+            {
+                if (!t0.IsTableControlChar) 
+                    break;
+            }
+            if (t0 == null) 
+                return null;
+            if (_isStartOfBody(t0, false)) 
+                return null;
+            FragToken title = new FragToken(t0, t0) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Head };
+            Pullenti.Ner.Decree.Internal.DecreeToken dt0 = null;
+            Pullenti.Ner.Token t;
+            Pullenti.Ner.Token t1 = null;
+            string name = null;
+            Pullenti.Ner.Token nT0 = null;
+            int emptyLines = 0;
+            Pullenti.Ner.Token endEmptyLines = null;
+            bool ignoreEmptyLines = false;
+            int attrs = 0;
+            bool canBeOrgs = true;
+            List<FragToken> unknownOrgs = new List<FragToken>();
+            bool isContract = false;
+            bool startOfName = false;
+            t = t0;
+            if (t0.GetReferent() != null) 
+            {
+                if (t0.GetReferent().TypeName == "PERSON") 
+                    return null;
+            }
+            FragToken appr0 = null;
+            if (t0.IsValue("УТВЕРДИТЬ", "ЗАТВЕРДИТИ") || t0.IsValue("ПРИНЯТЬ", "ПРИЙНЯТИ") || t0.IsValue("УТВЕРЖДАТЬ", null)) 
+                appr0 = _createApproved(t);
+            if (appr0 != null) 
+            {
+                t1 = (title.EndToken = appr0.EndToken);
+                title.Children.Add(appr0);
+                t = t1.Next;
+            }
+            FragToken edi0 = null;
+            if (t0.IsValue("РЕДАКЦИЯ", null)) 
+                edi0 = _createEditions(t0);
+            if (edi0 != null) 
+            {
+                t1 = (title.EndToken = edi0.EndToken);
+                title.Children.Add(edi0);
+                t = t1.Next;
+            }
+            if (t != null && t.IsValue("ДЕЛО", "СПРАВА")) 
+            {
+                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t.Next, null, false);
+                if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number) 
+                {
+                    dt.BeginToken = t;
+                    title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, Value = "ДЕЛО" });
+                    _addTitleAttr(doc, title, dt);
+                    t = dt.EndToken.Next;
+                    if (t != null && t.IsValue("КОПИЯ", "КОПІЯ")) 
+                        t = t.Next;
+                    else if ((t.IsChar('(') && t.Next != null && t.Next.IsValue("КОПИЯ", "КОПІЯ")) && t.Next.Next != null && t.Next.Next.IsChar(')')) 
+                        t = t.Next.Next;
+                }
+            }
+            for (; t != null; t = t.Next) 
+            {
+                if (t.IsTableControlChar) 
+                    continue;
+                Pullenti.Ner.Token tt2 = Pullenti.Ner.Core.MiscHelper.CheckImage(t);
+                if (tt2 != null) 
+                {
+                    t = tt2;
+                    continue;
+                }
+                if (t.IsNewlineBefore || ((t.Previous != null && t.Previous.IsTableControlChar))) 
+                {
+                    if ((t.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) && (t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent).Kind != Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                        t = t.Kit.DebedToken(t);
+                    if (t.IsValue("О", "ПРО") || t.IsValue("ОБ", null) || t.IsValue("ПО", null)) 
+                        break;
+                    if (_isStartOfBody(t, false)) 
+                        break;
+                    if (t.IsCharOf("[") && name == null) 
+                        break;
+                    InstrToken1 iii = InstrToken1.Parse(t, true, null, 0, null, false, 0, false, false);
+                    if (iii != null && iii.Typ == InstrToken1.Types.Comment) 
+                    {
+                        FragToken cmt = new FragToken(iii.BeginToken, iii.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Comment };
+                        title.Children.Add(cmt);
+                        t = (t1 = (title.EndToken = iii.EndToken));
+                        continue;
+                    }
+                    if (iii != null && iii.EndToken.IsChar('?')) 
+                    {
+                        FragToken cmt = new FragToken(iii.BeginToken, iii.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name };
+                        cmt.Value = FragToken.GetRestoredNameMT(iii, false);
+                        title.Children.Add(cmt);
+                        t = (t1 = (title.EndToken = iii.EndToken));
+                        break;
+                    }
+                    if ((((t.IsValue("ЗАЯВИТЕЛЬ", "ЗАЯВНИК") || t.IsValue("ИСТЕЦ", "ПОЗИВАЧ") || t.IsValue("ОТВЕТЧИК", "ВІДПОВІДАЧ")) || t.IsValue("ДОЛЖНИК", "БОРЖНИК") || t.IsValue("КОПИЯ", "КОПІЯ"))) && t.Next != null && ((t.Next.IsChar(':') || t.Next.IsTableControlChar))) 
+                    {
+                        Pullenti.Ner.ReferentToken ptt = _createJustParticipant(t.Next.Next, null);
+                        if (ptt != null) 
                         {
-                            if (topDoc.Referents == null) 
-                                topDoc.Referents = new List<Pullenti.Ner.Referent>();
-                            foreach (Pullenti.Ner.Referent r in chh.Referents) 
+                            if (t.IsValue("КОПИЯ", null)) 
                             {
-                                if (!topDoc.Referents.Contains(r)) 
-                                    topDoc.Referents.Add(r);
+                            }
+                            t1 = ptt.EndToken;
+                            while (t1.Next != null && t1.Next.IsTableControlChar) 
+                            {
+                                t1 = t1.Next;
+                            }
+                            if (t1.Next != null && t1.Next.IsChar('(')) 
+                            {
+                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                                if (br != null) 
+                                    t1 = br.EndToken;
+                            }
+                            FragToken ft = new FragToken(t, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Initiator };
+                            title.Children.Add(ft);
+                            t = (title.EndToken = t1);
+                            continue;
+                        }
+                    }
+                    if (t.IsValue("ЦЕНА", "ЦІНА") && t.Next != null && t.Next.IsValue("ИСК", "ПОЗОВ")) 
+                    {
+                        bool hasMoney = false;
+                        Pullenti.Ner.Token tt;
+                        for (tt = t.Next; tt != null; tt = tt.Next) 
+                        {
+                            if (tt.GetReferent() is Pullenti.Ner.Money.MoneyReferent) 
+                                hasMoney = true;
+                            if (tt.IsNewlineAfter) 
+                                break;
+                        }
+                        if (tt != null && hasMoney) 
+                        {
+                            while (tt.Next != null && tt.Next.IsTableControlChar) 
+                            {
+                                tt = tt.Next;
+                            }
+                            if (tt.Next != null && tt.Next.IsChar('(')) 
+                            {
+                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tt.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                                if (br != null) 
+                                    tt = br.EndToken;
+                            }
+                            title.Children.Add(new FragToken(t, tt) { Kind = Pullenti.Ner.Instrument.InstrumentKind.CaseInfo });
+                            t = (title.EndToken = (t1 = tt));
+                            continue;
+                        }
+                    }
+                    if (t.IsValue("В", "У")) 
+                    {
+                        Pullenti.Ner.Token tt = t.Next;
+                        if (tt != null && tt.IsTableControlChar) 
+                            tt = tt.Next;
+                        if (tt != null && (tt.GetReferent() is Pullenti.Ner.Org.OrganizationReferent)) 
+                        {
+                            Pullenti.Ner.Referent r = tt.GetReferent();
+                            while (tt.Next != null && tt.Next.IsTableControlChar) 
+                            {
+                                tt = tt.Next;
+                            }
+                            t1 = tt;
+                            if (t1.Next != null && t1.Next.IsChar('(')) 
+                            {
+                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                                if (br != null) 
+                                    t1 = br.EndToken;
+                            }
+                            FragToken ooo = new FragToken(t, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Organization };
+                            ooo.Referents = new List<Pullenti.Ner.Referent>();
+                            ooo.Referents.Add(r);
+                            title.Children.Add(ooo);
+                            t = (title.EndToken = t1);
+                            continue;
+                        }
+                    }
+                    if (t.LengthChar == 1 && t.Chars.IsLetter && t.IsWhitespaceAfter) 
+                    {
+                        int ii;
+                        for (ii = 0; ii < InstrToken.m_DirectivesNorm.Count; ii++) 
+                        {
+                            Pullenti.Ner.Token ee = Pullenti.Ner.Core.MiscHelper.TryAttachWordByLetters(InstrToken.m_DirectivesNorm[ii], t, false);
+                            if (ee != null && ee.IsNewlineAfter) 
+                            {
+                                FragToken ooo = new FragToken(t, ee) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, Value = InstrToken.m_DirectivesNorm[ii] };
+                                title.Children.Add(ooo);
+                                doc.Typ = InstrToken.m_DirectivesNorm[ii];
+                                t = (title.EndToken = ee);
+                                break;
+                            }
+                        }
+                        if (ii < InstrToken.m_DirectivesNorm.Count) 
+                            continue;
+                    }
+                }
+                if (t.IsHiphen || t.IsChar('_')) 
+                {
+                    char ch = t.GetSourceText()[0];
+                    for (; t != null; t = t.Next) 
+                    {
+                        if (!t.IsChar(ch)) 
+                            break;
+                    }
+                }
+                if (t == null) 
+                    break;
+                FragToken casinf = _createCaseInfo(t);
+                if (casinf != null) 
+                    break;
+                Pullenti.Ner.Decree.DecreeReferent dr0 = t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
+                if (dr0 != null) 
+                {
+                    if (dr0.Kind == Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                        continue;
+                }
+                else if (t.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
+                {
+                    Pullenti.Ner.Decree.DecreePartReferent dpr = t.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
+                    if (dpr != null) 
+                    {
+                        if (((dpr.Part == null && dpr.DocPart == null)) || dpr.Slots.Count != 2) 
+                            break;
+                        if ((t.Next is Pullenti.Ner.TextToken) && (t.Next as Pullenti.Ner.TextToken).IsPureVerb) 
+                            break;
+                        dr0 = dpr.Owner;
+                    }
+                }
+                if (dr0 != null) 
+                {
+                    if (doc.Typ == null || doc.Typ == dr0.Typ) 
+                    {
+                        Pullenti.Ner.Token tt1 = (t as Pullenti.Ner.ReferentToken).BeginToken;
+                        List<Pullenti.Ner.Decree.Internal.DecreeToken> li = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachList(tt1, null, 10, false);
+                        if (li != null && li.Count > 0 && li[li.Count - 1].IsNewlineAfter) 
+                        {
+                            foreach (Pullenti.Ner.Decree.Internal.DecreeToken dd in li) 
+                            {
+                                _addTitleAttr(doc, title, dd);
+                            }
+                            Pullenti.Ner.Token ttt = li[li.Count - 1].EndToken;
+                            if (ttt.EndChar < t.EndChar) 
+                            {
+                                nT0 = ttt.Next;
+                                name = FragToken.GetRestoredName(ttt.Next, (t as Pullenti.Ner.ReferentToken).EndToken, false);
+                            }
+                            t1 = t;
+                            if (name != null && t1.IsNewlineAfter) 
+                            {
+                                t = t.Next;
+                                break;
+                            }
+                            if (doc.Typ == "КОДЕКС") 
+                            {
+                                Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t.Next, null, false, false);
+                                if (pt != null) 
+                                {
+                                    if (((pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part && pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) || pt.Values.Count != 1) 
+                                        pt = null;
+                                }
+                                if (pt != null && pt.Values.Count > 0) 
+                                {
+                                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
+                                    title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
+                                    t = pt.EndToken;
+                                    continue;
+                                }
+                            }
+                            if (doc.Name != null) 
+                            {
+                                t = t.Next;
+                                break;
+                            }
+                        }
+                    }
+                    else if (dr0.Typ == "КОДЕКС") 
+                    {
+                        Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t.Next, null, false, false);
+                        string nam = dr0.Name;
+                        if (pt != null) 
+                        {
+                            if (((pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part && pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) || pt.Values.Count != 1) 
+                                pt = null;
+                        }
+                        if (pt != null && pt.Values.Count > 0) 
+                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
+                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, nam, false, 0);
+                        doc.Typ = dr0.Typ;
+                        object geo = dr0.GetSlotValue(Pullenti.Ner.Decree.DecreeReferent.ATTR_GEO);
+                        if (geo != null) 
+                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, geo, false, 0);
+                        t1 = t;
+                        title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = nam });
+                        if (pt != null && pt.Values.Count > 0) 
+                        {
+                            title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
+                            t1 = pt.EndToken;
+                        }
+                        t = t1;
+                        continue;
+                    }
+                    t1 = t;
+                    ignoreEmptyLines = true;
+                    canBeOrgs = false;
+                    continue;
+                }
+                if (_isStartOfBody(t, false)) 
+                    break;
+                if (t.IsValue("ПРОЕКТ", null) && t.IsNewlineAfter) 
+                    continue;
+                if (doc.Typ == null) 
+                {
+                    Pullenti.Ner.Token ttt1 = Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t, false);
+                    if (ttt1 != null && ttt1.IsNewlineAfter) 
+                    {
+                        string typ = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, ttt1, Pullenti.Ner.Core.GetTextAttr.KeepQuotes);
+                        if (doc.Typ == null) 
+                            doc.Typ = typ;
+                        title.Children.Add(new FragToken(t, ttt1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Typ, Value = typ });
+                        dt0 = new Pullenti.Ner.Decree.Internal.DecreeToken(t, ttt1) { Typ = Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ, Value = typ };
+                        canBeOrgs = false;
+                        t1 = (t = ttt1);
+                        if ((t.Next != null && t.Next.IsNewlineAfter && typ == "УСТАВ") && (((t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent) || (t.Next.GetReferent() is Pullenti.Ner.Org.OrganizationReferent)))) 
+                        {
+                            t1 = (t = ttt1.Next);
+                            string nam = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(t as Pullenti.Ner.MetaToken, Pullenti.Ner.Core.GetTextAttr.RestoreRegister);
+                            doc.AddSlot(Pullenti.Ner.Decree.DecreeReferent.ATTR_NAME, "Устав " + nam, false, 0);
+                            title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = nam });
+                        }
+                        continue;
+                    }
+                    if (t.IsNewlineBefore && ttt1 != null && Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, null, false) == null) 
+                    {
+                        startOfName = true;
+                        break;
+                    }
+                }
+                FragToken appr = _createApproved(t);
+                if (appr != null) 
+                {
+                    t = (t1 = appr.EndToken);
+                    title.Children.Add(appr);
+                    if (appr.BeginChar < title.BeginChar) 
+                        title.BeginToken = appr.BeginToken;
+                    continue;
+                }
+                FragToken edss = _createEditions(t);
+                if (edss != null) 
+                    break;
+                FragToken misc = _createMisc(t);
+                if (misc != null) 
+                {
+                    t = (t1 = misc.EndToken);
+                    title.Children.Add(misc);
+                    continue;
+                }
+                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, dt0, false);
+                if (dt != null) 
+                {
+                    if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner) 
+                    {
+                        if (dt.LengthChar < 4) 
+                            dt = null;
+                    }
+                }
+                if (dt == null && dt0 != null && ((dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner || dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org))) 
+                {
+                    if ((t is Pullenti.Ner.NumberToken) && t.IsNewlineAfter && t.IsNewlineBefore) 
+                        dt = new Pullenti.Ner.Decree.Internal.DecreeToken(t, t) { Typ = Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number, Value = (t as Pullenti.Ner.NumberToken).Value.ToString() };
+                }
+                if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Unknown) 
+                    dt = null;
+                if ((dt == null && (t is Pullenti.Ner.NumberToken) && t.IsNewlineBefore) && t.IsNewlineAfter) 
+                {
+                    if (dt0 != null && dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org && ((t as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit)) 
+                        dt = new Pullenti.Ner.Decree.Internal.DecreeToken(t, t) { Typ = Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number, Value = (t as Pullenti.Ner.NumberToken).Value.ToString() };
+                }
+                if ((dt != null && dt0 != null && dt0.EndToken.Next != dt.BeginToken) && ((dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org))) 
+                {
+                    if (!t.IsNewlineBefore && !t.Previous.IsTableControlChar) 
+                        dt = null;
+                    else 
+                        for (Pullenti.Ner.Token ttt = dt.EndToken.Next; ttt != null; ttt = ttt.Next) 
+                        {
+                            if (ttt.IsNewlineBefore || ttt.IsTableControlChar) 
+                                break;
+                            else if ((ttt is Pullenti.Ner.TextToken) && (ttt as Pullenti.Ner.TextToken).IsPureVerb) 
+                            {
+                                dt = null;
+                                break;
+                            }
+                        }
+                }
+                if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date && dt0 != null) 
+                {
+                    if (dt.IsNewlineBefore || dt.IsNewlineAfter) 
+                    {
+                    }
+                    else if (dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number || dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                    {
+                    }
+                    else if (dt0.EndToken.Next == dt.BeginToken) 
+                    {
+                    }
+                    else 
+                        dt = null;
+                }
+                if (dt == null) 
+                {
+                    if (t.GetReferent() is Pullenti.Ner.Date.DateReferent) 
+                        continue;
+                    if (t.IsValue("ДАТА", null)) 
+                    {
+                        bool ok = false;
+                        for (Pullenti.Ner.Token tt = t.Next; tt != null; tt = tt.Next) 
+                        {
+                            if ((tt.IsValue("ПОДПИСАНИЕ", "ПІДПИСАННЯ") || tt.IsValue("ВВЕДЕНИЕ", "ВВЕДЕННЯ") || tt.IsValue("ПРИНЯТИЕ", "ПРИЙНЯТТЯ")) || tt.IsValue("ДЕЙСТВИЕ", "ДІЮ") || tt.Morph.Class.IsPreposition) 
+                                continue;
+                            if ((tt is Pullenti.Ner.TextToken) && !tt.Chars.IsLetter) 
+                                continue;
+                            Pullenti.Ner.Date.DateReferent da = tt.GetReferent() as Pullenti.Ner.Date.DateReferent;
+                            if (da != null) 
+                            {
+                                FragToken frdt = new FragToken(t, tt) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Date };
+                                title.Children.Add(frdt);
+                                t = tt;
+                                ok = true;
+                                if (doc.Date == null) 
+                                    doc.AddDate(da);
+                            }
+                            break;
+                        }
+                        if (ok) 
+                            continue;
+                    }
+                    Pullenti.Ner.Referent r = t.GetReferent();
+                    if ((r == null && t.LengthChar == 1 && !t.Chars.IsLetter) && (t.Next is Pullenti.Ner.ReferentToken) && !t.IsNewlineAfter) 
+                    {
+                        t = t.Next;
+                        r = t.GetReferent();
+                    }
+                    if (((r is Pullenti.Ner.Address.AddressReferent) || (r is Pullenti.Ner.Uri.UriReferent) || (r is Pullenti.Ner.Phone.PhoneReferent)) || (r is Pullenti.Ner.Person.PersonIdentityReferent) || (r is Pullenti.Ner.Bank.BankDataReferent)) 
+                    {
+                        FragToken cnt = new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Contact };
+                        cnt.Referents = new List<Pullenti.Ner.Referent>();
+                        cnt.Referents.Add(r);
+                        title.Children.Add(cnt);
+                        for (; t != null; t = t.Next) 
+                        {
+                            if (t.Next != null && t.Next.IsCharOf(",;.")) 
+                                t = t.Next;
+                            if (t.Next == null) 
+                                break;
+                            r = t.Next.GetReferent();
+                            if (((r is Pullenti.Ner.Address.AddressReferent) || (r is Pullenti.Ner.Uri.UriReferent) || (r is Pullenti.Ner.Phone.PhoneReferent)) || (r is Pullenti.Ner.Person.PersonIdentityReferent) || (r is Pullenti.Ner.Bank.BankDataReferent)) 
+                            {
+                                cnt.Referents.Add(r);
+                                cnt.EndToken = t.Next;
+                            }
+                            else if (t.IsNewlineAfter) 
+                                break;
+                        }
+                        continue;
+                    }
+                    Pullenti.Ner.Decree.Internal.PartToken pt = (t.IsNewlineBefore ? Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t, null, false, false) : null);
+                    if ((pt != null && ((pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part || pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) && pt.Values.Count == 1) && pt.IsNewlineAfter) 
+                    {
+                        bool ok = false;
+                        if (dt0 != null && dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                            ok = true;
+                        else 
+                        {
+                            Pullenti.Ner.Decree.Internal.DecreeToken ddd = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(pt.EndToken.Next, null, false);
+                            if (ddd != null && ddd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                                ok = true;
+                            else if (_createApproved(pt.EndToken.Next) != null) 
+                                ok = true;
+                        }
+                        if (ok) 
+                        {
+                            title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
+                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
+                            t = pt.EndToken;
+                            continue;
+                        }
+                    }
+                    if (appr0 != null) 
+                        break;
+                    if (canBeOrgs) 
+                    {
+                        if (t.GetReferent() is Pullenti.Ner.Person.PersonReferent) 
+                        {
+                        }
+                        else 
+                        {
+                            FragToken org = _createOwner(t);
+                            if (org != null) 
+                            {
+                                unknownOrgs.Add(org);
+                                t1 = (t = org.EndToken);
+                                continue;
+                            }
+                        }
+                    }
+                    InstrToken stok = InstrToken.Parse(t, 0, null);
+                    if (stok != null && ((stok.NoWords || (stok.LengthChar < 5)))) 
+                    {
+                        if (t0 == t) 
+                            t0 = stok.EndToken.Next;
+                        t = stok.EndToken;
+                        continue;
+                    }
+                    if ((t.IsNewlineBefore && doc.Typ != null && (t is Pullenti.Ner.TextToken)) && Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null) != null) 
+                        break;
+                    if (t.IsNewlineBefore && t.IsValue("К", "ДО")) 
+                        break;
+                    if (((!ignoreEmptyLines && stok != null && stok.Typ == ILTypes.Undefined) && !stok.HasVerb && ((dt0 == null || dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number))) && (emptyLines < 3)) 
+                    {
+                        if (stok.IsNewlineAfter) 
+                            emptyLines++;
+                        else if (dt0 != null) 
+                            break;
+                        t = (endEmptyLines = stok.EndToken);
+                        continue;
+                    }
+                    break;
+                }
+                if ((!ignoreEmptyLines && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr && endEmptyLines != null) && dt0 == null) 
+                {
+                    if (dt.IsNewlineAfter) 
+                        emptyLines++;
+                    t = (endEmptyLines = dt.EndToken);
+                    continue;
+                }
+                if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner) 
+                {
+                    if (isContract) 
+                        break;
+                    for (Pullenti.Ner.Token ttt = dt.EndToken.Next; ttt != null; ttt = ttt.Next) 
+                    {
+                        if (ttt.WhitespacesBeforeCount > 15) 
+                            break;
+                        if (ttt.GetMorphClassInDictionary().Equals(Pullenti.Morph.MorphClass.Verb)) 
+                        {
+                            dt = null;
+                            break;
+                        }
+                        Pullenti.Ner.Decree.Internal.DecreeToken dt1 = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(ttt, dt0, false);
+                        if (dt1 != null) 
+                        {
+                            if ((dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Name) || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org) 
+                                break;
+                            dt.EndToken = dt1.EndToken;
+                        }
+                        else if (!ttt.Chars.Equals(dt.BeginToken.Chars) && ttt.IsNewlineBefore) 
+                            break;
+                        else 
+                            dt.EndToken = ttt;
+                    }
+                    if (dt == null) 
+                        break;
+                }
+                if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                {
+                    Pullenti.Ner.Decree.DecreeKind typ = Pullenti.Ner.Decree.Internal.DecreeToken.GetKind(dt.Value, null);
+                    if (typ == Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                    {
+                        for (; t != null; t = t.Next) 
+                        {
+                            if (t.IsNewlineAfter) 
+                                break;
+                        }
+                        if (t == null) 
+                            break;
+                        continue;
+                    }
+                    if (typ == Pullenti.Ner.Decree.DecreeKind.Contract || dt.Value == "ДОВЕРЕННОСТЬ" || dt.Value == "ДОВІРЕНІСТЬ") 
+                        isContract = true;
+                    else if (dt.Value == "ПРОТОКОЛ" && !dt.IsNewlineAfter) 
+                    {
+                        Pullenti.Ner.Core.NounPhraseToken npt1 = Pullenti.Ner.Core.NounPhraseHelper.TryParse(dt.EndToken.Next, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                        if (npt1 != null) 
+                        {
+                            for (t = dt.EndToken.Next; t != null; t = t.Next) 
+                            {
+                                dt.EndToken = t;
+                                if (t.IsNewlineAfter) 
+                                    break;
+                            }
+                        }
+                    }
+                    canBeOrgs = false;
+                }
+                dt0 = dt;
+                if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number && unknownOrgs.Count > 0) 
+                {
+                    foreach (FragToken org in unknownOrgs) 
+                    {
+                        title.Children.Add(org);
+                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, org.Value, false, 0);
+                    }
+                    unknownOrgs.Clear();
+                }
+                if (!_addTitleAttr(doc, title, dt)) 
+                    break;
+                else 
+                    attrs++;
+                t1 = (t = dt.EndToken);
+            }
+            title.SortChildren();
+            if (t == null || (((doc.Typ == null && doc.RegNumber == null && appr0 == null) && !startOfName))) 
+            {
+                if (t == t0) 
+                {
+                    Pullenti.Ner.Decree.Internal.DecreeToken nam = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(t0, null, true, false, false);
+                    if (nam != null) 
+                    {
+                        name = FragToken.GetRestoredName(t0, nam.EndToken, false);
+                        if (!string.IsNullOrEmpty(name)) 
+                        {
+                            t1 = nam.EndToken;
+                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, name.Trim(), true, 0);
+                            title.Children.Add(new FragToken(t0, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = name.Trim() });
+                            for (; t1.Next != null; t1 = t1.Next) 
+                            {
+                                if (t1.IsTableControlChar && !t1.IsChar((char)0x1F)) 
+                                {
+                                }
+                                else 
+                                    break;
+                            }
+                            title.EndToken = t1;
+                            for (t = t1.Next; t != null; t = t.Next) 
+                            {
+                                if (_isStartOfBody(t, false)) 
+                                    break;
+                                if (t.IsTableControlChar) 
+                                    continue;
+                                FragToken appr1 = _createApproved(t);
+                                if (appr1 != null) 
+                                {
+                                    title.Children.Add(appr1);
+                                    t = (title.EndToken = appr1.EndToken);
+                                    continue;
+                                }
+                                FragToken eds = _createEditions(t);
+                                if (eds != null) 
+                                {
+                                    title.Children.Add(eds);
+                                    t = (title.EndToken = eds.EndToken);
+                                    break;
+                                }
+                                appr1 = _createMisc(t);
+                                if (appr1 != null) 
+                                {
+                                    title.Children.Add(appr1);
+                                    t = (title.EndToken = appr1.EndToken);
+                                    continue;
+                                }
+                                Pullenti.Ner.Decree.Internal.DecreeToken dt00 = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, null, false);
+                                if (dt00 != null) 
+                                {
+                                    if (dt00.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt00.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr) 
+                                    {
+                                        _addTitleAttr(doc, title, dt00);
+                                        t = (title.EndToken = dt00.EndToken);
+                                        continue;
+                                    }
+                                }
+                                break;
+                            }
+                            return title;
+                        }
+                    }
+                }
+                if (t != null && t.IsValue("О", null)) 
+                {
+                    Pullenti.Ner.Decree.Internal.DecreeToken nam = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(t, null, true, false, false);
+                    if (nam != null) 
+                    {
+                        name = FragToken.GetRestoredName(t, nam.EndToken, false);
+                        if (!string.IsNullOrEmpty(name)) 
+                        {
+                            t1 = nam.EndToken;
+                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, name.Trim(), true, 0);
+                            title.Children.Add(new FragToken(t, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = name.Trim() });
+                        }
+                    }
+                }
+                if (attrs > 0) 
+                {
+                    title.EndToken = t1;
+                    return title;
+                }
+                return null;
+            }
+            for (int j = 0; j < unknownOrgs.Count; j++) 
+            {
+                title.Children.Insert(j, unknownOrgs[j]);
+                doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, unknownOrgs[j].Value, false, 0);
+            }
+            if (endEmptyLines != null && doc.FindSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, null, true) == null) 
+            {
+                string val = Pullenti.Ner.Core.MiscHelper.GetTextValue(t0, endEmptyLines, Pullenti.Ner.Core.GetTextAttr.No);
+                doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, val, false, 0);
+                title.Children.Insert(0, new FragToken(t0, endEmptyLines) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Organization, Value = val });
+            }
+            bool isCase = false;
+            foreach (FragToken ch in title.Children) 
+            {
+                if (ch.Value == null && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Approved && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Editions) 
+                    ch.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(ch.BeginToken, ch.EndToken, Pullenti.Ner.Core.GetTextAttr.No);
+                if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.CaseNumber) 
+                    isCase = true;
+            }
+            if ((((name != null || t.IsNewlineBefore || ((t.Previous != null && t.Previous.IsTableControlChar))) || ((!t.IsNewlineBefore && title.Children.Count > 0 && title.Children[title.Children.Count - 1].Kind == Pullenti.Ner.Instrument.InstrumentKind.Typ)))) && !isCase) 
+            {
+                Pullenti.Ner.Token tt0 = t;
+                InstrToken1 firstLine = null;
+                bool poDelu = false;
+                if (t.IsValue("ПО", null) && t.Next != null && t.Next.IsValue("ДЕЛО", "СПРАВА")) 
+                    poDelu = true;
+                for (; t != null; t = t.Next) 
+                {
+                    if (_isStartOfBody(t, false)) 
+                        break;
+                    if ((name != null && t == tt0 && t.IsNewlineBefore) && t.WhitespacesBeforeCount > 15) 
+                        break;
+                    if (t.IsTableControlChar) 
+                        break;
+                    if (t.IsNewlineBefore) 
+                    {
+                        Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t, null, false, false);
+                        if (pt != null && pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.Prefix) 
+                            break;
+                        InstrToken1 ltt = InstrToken1.Parse(t, false, null, 0, null, false, 0, true, false);
+                        if (ltt == null) 
+                            break;
+                        if (t != tt0 && t.WhitespacesBeforeCount > 15) 
+                        {
+                            if (t.NewlinesBeforeCount > 2) 
+                                break;
+                            if (t.NewlinesBeforeCount > 1 && !t.Chars.IsAllUpper) 
+                                break;
+                            if (t.IsValue("О", "ПРО") || t.IsValue("ОБ", null)) 
+                            {
+                            }
+                            else if (ltt.AllUpper && !ltt.HasChanges) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        if (ltt.Numbers.Count > 0) 
+                            break;
+                        FragToken appr = _createApproved(t);
+                        if (appr != null) 
+                        {
+                            if (t.Previous != null && t.Previous.IsChar(',')) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        if (_createEditions(t) != null || _createCaseInfo(t) != null) 
+                            break;
+                        if (t.GetReferent() is Pullenti.Ner.Geo.GeoReferent) 
+                        {
+                            if (t.IsNewlineAfter) 
+                                break;
+                            if (t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Date.DateReferent)) 
+                                break;
+                        }
+                        if (t.GetReferent() is Pullenti.Ner.Date.DateReferent) 
+                        {
+                            if (t.IsNewlineAfter) 
+                                break;
+                            if (t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                                break;
+                        }
+                        if (t.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
+                            break;
+                        if (t.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
+                        {
+                            Pullenti.Ner.Decree.DecreeReferent dr = t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
+                            if (dr.Kind == Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                                break;
+                        }
+                        if (t.IsChar('(')) 
+                        {
+                            if (_createEditions(t) != null) 
+                                break;
+                            Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
+                            if (br != null && !br.IsNewlineAfter) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        if (ltt.HasVerb && !ltt.AllUpper) 
+                        {
+                            if (t.IsValue("О", "ПРО") && tt0 == t) 
+                            {
+                            }
+                            else if (!poDelu) 
+                                break;
+                        }
+                        if (ltt.Typ == InstrToken1.Types.Directive) 
+                            break;
+                        string str = ltt.ToString();
+                        if (t.Previous != null && t.Previous.IsValue("ИЗМЕНЕНИЕ", null)) 
+                        {
+                        }
+                        else if (str.Contains("В СОСТАВЕ") || str.Contains("В СКЛАДІ") || str.Contains("У СКЛАДІ")) 
+                        {
+                            if (!ltt.AllUpper) 
+                                break;
+                        }
+                        if (t.IsValue("В", null) && t.Next != null && t.Next.IsValue("ЦЕЛЬ", "МЕТА")) 
+                            break;
+                        if (firstLine == null) 
+                            firstLine = ltt;
+                        else if (firstLine.AllUpper && !ltt.AllUpper && !Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
+                            break;
+                        t1 = (t = ltt.EndToken);
+                        if (t1.IsTableControlChar) 
+                        {
+                            t1 = (t = t1.Previous);
+                            break;
+                        }
+                    }
+                    else 
+                        t1 = t;
+                }
+                Pullenti.Ner.Token tt1 = Pullenti.Ner.Decree.Internal.DecreeToken._tryAttachStdChangeName(tt0);
+                if (tt1 != null) 
+                {
+                    if (t1 == null || (t1.EndChar < tt1.EndChar)) 
+                        t1 = tt1;
+                }
+                string val = (t1 != null && t1 != tt0 ? FragToken.GetRestoredName(tt0, t1, false) : null);
+                if (!string.IsNullOrEmpty(val) && char.IsLetter(val[0]) && char.IsLower(val[0])) 
+                    val = char.ToUpper(val[0]) + val.Substring(1);
+                if (name == null && title.Children.Count > 0 && title.Children[title.Children.Count - 1].Kind == Pullenti.Ner.Instrument.InstrumentKind.Typ) 
+                {
+                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt0, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                    if (npt != null) 
+                    {
+                        if (npt.Morph.Case.IsGenitive) 
+                        {
+                            name = title.Children[title.Children.Count - 1].Value as string;
+                            if (Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(title.Children[title.Children.Count - 1].BeginToken, null, false) == null) 
+                            {
+                                tt0 = title.Children[title.Children.Count - 1].BeginToken;
+                                title.Children.RemoveAt(title.Children.Count - 1);
+                            }
+                        }
+                    }
+                }
+                if (val == null) 
+                    val = name;
+                else if (name != null) 
+                    val = string.Format("{0} {1}", name, val);
+                if (val != null && tt0.BeginChar <= t1.BeginChar) 
+                {
+                    if (nT0 != null) 
+                        tt0 = nT0;
+                    val = val.Trim();
+                    if (val.StartsWith("[") && val.EndsWith("]")) 
+                        val = val.Substring(1, val.Length - 2).Trim();
+                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, val.Trim(), true, 0);
+                    title.Children.Add(new FragToken(tt0, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = val.Trim() });
+                    if (val.Contains("КОДЕКС")) 
+                    {
+                        Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt0, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                        if (npt != null && npt.Noun.IsValue("КОДЕКС", null)) 
+                            doc.Typ = "КОДЕКС";
+                    }
+                }
+            }
+            if (t1 == null) 
+                return null;
+            title.EndToken = t1;
+            for (t1 = t1.Next; t1 != null; t1 = t1.Next) 
+            {
+                if (t1.IsNewlineBefore && (t1.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) && t1.IsNewlineAfter) 
+                {
+                    Pullenti.Ner.Decree.DecreeReferent dr = t1.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
+                    title.Children.Add(new FragToken(t1, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Ignored });
+                    continue;
+                }
+                if (t1.IsNewlineBefore && t1.IsValue("ЧАСТЬ", "ЧАСТИНА")) 
+                {
+                    Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t1, null, false, false);
+                    if (pt != null && pt.IsNewlineAfter) 
+                    {
+                        Pullenti.Ner.Decree.Internal.PartToken pt2 = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(pt.EndToken.Next, null, false, false);
+                        if (pt2 != null && (((pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Section || pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.SubSection || pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Chapter) || pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Clause))) 
+                        {
+                        }
+                        else 
+                        {
+                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
+                            title.Children.Add(new FragToken(t1, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
+                            t1 = (title.EndToken = pt.EndToken);
+                            continue;
+                        }
+                    }
+                }
+                if (t1.IsNewlineBefore) 
+                {
+                    InstrToken1 iii = InstrToken1.Parse(t1, true, null, 0, null, false, 0, false, false);
+                    if (iii != null && iii.Typ == InstrToken1.Types.Comment) 
+                    {
+                        title.Children.Add(new FragToken(t1, iii.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Comment });
+                        t1 = iii.EndToken;
+                        continue;
+                    }
+                }
+                FragToken appr1 = _createApproved(t1);
+                if (appr1 != null) 
+                {
+                    t1 = appr1.EndToken;
+                    title.Children.Add(appr1);
+                    title.EndToken = appr1.EndToken;
+                    continue;
+                }
+                FragToken cinf = _createCaseInfo(t1);
+                if (cinf != null) 
+                {
+                    t1 = cinf.EndToken;
+                    title.Children.Add(cinf);
+                    title.EndToken = cinf.EndToken;
+                    continue;
+                }
+                FragToken eds = _createEditions(t1);
+                if (eds != null) 
+                {
+                    title.Children.Add(eds);
+                    title.EndToken = (t1 = eds.EndToken);
+                    continue;
+                }
+                appr1 = _createMisc(t1);
+                if (appr1 != null) 
+                {
+                    t1 = appr1.EndToken;
+                    title.Children.Add(appr1);
+                    title.EndToken = appr1.EndToken;
+                    continue;
+                }
+                if ((t1.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) && (t1.GetReferent() as Pullenti.Ner.Decree.DecreeReferent).Kind == Pullenti.Ner.Decree.DecreeKind.Publisher && t1.IsNewlineAfter) 
+                {
+                    FragToken pub = new FragToken(t1, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved };
+                    pub.Referents = new List<Pullenti.Ner.Referent>();
+                    pub.Referents.Add(t1.GetReferent());
+                    title.Children.Add(pub);
+                    title.EndToken = t1;
+                    continue;
+                }
+                Pullenti.Ner.Token tt = t1;
+                if (tt.Next != null && tt.IsChar(',')) 
+                    tt = tt.Next;
+                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt, null, false);
+                if (dt != null && ((dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr || ((dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number && ((dt.IsDelo || Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tt) != null))))))) 
+                {
+                    if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date) 
+                    {
+                        if (doc.Date != null) 
+                            break;
+                        if (!dt.IsNewlineAfter && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(dt.EndToken.Next)) 
+                        {
+                            Pullenti.Ner.Token ttt = dt.EndToken.Next;
+                            if (ttt != null && (((ttt.GetReferent() is Pullenti.Ner.Geo.GeoReferent) || ttt.IsComma))) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                    }
+                    if (!dt.IsNewlineAfter) 
+                    {
+                        InstrToken1 lll = InstrToken1.Parse(tt, true, null, 0, null, false, 0, false, false);
+                        if (lll != null && lll.HasVerb) 
+                            break;
+                    }
+                    _addTitleAttr(doc, title, dt);
+                    t1 = (title.EndToken = dt.EndToken);
+                    continue;
+                }
+                if (tt.IsCharOf("([") && tt.IsNewlineBefore) 
+                {
+                    Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tt, Pullenti.Ner.Core.BracketParseAttr.CanBeManyLines | Pullenti.Ner.Core.BracketParseAttr.CanContainsVerbs, 100);
+                    if (br != null) 
+                    {
+                        t1 = (title.EndToken = br.EndToken);
+                        title.Children.Add(new FragToken(br.BeginToken, br.EndToken) { Kind = (tt.IsChar('[') ? Pullenti.Ner.Instrument.InstrumentKind.Name : Pullenti.Ner.Instrument.InstrumentKind.Comment) });
+                        continue;
+                    }
+                }
+                if (tt.IsTableControlChar) 
+                {
+                    title.EndToken = tt;
+                    continue;
+                }
+                break;
+            }
+            t1 = title.EndToken.Next;
+            if (t1 != null && t1.IsNewlineBefore && doc.Typ == "КОДЕКС") 
+            {
+                Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t1, null, false, false);
+                if (pt != null && ((pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part || pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) && pt.Values.Count > 0) 
+                {
+                    int cou = 0;
+                    for (t = pt.EndToken; t != null; t = t.Next) 
+                    {
+                        if (t.IsNewlineBefore) 
+                        {
+                            if ((++cou) > 4) 
+                                break;
+                            FragToken eds = _createEditions(t);
+                            if (eds != null) 
+                            {
+                                title.Children.Add(eds);
+                                title.EndToken = (t1 = eds.EndToken);
+                                title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
+                                if (doc.Name != null && doc.Name.Contains("КОДЕКС")) 
+                                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (t1.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
+                {
+                    Pullenti.Ner.Decree.DecreePartReferent dr0 = t1.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
+                    if (dr0.Part != null || dr0.DocPart != null) 
+                    {
+                        int cou = 0;
+                        for (t = t1.Next; t != null; t = t.Next) 
+                        {
+                            if (t.IsNewlineBefore) 
+                            {
+                                if ((++cou) > 4) 
+                                    break;
+                                FragToken eds = _createEditions(t);
+                                if (eds != null) 
+                                {
+                                    title.Children.Add(eds);
+                                    title.EndToken = (t1 = eds.EndToken);
+                                    break;
+                                }
                             }
                         }
                     }
                 }
             }
+            return title;
+        }
+        static FragToken CreateAppendixTitle(Pullenti.Ner.Token t0, FragToken app, Pullenti.Ner.Instrument.InstrumentReferent doc, bool isApp, bool start)
+        {
+            if (t0 == null) 
+                return null;
+            if (t0 != t0.Kit.FirstToken) 
+            {
+                if (t0.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
+                {
+                    if ((t0.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent).Appendix != null) 
+                    {
+                        if ((t0.Next != null && t0.Next.IsHiphen && (t0.Next.Next is Pullenti.Ner.ReferentToken)) && (t0.Next.Next.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent)) 
+                            t0.Kit.DebedToken(t0.Next.Next);
+                        t0 = t0.Kit.DebedToken(t0);
+                    }
+                }
+            }
+            Pullenti.Ner.Token t = t0;
+            Pullenti.Ner.Token t1 = null;
+            Pullenti.Ner.Referent rr = t.GetReferent();
+            if (rr != null) 
+            {
+                if (rr.TypeName == "PERSON") 
+                    return null;
+            }
+            FragToken title = new FragToken(t0, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Head };
+            bool hasAppKeyword = false;
+            FragToken appr0 = _createApproved(t0);
+            if (appr0 != null) 
+            {
+                title.EndToken = appr0.EndToken;
+                title.Children.Add(appr0);
+                t = appr0.EndToken.Next;
+            }
+            for (; t != null; t = t.Next) 
+            {
+                Pullenti.Ner.Token tt = Pullenti.Ner.Core.MiscHelper.CheckImage(t);
+                if (tt != null) 
+                {
+                    t = tt;
+                    continue;
+                }
+                InstrToken1 fr = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
+                if (fr == null) 
+                    break;
+                if (fr.Typ == InstrToken1.Types.Comment) 
+                {
+                    title.EndToken = (t = fr.EndToken);
+                    title.Children.Add(new FragToken(fr.BeginToken, fr.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Comment });
+                    continue;
+                }
+                if (fr.Typ != InstrToken1.Types.Appendix && fr.Typ != InstrToken1.Types.Approved) 
+                {
+                    if (fr.HasManySpecChars) 
+                    {
+                        t = fr.EndToken;
+                        continue;
+                    }
+                    if (t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) 
+                    {
+                        t = fr.EndToken;
+                        continue;
+                    }
+                    if ((t.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) && (t.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent).Appendix != null) 
+                    {
+                        t = t.Kit.DebedToken(t);
+                        fr = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
+                        if (fr.Typ != InstrToken1.Types.Appendix) 
+                            break;
+                    }
+                    else 
+                        break;
+                }
+                if (fr.Typ == InstrToken1.Types.Appendix) 
+                {
+                    hasAppKeyword = true;
+                    app.Kind = Pullenti.Ner.Instrument.InstrumentKind.Appendix;
+                }
+                Pullenti.Ner.Token t2 = t;
+                if (t.IsValue("ОСОБЫЙ", "ОСОБЛИВИЙ") && t.Next != null) 
+                    t2 = t.Next;
+                if (t is Pullenti.Ner.TextToken) 
+                    title.Children.Add(new FragToken(t, t2) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, DefVal2 = true });
+                title.EndToken = (t = fr.EndToken);
+                if (fr.Typ == InstrToken1.Types.Appendix && fr.NumBeginToken == null) 
+                {
+                    InstrToken1 fr1 = InstrToken1.Parse(t.Next, true, null, 0, null, false, 0, false, false);
+                    if (fr1 != null && fr1.Typ == InstrToken1.Types.Approved) 
+                    {
+                        t = fr1.BeginToken;
+                        title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, Value = t.GetSourceText().ToUpper() });
+                        title.EndToken = (t = fr1.EndToken);
+                        fr = fr1;
+                    }
+                }
+                appr0 = _createApproved(t);
+                if (appr0 != null) 
+                {
+                    t = (title.EndToken = appr0.EndToken);
+                    title.Children.Add(appr0);
+                    continue;
+                }
+                if (fr.NumBeginToken != null && fr.NumEndToken != null) 
+                {
+                    FragToken num = new FragToken(fr.NumBeginToken, fr.NumEndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Number, Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(fr.NumBeginToken, fr.NumEndToken, Pullenti.Ner.Core.GetTextAttr.KeepRegister) };
+                    title.Children.Add(num);
+                    if (fr.Numbers.Count > 0) 
+                        app.Number = Pullenti.Ner.Decree.Internal.PartToken.GetNumber(fr.Numbers[0]);
+                    if (fr.Numbers.Count > 1) 
+                    {
+                        app.SubNumber = Pullenti.Ner.Decree.Internal.PartToken.GetNumber(fr.Numbers[1]);
+                        if (fr.Numbers.Count > 2) 
+                            app.SubNumber2 = Pullenti.Ner.Decree.Internal.PartToken.GetNumber(fr.Numbers[2]);
+                    }
+                    if (fr.MinNumber != null) 
+                    {
+                        int nn;
+                        if (int.TryParse(fr.MinNumber, out nn)) 
+                            app.MinNumber = nn;
+                    }
+                    if (isApp) 
+                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, num.Value ?? "1", false, 0);
+                }
+                else if (t.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
+                {
+                    if ((t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent).Kind == Pullenti.Ner.Decree.DecreeKind.Publisher) 
+                    {
+                        FragToken ff = new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved };
+                        ff.Referents = new List<Pullenti.Ner.Referent>();
+                        ff.Referents.Add(t.GetReferent());
+                        title.Children.Add(ff);
+                    }
+                    else if (fr.Typ == InstrToken1.Types.Approved && title.Children.Count > 0 && title.Children[title.Children.Count - 1].Kind == Pullenti.Ner.Instrument.InstrumentKind.Keyword) 
+                    {
+                        FragToken kw = title.Children[title.Children.Count - 1];
+                        FragToken appr = new FragToken(kw.BeginToken, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved };
+                        title.Children.RemoveAt(title.Children.Count - 1);
+                        appr.Children.Add(kw);
+                        appr.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
+                        title.Children.Add(appr);
+                    }
+                    else 
+                        title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
+                }
+                else if (fr.Typ == InstrToken1.Types.Approved && fr.LengthChar > 15 && fr.BeginToken != fr.EndToken) 
+                    title.Children.Add(new FragToken(fr.BeginToken.Next, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
+                else 
+                {
+                    List<Pullenti.Ner.Decree.Internal.DecreeToken> dts = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachList(t.Next, null, 10, false);
+                    if (dts != null && dts.Count > 0 && dts[0].Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                    {
+                        FragToken dref = new FragToken(dts[0].BeginToken, dts[0].EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference };
+                        for (int i = 1; i < dts.Count; i++) 
+                        {
+                            if (dts[i].Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                                break;
+                            else if (dts[i].Typ != Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Unknown) 
+                                dref.EndToken = dts[i].EndToken;
+                        }
+                        title.Children.Add(dref);
+                        title.EndToken = (t = dref.EndToken);
+                    }
+                }
+                if (fr.Typ == InstrToken1.Types.Appendix) 
+                {
+                    t = t.Next;
+                    if (t != null) 
+                    {
+                        Pullenti.Ner.Decree.DecreePartReferent dpr = t.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
+                        if (dpr != null && dpr.Appendix != null) 
+                        {
+                            t = t.Kit.DebedToken(t);
+                            t = t.Previous;
+                            continue;
+                        }
+                        if (t.IsValue("ПРИЛОЖЕНИЕ", "ДОДАТОК")) 
+                        {
+                            t = t.Previous;
+                            continue;
+                        }
+                    }
+                    break;
+                }
+            }
+            if (t == null) 
+                return null;
+            bool hasForNpa = false;
+            if (t.IsValue("К", "ДО")) 
+            {
+                hasForNpa = true;
+                Pullenti.Ner.Decree.DecreeReferent toDecr = null;
+                List<InstrToken> toks = new List<InstrToken>();
+                for (Pullenti.Ner.Token tt = t.Next; tt != null; tt = tt.Next) 
+                {
+                    if (tt != t.Next && tt.IsTableControlChar) 
+                        break;
+                    if (tt.IsNewlineBefore) 
+                    {
+                        if (tt.NewlinesBeforeCount > 1) 
+                            break;
+                        InstrToken1 it1 = InstrToken1.Parse(tt, false, null, 0, null, false, 0, false, false);
+                        if (it1 != null && it1.Numbers.Count > 0) 
+                            break;
+                        if (tt.Chars.IsAllLower) 
+                        {
+                        }
+                        else if (tt.LengthChar > 2) 
+                        {
+                            Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt, Pullenti.Ner.Core.NounPhraseParseAttr.ParsePreposition | Pullenti.Ner.Core.NounPhraseParseAttr.ReferentCanBeNoun, 0, null);
+                            if (npt == null) 
+                                break;
+                            if (npt.Morph.Case.IsNominative) 
+                                break;
+                        }
+                    }
+                    if (tt.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
+                        toDecr = tt.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
+                    InstrToken tok = InstrToken.Parse(tt, 0, null);
+                    if (tok == null) 
+                        break;
+                    toks.Add(tok);
+                    if (toks.Count > 20) 
+                        break;
+                    if (tt == t.Next && tok.Typ == ILTypes.Undefined) 
+                    {
+                        Pullenti.Ner.Token ttt = Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(tt, false);
+                        if (ttt != null) 
+                        {
+                            tok.EndToken = ttt;
+                            tok.Typ = ILTypes.Typ;
+                        }
+                    }
+                    tt = tok.EndToken;
+                    Pullenti.Ner.Decree.Internal.DecreeToken dtt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt.Next, null, false);
+                    if (dtt != null && dtt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date) 
+                        tt = (tok.EndToken = dtt.EndToken);
+                    if (tok.Typ == ILTypes.Typ && !tt.IsNewlineAfter) 
+                    {
+                        Pullenti.Ner.Decree.Internal.DecreeToken nn = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(tt.Next, null, false, true, false);
+                        if (nn != null) 
+                        {
+                            tt = (tok.EndToken = nn.EndToken);
+                            break;
+                        }
+                    }
+                }
+                int maxInd = -1;
+                for (int ii = 0; ii < toks.Count; ii++) 
+                {
+                    InstrToken tok = toks[ii];
+                    if (tok.Typ == ILTypes.Typ && ((tok.Value == doc.Typ || ii == 0)) && !tok.BeginToken.Previous.IsValue("К", null)) 
+                        maxInd = ii;
+                    else if (tok.Typ == ILTypes.RegNumber && (((tok.Value == doc.RegNumber || tok.Value == "?" || tok.IsNewlineBefore) || tok.IsNewlineAfter || tok.HasTableChars))) 
+                        maxInd = ii;
+                    else if (tok.Typ == ILTypes.Date && doc.Date != null) 
+                    {
+                        if ((tok.Ref is Pullenti.Ner.Date.DateReferent) && (tok.Ref as Pullenti.Ner.Date.DateReferent).Dt == doc.Date) 
+                            maxInd = ii;
+                        else if (tok.Ref is Pullenti.Ner.ReferentToken) 
+                        {
+                            Pullenti.Ner.Date.DateReferent dre = (tok.Ref as Pullenti.Ner.ReferentToken).Referent as Pullenti.Ner.Date.DateReferent;
+                            if (dre != null && dre.Dt != null && doc.Date != null) 
+                            {
+                                if (dre.Dt.Value == doc.Date.Value) 
+                                    maxInd = ii;
+                            }
+                        }
+                    }
+                    else if (tok.Typ == ILTypes.Date && tok.BeginToken.Previous != null && tok.BeginToken.Previous.IsValue("ОТ", null)) 
+                        maxInd = ii;
+                    else if (tok.Typ == ILTypes.Undefined && (tok.BeginToken.GetReferent() is Pullenti.Ner.Decree.DecreeReferent)) 
+                    {
+                        maxInd = ii;
+                        break;
+                    }
+                    else if (ii == 0 && tok.Typ == ILTypes.Undefined && (tok.BeginToken.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent)) 
+                    {
+                        Pullenti.Ner.Decree.DecreePartReferent part = tok.BeginToken.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
+                        if (part.Appendix != null) 
+                        {
+                            maxInd = ii;
+                            break;
+                        }
+                    }
+                    else if (tok.Typ == ILTypes.Organization && ii == 1) 
+                        maxInd = ii;
+                    else if (tok.Typ == ILTypes.Undefined) 
+                    {
+                        if (tok.BeginToken.IsValue("ОТ", null)) 
+                            maxInd = ii;
+                        else if (Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tok.BeginToken) != null) 
+                            maxInd = ii;
+                    }
+                    else if (tok.Typ == ILTypes.Geo || tok.Typ == ILTypes.Organization) 
+                        maxInd = ii;
+                }
+                if (toks.Count > 0 && Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(toks[toks.Count - 1].EndToken.Next, false) != null) 
+                    maxInd = toks.Count - 1;
+                else if (toks.Count > 0 && (maxInd < 0) && toks[0].BeginToken.Previous.IsValue("К", null)) 
+                    maxInd = toks.Count - 1;
+                Pullenti.Ner.Token te = null;
+                if (maxInd >= 0) 
+                {
+                    te = toks[maxInd].EndToken;
+                    if (!te.IsNewlineAfter) 
+                    {
+                        Pullenti.Ner.Decree.Internal.DecreeToken nn = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(te.Next, null, false, true, false);
+                        if (nn != null) 
+                            te = nn.EndToken;
+                    }
+                }
+                else if (t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Decree.DecreeReferent)) 
+                    te = t.Next;
+                if (te != null) 
+                {
+                    FragToken dr = new FragToken(t, te) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference };
+                    if (toDecr != null) 
+                    {
+                        dr.Referents = new List<Pullenti.Ner.Referent>();
+                        dr.Referents.Add(toDecr);
+                    }
+                    title.Children.Add(dr);
+                    title.EndToken = te;
+                    if ((((t = te.Next))) == null) 
+                        return title;
+                }
+            }
+            if (title.Children.Count == 0) 
+            {
+                if (t != null && t.IsValue("АКТ", null)) 
+                {
+                }
+                else 
+                    return null;
+            }
+            for (int kk = 0; kk < 10; kk++) 
+            {
+                FragToken ta = _createApproved(t);
+                if (ta != null) 
+                {
+                    title.Children.Add(ta);
+                    title.EndToken = (t = ta.EndToken);
+                    t = t.Next;
+                    if (t == null) 
+                        return title;
+                    continue;
+                }
+                FragToken ee = _createEditions(t);
+                if (ee != null) 
+                {
+                    title.Children.Add(ee);
+                    title.EndToken = ee.EndToken;
+                    t = ee.EndToken.Next;
+                    if (t == null) 
+                        return title;
+                    continue;
+                }
+                ta = _createMisc(t);
+                if (ta != null) 
+                {
+                    title.Children.Add(ta);
+                    title.EndToken = (t = ta.EndToken);
+                    t = t.Next;
+                    if (t == null) 
+                        return title;
+                    continue;
+                }
+                if (t.IsValue("РИСУНОК", null)) 
+                {
+                    InstrToken1 fr = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
+                    if (fr == null) 
+                        break;
+                    if (fr.LengthChar < 20) 
+                    {
+                        title.EndToken = (t = fr.EndToken);
+                        t = t.Next;
+                        continue;
+                    }
+                }
+                if (t.IsValue("УТРАТИТЬ", "СИЛУ")) 
+                {
+                    InstrToken1 fr = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
+                    title.IsExpired = true;
+                    title.EndToken = fr.EndToken;
+                    title.Children.Add(new FragToken(t, fr.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Editions, IsExpired = true });
+                    return title;
+                }
+                if (t.IsCharOf(":-") && !t.IsNewlineAfter) 
+                {
+                    t = t.Next;
+                    continue;
+                }
+                break;
+            }
+            Pullenti.Ner.Token tt0 = t;
+            if ((start && hasForNpa && hasAppKeyword) && tt0.IsNewlineBefore) 
+            {
+                Pullenti.Ner.Decree.Internal.DecreeToken dty = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt0, null, false);
+                if (dty != null && dty.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+                {
+                    FragToken sub = FragToken.CreateDocument(tt0, 0, Pullenti.Ner.Instrument.InstrumentKind.Undefined);
+                    if (sub != null && sub.Children.Count > 1 && sub.m_Doc.FindSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, null, true) == null) 
+                    {
+                        if (sub.Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Head && sub.Children[0].Children.Count > 1 && sub.Children[0].Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Typ) 
+                        {
+                            title.Tag = sub;
+                            return title;
+                        }
+                    }
+                }
+            }
+            Pullenti.Ner.Token nT0 = null;
+            for (; t != null; t = t.Next) 
+            {
+                if (t.IsTableControlChar) 
+                {
+                    if (t == tt0) 
+                    {
+                        if (t.IsChar((char)0x1E)) 
+                        {
+                            List<Pullenti.Ner.Core.TableRowToken> rows = Pullenti.Ner.Core.TableHelper.TryParseRows(t, 0, true, false);
+                            if (rows != null && rows.Count > 2) 
+                                break;
+                            break;
+                        }
+                        tt0 = t.Next;
+                        continue;
+                    }
+                    break;
+                }
+                if (t.IsNewlineBefore || t.Previous.IsTableControlChar) 
+                {
+                    if (_isStartOfBody(t, t == tt0)) 
+                        break;
+                    if (_createApproved(t) != null) 
+                        break;
+                    if (_createEditions(t) != null) 
+                        break;
+                    if (t != tt0 && t.WhitespacesBeforeCount > 15) 
+                    {
+                        if (t.Previous.IsCommaAnd) 
+                            continue;
+                        if ((t is Pullenti.Ner.TextToken) && t.LengthChar > 1 && t.Chars.IsAllLower) 
+                        {
+                        }
+                        else if (t.IsChar('(')) 
+                        {
+                        }
+                        else 
+                        {
+                            if (Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t.Previous, false) == null) 
+                            {
+                                if (!t.Previous.IsValue("ОБРАЗЕЦ", "ЗРАЗОК")) 
+                                    break;
+                            }
+                            if (t.WhitespacesBeforeCount > 25) 
+                                break;
+                        }
+                    }
+                    if (t.GetReferent() is Pullenti.Ner.Instrument.InstrumentParticipantReferent) 
+                        break;
+                    if (t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) 
+                    {
+                        if (t.WhitespacesBeforeCount > 15) 
+                            break;
+                    }
+                    Pullenti.Ner.Decree.Internal.DecreeToken dd = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, null, false);
+                    if (dd != null && ((dd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr)) && dd.IsNewlineAfter) 
+                    {
+                        Pullenti.Ner.Core.NounPhraseToken npt0 = null;
+                        if (dd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr && (t is Pullenti.Ner.ReferentToken)) 
+                            npt0 = Pullenti.Ner.Core.NounPhraseHelper.TryParse((t as Pullenti.Ner.ReferentToken).BeginToken, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                        if (npt0 != null && !npt0.Morph.Case.IsUndefined && !npt0.Morph.Case.IsNominative) 
+                        {
+                        }
+                        else 
+                        {
+                            _addTitleAttr(null, title, dd);
+                            t = (title.EndToken = dd.EndToken);
+                            continue;
+                        }
+                    }
+                    InstrToken1 ltt = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
+                    if (ltt == null) 
+                        break;
+                    if (ltt.Numbers.Count > 0) 
+                    {
+                        if (!ltt.IsNumDoubt) 
+                            break;
+                        if (ltt.AllUpper) 
+                        {
+                        }
+                        else if (Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t) != null) 
+                        {
+                        }
+                        else 
+                            break;
+                    }
+                    if (ltt.Typ == InstrToken1.Types.Approved) 
+                    {
+                        title.Children.Add(new FragToken(ltt.BeginToken, ltt.BeginToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved });
+                        if (ltt.BeginToken != ltt.EndToken) 
+                            title.Children.Add(new FragToken(ltt.BeginToken.Next, ltt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
+                        t = ltt.EndToken;
+                        if (ltt.BeginToken == tt0) 
+                        {
+                            tt0 = t.Next;
+                            continue;
+                        }
+                        break;
+                    }
+                    if (ltt.HasVerb && !ltt.AllUpper) 
+                    {
+                        if (t.Chars.IsLetter && t.Chars.IsAllLower) 
+                        {
+                        }
+                        else if (t.GetReferent() is Pullenti.Ner.Decree.DecreeChangeReferent) 
+                        {
+                            Pullenti.Ner.Decree.DecreeChangeReferent dch = t.GetReferent() as Pullenti.Ner.Decree.DecreeChangeReferent;
+                            if (dch.Kind == Pullenti.Ner.Decree.DecreeChangeKind.Container && t.IsValue("ИЗМЕНЕНИЕ", null)) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                        else if (Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t, false) != null) 
+                        {
+                        }
+                        else if ((t == tt0 && ltt.EndToken.Next != null && ltt.EndToken.Next.IsChar((char)0x1E)) && !ltt.EndToken.IsChar(':')) 
+                        {
+                        }
+                        else 
+                        {
+                            Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                            if ((npt != null && npt.IsNewlineBefore && npt.IsNewlineAfter) && npt.Chars.IsAllUpper) 
+                            {
+                            }
+                            else 
+                                break;
+                        }
+                    }
+                    if (ltt.Typ == InstrToken1.Types.Directive) 
+                        break;
+                    if (t.Chars.IsLetter && t != tt0) 
+                    {
+                        if (!t.Chars.IsAllLower && !t.Chars.IsAllUpper) 
+                        {
+                            if (!(t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) && !(t.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
+                            {
+                                if (Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t.Previous, false) == null) 
+                                {
+                                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+                                    if (npt != null && npt.Morph.Case.IsGenitive) 
+                                    {
+                                    }
+                                    else 
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                    bool hasWords = false;
+                    for (Pullenti.Ner.Token ttt = ltt.BeginToken; ttt != null; ttt = ttt.Next) 
+                    {
+                        if (ttt.BeginChar > ltt.EndChar) 
+                            break;
+                        if (ttt.Chars.IsCyrillicLetter) 
+                        {
+                            hasWords = true;
+                            break;
+                        }
+                        Pullenti.Ner.Referent r = ttt.GetReferent();
+                        if ((r is Pullenti.Ner.Org.OrganizationReferent) || (r is Pullenti.Ner.Geo.GeoReferent) || (r is Pullenti.Ner.Decree.DecreeChangeReferent)) 
+                        {
+                            hasWords = true;
+                            break;
+                        }
+                    }
+                    if (!hasWords) 
+                        break;
+                    FragToken eds = _createEditions(t);
+                    if (eds != null) 
+                    {
+                        if (t != tt0) 
+                            break;
+                        title.Children.Add(eds);
+                        t1 = (t = (title.EndToken = eds.EndToken));
+                        tt0 = t.Next;
+                        continue;
+                    }
+                    t1 = (t = ltt.EndToken);
+                }
+                else 
+                    t1 = t;
+            }
+            string val = (t1 != null && tt0 != null ? FragToken.GetRestoredName(tt0, t1, false) : null);
+            if (val != null) 
+            {
+                if (nT0 != null) 
+                    tt0 = nT0;
+                title.Children.Add(new FragToken(tt0, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = val.Trim() });
+                title.EndToken = t1;
+                title.Name = val;
+            }
+            while (title.EndToken.Next != null) 
+            {
+                FragToken eds = _createEditions(title.EndToken.Next);
+                if (eds != null) 
+                {
+                    title.Children.Add(eds);
+                    title.EndToken = eds.EndToken;
+                    continue;
+                }
+                FragToken appr = _createApproved(title.EndToken.Next);
+                if (appr != null) 
+                {
+                    title.Children.Add(appr);
+                    title.EndToken = appr.EndToken;
+                    continue;
+                }
+                FragToken misc = _createMisc(title.EndToken.Next);
+                if (misc != null) 
+                {
+                    title.Children.Add(misc);
+                    title.EndToken = misc.EndToken;
+                    continue;
+                }
+                InstrToken1 ltt = InstrToken1.Parse(title.EndToken.Next, true, null, 0, null, false, 0, false, false);
+                if (ltt == null) 
+                    break;
+                if (ltt.IsPureHiphenLine) 
+                {
+                    t = (title.EndToken = ltt.EndToken);
+                    continue;
+                }
+                if (ltt.Typ == InstrToken1.Types.Footnote) 
+                {
+                    FragToken fnn = new FragToken(ltt.BeginToken, ltt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
+                    NumberingHelper.CreateNumber(fnn, ltt);
+                    title.Children.Add(fnn);
+                    t = (title.EndToken = ltt.EndToken);
+                    continue;
+                }
+                break;
+            }
+            if (isApp) 
+            {
+                if (doc.FindSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, null, true) == null) 
+                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, "", false, 0);
+                foreach (FragToken ch in title.Children) 
+                {
+                    if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.DocReference) 
+                    {
+                        for (Pullenti.Ner.Token tt = ch.BeginToken; tt != null && tt.EndChar <= ch.EndChar; tt = tt.Next) 
+                        {
+                            if (tt.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
+                            {
+                                foreach (Pullenti.Ner.Slot s in tt.GetReferent().Slots) 
+                                {
+                                    if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_TYPE) 
+                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_TYPE, s.Value, false, 0);
+                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_NUMBER) 
+                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_REGNUMBER, s.Value, false, 0);
+                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_DATE) 
+                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_DATE, s.Value, false, 0);
+                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_SOURCE) 
+                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, s.Value, false, 0);
+                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_GEO) 
+                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, s.Value, false, 0);
+                                }
+                                break;
+                            }
+                            Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt, null, false);
+                            if (dt != null) 
+                            {
+                                if (_addTitleAttr(doc, null, dt)) 
+                                    tt = dt.EndToken;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            if (title.Children.Count == 0 && title.EndToken == title.BeginToken) 
+                return null;
+            for (t1 = title.EndToken.Next; t1 != null; t1 = t1.Next) 
+            {
+                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t1, null, false);
+                if (dt != null) 
+                {
+                    if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr) 
+                    {
+                        _addTitleAttr(null, title, dt);
+                        t1 = (title.EndToken = dt.EndToken);
+                        continue;
+                    }
+                }
+                break;
+            }
+            while (title.EndToken.Next != null) 
+            {
+                if (title.EndToken.Next.IsTableControlChar && ((!title.EndToken.Next.IsNewlineBefore || title.EndToken.Next.IsNewlineAfter || ((title.EndToken.Next.Next != null && title.EndToken.Next.Next.IsChar((char)0x1F)))))) 
+                    title.EndToken = title.EndToken.Next;
+                else 
+                    break;
+            }
+            return title;
+        }
+        static bool _isStartOfBody(Pullenti.Ner.Token t, bool isAppTitle = false)
+        {
+            if (t == null || !t.IsNewlineBefore) 
+                return false;
+            if (t.IsValue("ТАБЛИЦА", null) || t.IsValue("РИСУНОК", null)) 
+            {
+                Pullenti.Ner.Core.ComplexNumToken num = Pullenti.Ner.Core.ComplexNumToken.TryParse(t.Next, null, true, false);
+                if (num != null) 
+                    return true;
+            }
+            if (t.IsValue("ФОРМА", null)) 
+            {
+                Pullenti.Ner.Decree.Internal.PartToken pp = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t, null, false, false);
+                if (pp != null && pp.Values.Count > 0) 
+                    return true;
+            }
+            if (!isAppTitle) 
+            {
+                Pullenti.Ner.Core.Internal.BlockTitleToken bl = Pullenti.Ner.Core.Internal.BlockTitleToken.TryAttach(t, false, null);
+                if (bl != null) 
+                {
+                    if (bl.Typ != Pullenti.Ner.Core.Internal.BlkTyps.Undefined && bl.Typ != Pullenti.Ner.Core.Internal.BlkTyps.Literature) 
+                        return true;
+                }
+            }
+            Pullenti.Ner.Mail.Internal.MailLine li = Pullenti.Ner.Mail.Internal.MailLine.Parse(t, 0, 0);
+            if (li != null) 
+            {
+                if (li.Typ == Pullenti.Ner.Mail.Internal.MailLine.Types.Hello) 
+                    return true;
+            }
+            InstrToken1 it1 = InstrToken1.Parse(t, true, null, 0, null, false, 0, false, false);
+            if (it1 != null) 
+            {
+                if (it1.Typ == InstrToken1.Types.Index) 
+                    return true;
+            }
+            bool ok = false;
+            if (t.IsValue("ВВЕДЕНИЕ", "ВВЕДЕННЯ") || t.IsValue("АННОТАЦИЯ", "АНОТАЦІЯ") || t.IsValue("ПРЕДИСЛОВИЕ", "ПЕРЕДМОВА")) 
+                ok = true;
+            else if (t.IsValue("ОБЩИЙ", "ЗАГАЛЬНИЙ") && t.Next != null && t.Next.IsValue("ПОЛОЖЕНИЕ", "ПОЛОЖЕННЯ")) 
+            {
+                t = t.Next;
+                ok = true;
+            }
+            else if ((t.Next != null && t.Next.Chars.IsAllLower && t.Morph.Class.IsPreposition) && ((t.Next.IsValue("СВЯЗЬ", "ЗВЯЗОК") || t.Next.IsValue("ЦЕЛЬ", "МЕТА") || t.Next.IsValue("СООТВЕТСТВИЕ", "ВІДПОВІДНІСТЬ")))) 
+                return true;
+            if (ok) 
+            {
+                Pullenti.Ner.Token t1 = t.Next;
+                if (t1 != null && t1.IsChar(':')) 
+                    t1 = t1.Next;
+                if (t1 == null || t1.IsNewlineBefore) 
+                    return true;
+                return false;
+            }
+            InstrToken1 it = InstrToken1.Parse(t, false, null, 0, null, false, 0, false, false);
+            if (it != null) 
+            {
+                if (it.TypContainerRank > 0 || it.Typ == InstrToken1.Types.Directive) 
+                {
+                    if (t.IsValue("ЧАСТЬ", "ЧАСТИНА") && it.Numbers.Count == 1) 
+                    {
+                        if (_createApproved(it.EndToken.Next) != null) 
+                            return false;
+                    }
+                    return true;
+                }
+                if (it.Numbers.Count > 0) 
+                {
+                    if (it.Numbers.Count > 1 || it.NumSuffix != null) 
+                        return true;
+                }
+            }
+            if ((t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) && t.Next != null) 
+            {
+                if (t.Next.IsValue("СОСТАВ", "СКЛАД")) 
+                    return true;
+                if (t.Next.IsValue("В", "У") && t.Next.Next != null && t.Next.Next.IsValue("СОСТАВ", "СКЛАД")) 
+                    return true;
+            }
+            if (t.IsValue2("В", "ЦЕЛЯХ")) 
+                return true;
+            Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
+            if (npt != null && (npt.EndToken.Next is Pullenti.Ner.TextToken) && (npt.EndToken.Next as Pullenti.Ner.TextToken).IsPureVerb) 
+                return true;
+            return false;
+        }
+        static bool _addTitleAttr(Pullenti.Ner.Instrument.InstrumentReferent doc, FragToken title, Pullenti.Ner.Decree.Internal.DecreeToken dt)
+        {
+            if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
+            {
+                if (doc != null) 
+                {
+                    if (doc.Typ != null && dt.Value != doc.Typ) 
+                    {
+                        if (doc.Typ != "ПРОЕКТ") 
+                            return false;
+                        if (dt.Value.Contains("ЗАКОН")) 
+                            doc.Typ = "ПРОЕКТ ЗАКОНА";
+                        else 
+                            return false;
+                    }
+                    else 
+                        doc.Typ = dt.Value;
+                    if (dt.FullValue != null && dt.FullValue != dt.Value && doc.Name == null) 
+                        doc.Name = dt.FullValue;
+                }
+                if (title != null) 
+                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Typ, Value = dt.FullValue ?? dt.Value });
+            }
+            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number) 
+            {
+                if (dt.IsDelo) 
+                {
+                    if (doc != null) 
+                    {
+                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_CASENUMBER, dt.Value, false, 0);
+                        if (doc.RegNumber == dt.Value) 
+                            doc.RegNumber = null;
+                    }
+                    if (title != null) 
+                        title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.CaseNumber, Value = dt.Value });
+                }
+                else 
+                {
+                    if (dt.Value != "?" && doc != null) 
+                    {
+                        if (doc.GetStringValue(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_CASENUMBER) == dt.Value) 
+                        {
+                        }
+                        else 
+                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NUMBER, dt.Value, false, 0);
+                    }
+                    if (title != null) 
+                        title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Number, Value = dt.Value });
+                    if (doc != null && doc.Typ == null && dt.Value != null) 
+                    {
+                        if (Pullenti.Morph.LanguageHelper.EndsWith(dt.Value, "ФКЗ")) 
+                            doc.Typ = "ФЕДЕРАЛЬНЫЙ КОНСТИТУЦИОННЫЙ ЗАКОН";
+                        else if (Pullenti.Morph.LanguageHelper.EndsWith(dt.Value, "ФЗ")) 
+                            doc.Typ = "ФЕДЕРАЛЬНЫЙ ЗАКОН";
+                    }
+                }
+            }
+            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Name) 
+            {
+                if (doc != null) 
+                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, dt.Value, false, 0);
+                if (title != null) 
+                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = dt.Value });
+            }
+            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date) 
+            {
+                if (doc == null || doc.AddDate(dt)) 
+                {
+                    if (title != null) 
+                        title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Date, Value = dt });
+                }
+            }
+            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr) 
+            {
+                if (title != null) 
+                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Place, Value = dt });
+                if (doc != null && dt.Ref != null) 
+                {
+                    string geo = doc.GetStringValue(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO);
+                    if (geo == "Россия") 
+                    {
+                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, null, true, 0);
+                        geo = null;
+                    }
+                    if (geo == null) 
+                    {
+                        Pullenti.Ner.Slot ss = doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, dt.Ref.Referent.ToString(), false, 0);
+                        ss.AddAnnotation(dt);
+                    }
+                }
+            }
+            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org) 
+            {
+                if (title != null) 
+                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org ? Pullenti.Ner.Instrument.InstrumentKind.Organization : Pullenti.Ner.Instrument.InstrumentKind.Initiator), Value = dt });
+                if (doc != null) 
+                {
+                    if (dt.Ref != null) 
+                    {
+                        Pullenti.Ner.Slot ss = doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, dt.Ref.Referent, false, 0);
+                        ss.Tag = dt.GetSourceText();
+                        ss.AddAnnotation(dt);
+                        if (dt.Ref.Referent is Pullenti.Ner.Person.PersonPropertyReferent) 
+                            doc.AddExtReferent(dt.Ref);
+                    }
+                    else 
+                    {
+                        Pullenti.Ner.Slot ss = doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, Pullenti.Ner.Core.MiscHelper.ConvertFirstCharUpperAndOtherLower(dt.Value), false, 0);
+                        ss.Tag = dt.GetSourceText();
+                        ss.AddAnnotation(dt);
+                    }
+                }
+            }
+            else 
+                return false;
+            return true;
         }
         static FragToken CreateZapiskaTitle(Pullenti.Ner.Token t0, Pullenti.Ner.Instrument.InstrumentReferent doc)
         {
@@ -2633,7 +4709,7 @@ namespace Pullenti.Ner.Instrument.Internal
                                     {
                                         vvv = Pullenti.Morph.MorphologyService.GetAllWordforms(addi, null);
                                     }
-                                    catch(Exception ex2886) 
+                                    catch(Exception ex3041) 
                                     {
                                     }
                                     if (vvv != null) 
@@ -4147,2003 +6223,32 @@ namespace Pullenti.Ner.Instrument.Internal
                 empty.EndToken = title.EndToken;
             return title;
         }
-        static FragToken CreateDocTitle(Pullenti.Ner.Token t0, Pullenti.Ner.Instrument.InstrumentReferent doc)
+        public void _analizeContent(FragToken topDoc, bool isCitat, Pullenti.Ner.Instrument.InstrumentKind rootKind = Pullenti.Ner.Instrument.InstrumentKind.Undefined)
         {
-            if (t0 == null) 
-                return null;
-            if (t0.IsValue3("ДАННЫЕ", "ЭЛЕКТРОННОЙ", "ПОДПИСИ")) 
+            Kind = Pullenti.Ner.Instrument.InstrumentKind.Content;
+            if (BeginToken.Previous != null && BeginToken.Previous.IsChar((char)0x1E)) 
+                BeginToken = BeginToken.Previous;
+            ContentAnalyzeWhapper wr = new ContentAnalyzeWhapper();
+            wr.Analyze(this, topDoc, isCitat, rootKind);
+            foreach (FragToken ch in topDoc.Children) 
             {
-                int cou = 0;
-                for (Pullenti.Ner.Token tt = t0; tt != null; tt = tt.Next) 
+                if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.Head) 
                 {
-                    t0 = tt;
-                    InstrToken1 line = InstrToken1.Parse(tt, true, null, 0, null, false, 0, false, false);
-                    if (line == null) 
-                        continue;
-                    if (tt.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
+                    foreach (FragToken chh in ch.Children) 
                     {
-                        t0 = tt.Kit.DebedToken(tt);
-                        break;
-                    }
-                    Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt, null, false);
-                    if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                        break;
-                    if ((((tt.IsValue("ДАННЫЕ", null) || tt.IsValue("ДОКУМЕНТ", null) || tt.IsValue("ВЛАДЕЛЕЦ", null)) || tt.IsValue("ОРГАНИЗАЦИЯ", null) || tt.IsValue("ПОДПИСАНО", null)) || tt.IsValue2("СЕРИЙНЫЙ", "НОМЕР") || tt.IsValue2("СРОК", "ДЕЙСТВИЯ")) || tt.IsChar('(')) 
-                        cou = 0;
-                    else 
-                    {
-                        cou++;
-                        if (cou > 3) 
-                            break;
-                    }
-                    tt = line.EndToken;
-                }
-            }
-            FragToken title = CreateContractTitle(t0, doc);
-            if (title != null) 
-                return title;
-            title = CreateGostTitle(t0, doc);
-            if (title != null) 
-                return title;
-            title = CreateZapiskaTitle(t0, doc);
-            if (title != null) 
-                return title;
-            title = CreateTZTitle(t0, doc);
-            if (title != null) 
-                return title;
-            doc.Slots.Clear();
-            title = CreateProjectTitle(t0, doc);
-            if (title != null) 
-                return title;
-            doc.Slots.Clear();
-            title = _createDocTitle_(t0, doc);
-            if (title != null && title.Children.Count == 1 && title.Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Name) 
-            {
-                FragToken title2 = _createDocTitle_(title.EndToken.Next, doc);
-                if (title2 != null && doc.Typ != null) 
-                {
-                    title.Children.AddRange(title2.Children);
-                    title.EndToken = title2.EndToken;
-                }
-            }
-            if ((title != null && title.Children.Count >= 1 && title.Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Name) && doc.Typ == null) 
-            {
-                for (Pullenti.Ner.Token t = title.EndToken.Next; t != null; t = t.Next) 
-                {
-                    if (t.IsValue("ПРИКАЗЫВАТЬ", null) && t.Next != null && t.Next.IsChar(':')) 
-                    {
-                        doc.Typ = "ПРИКАЗ";
-                        break;
-                    }
-                }
-            }
-            return title;
-        }
-        static FragToken _createDocTitle_(Pullenti.Ner.Token t0, Pullenti.Ner.Instrument.InstrumentReferent doc)
-        {
-            for (; t0 != null; t0 = t0.Next) 
-            {
-                if (!t0.IsTableControlChar) 
-                    break;
-            }
-            if (t0 == null) 
-                return null;
-            if (_isStartOfBody(t0, false)) 
-                return null;
-            FragToken title = new FragToken(t0, t0) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Head };
-            Pullenti.Ner.Decree.Internal.DecreeToken dt0 = null;
-            Pullenti.Ner.Token t;
-            Pullenti.Ner.Token t1 = null;
-            string name = null;
-            Pullenti.Ner.Token nT0 = null;
-            int emptyLines = 0;
-            Pullenti.Ner.Token endEmptyLines = null;
-            bool ignoreEmptyLines = false;
-            int attrs = 0;
-            bool canBeOrgs = true;
-            List<FragToken> unknownOrgs = new List<FragToken>();
-            bool isContract = false;
-            bool startOfName = false;
-            t = t0;
-            if (t0.GetReferent() != null) 
-            {
-                if (t0.GetReferent().TypeName == "PERSON") 
-                    return null;
-            }
-            FragToken appr0 = null;
-            if (t0.IsValue("УТВЕРДИТЬ", "ЗАТВЕРДИТИ") || t0.IsValue("ПРИНЯТЬ", "ПРИЙНЯТИ") || t0.IsValue("УТВЕРЖДАТЬ", null)) 
-                appr0 = _createApproved(t);
-            if (appr0 != null) 
-            {
-                t1 = (title.EndToken = appr0.EndToken);
-                title.Children.Add(appr0);
-                t = t1.Next;
-            }
-            FragToken edi0 = null;
-            if (t0.IsValue("РЕДАКЦИЯ", null)) 
-                edi0 = _createEditions(t0);
-            if (edi0 != null) 
-            {
-                t1 = (title.EndToken = edi0.EndToken);
-                title.Children.Add(edi0);
-                t = t1.Next;
-            }
-            if (t != null && t.IsValue("ДЕЛО", "СПРАВА")) 
-            {
-                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t.Next, null, false);
-                if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number) 
-                {
-                    dt.BeginToken = t;
-                    title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, Value = "ДЕЛО" });
-                    _addTitleAttr(doc, title, dt);
-                    t = dt.EndToken.Next;
-                    if (t != null && t.IsValue("КОПИЯ", "КОПІЯ")) 
-                        t = t.Next;
-                    else if ((t.IsChar('(') && t.Next != null && t.Next.IsValue("КОПИЯ", "КОПІЯ")) && t.Next.Next != null && t.Next.Next.IsChar(')')) 
-                        t = t.Next.Next;
-                }
-            }
-            for (; t != null; t = t.Next) 
-            {
-                if (t.IsTableControlChar) 
-                    continue;
-                Pullenti.Ner.Token tt2 = Pullenti.Ner.Core.MiscHelper.CheckImage(t);
-                if (tt2 != null) 
-                {
-                    t = tt2;
-                    continue;
-                }
-                if (t.IsNewlineBefore || ((t.Previous != null && t.Previous.IsTableControlChar))) 
-                {
-                    if ((t.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) && (t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent).Kind != Pullenti.Ner.Decree.DecreeKind.Publisher) 
-                        t = t.Kit.DebedToken(t);
-                    if (t.IsValue("О", "ПРО") || t.IsValue("ОБ", null) || t.IsValue("ПО", null)) 
-                        break;
-                    if (_isStartOfBody(t, false)) 
-                        break;
-                    if (t.IsCharOf("[") && name == null) 
-                        break;
-                    InstrToken1 iii = InstrToken1.Parse(t, true, null, 0, null, false, 0, false, false);
-                    if (iii != null && iii.Typ == InstrToken1.Types.Comment) 
-                    {
-                        FragToken cmt = new FragToken(iii.BeginToken, iii.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Comment };
-                        title.Children.Add(cmt);
-                        t = (t1 = (title.EndToken = iii.EndToken));
-                        continue;
-                    }
-                    if (iii != null && iii.EndToken.IsChar('?')) 
-                    {
-                        FragToken cmt = new FragToken(iii.BeginToken, iii.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name };
-                        cmt.Value = FragToken.GetRestoredNameMT(iii, false);
-                        title.Children.Add(cmt);
-                        t = (t1 = (title.EndToken = iii.EndToken));
-                        break;
-                    }
-                    if ((((t.IsValue("ЗАЯВИТЕЛЬ", "ЗАЯВНИК") || t.IsValue("ИСТЕЦ", "ПОЗИВАЧ") || t.IsValue("ОТВЕТЧИК", "ВІДПОВІДАЧ")) || t.IsValue("ДОЛЖНИК", "БОРЖНИК") || t.IsValue("КОПИЯ", "КОПІЯ"))) && t.Next != null && ((t.Next.IsChar(':') || t.Next.IsTableControlChar))) 
-                    {
-                        Pullenti.Ner.ReferentToken ptt = _createJustParticipant(t.Next.Next, null);
-                        if (ptt != null) 
+                        if (chh.Kind == Pullenti.Ner.Instrument.InstrumentKind.Editions && chh.Referents != null) 
                         {
-                            if (t.IsValue("КОПИЯ", null)) 
+                            if (topDoc.Referents == null) 
+                                topDoc.Referents = new List<Pullenti.Ner.Referent>();
+                            foreach (Pullenti.Ner.Referent r in chh.Referents) 
                             {
-                            }
-                            t1 = ptt.EndToken;
-                            while (t1.Next != null && t1.Next.IsTableControlChar) 
-                            {
-                                t1 = t1.Next;
-                            }
-                            if (t1.Next != null && t1.Next.IsChar('(')) 
-                            {
-                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                                if (br != null) 
-                                    t1 = br.EndToken;
-                            }
-                            FragToken ft = new FragToken(t, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Initiator };
-                            title.Children.Add(ft);
-                            t = (title.EndToken = t1);
-                            continue;
-                        }
-                    }
-                    if (t.IsValue("ЦЕНА", "ЦІНА") && t.Next != null && t.Next.IsValue("ИСК", "ПОЗОВ")) 
-                    {
-                        bool hasMoney = false;
-                        Pullenti.Ner.Token tt;
-                        for (tt = t.Next; tt != null; tt = tt.Next) 
-                        {
-                            if (tt.GetReferent() is Pullenti.Ner.Money.MoneyReferent) 
-                                hasMoney = true;
-                            if (tt.IsNewlineAfter) 
-                                break;
-                        }
-                        if (tt != null && hasMoney) 
-                        {
-                            while (tt.Next != null && tt.Next.IsTableControlChar) 
-                            {
-                                tt = tt.Next;
-                            }
-                            if (tt.Next != null && tt.Next.IsChar('(')) 
-                            {
-                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tt.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                                if (br != null) 
-                                    tt = br.EndToken;
-                            }
-                            title.Children.Add(new FragToken(t, tt) { Kind = Pullenti.Ner.Instrument.InstrumentKind.CaseInfo });
-                            t = (title.EndToken = (t1 = tt));
-                            continue;
-                        }
-                    }
-                    if (t.IsValue("В", "У")) 
-                    {
-                        Pullenti.Ner.Token tt = t.Next;
-                        if (tt != null && tt.IsTableControlChar) 
-                            tt = tt.Next;
-                        if (tt != null && (tt.GetReferent() is Pullenti.Ner.Org.OrganizationReferent)) 
-                        {
-                            Pullenti.Ner.Referent r = tt.GetReferent();
-                            while (tt.Next != null && tt.Next.IsTableControlChar) 
-                            {
-                                tt = tt.Next;
-                            }
-                            t1 = tt;
-                            if (t1.Next != null && t1.Next.IsChar('(')) 
-                            {
-                                Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t1.Next, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                                if (br != null) 
-                                    t1 = br.EndToken;
-                            }
-                            FragToken ooo = new FragToken(t, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Organization };
-                            ooo.Referents = new List<Pullenti.Ner.Referent>();
-                            ooo.Referents.Add(r);
-                            title.Children.Add(ooo);
-                            t = (title.EndToken = t1);
-                            continue;
-                        }
-                    }
-                    if (t.LengthChar == 1 && t.Chars.IsLetter && t.IsWhitespaceAfter) 
-                    {
-                        int ii;
-                        for (ii = 0; ii < InstrToken.m_DirectivesNorm.Count; ii++) 
-                        {
-                            Pullenti.Ner.Token ee = Pullenti.Ner.Core.MiscHelper.TryAttachWordByLetters(InstrToken.m_DirectivesNorm[ii], t, false);
-                            if (ee != null && ee.IsNewlineAfter) 
-                            {
-                                FragToken ooo = new FragToken(t, ee) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, Value = InstrToken.m_DirectivesNorm[ii] };
-                                title.Children.Add(ooo);
-                                doc.Typ = InstrToken.m_DirectivesNorm[ii];
-                                t = (title.EndToken = ee);
-                                break;
-                            }
-                        }
-                        if (ii < InstrToken.m_DirectivesNorm.Count) 
-                            continue;
-                    }
-                }
-                if (t.IsHiphen || t.IsChar('_')) 
-                {
-                    char ch = t.GetSourceText()[0];
-                    for (; t != null; t = t.Next) 
-                    {
-                        if (!t.IsChar(ch)) 
-                            break;
-                    }
-                }
-                if (t == null) 
-                    break;
-                FragToken casinf = _createCaseInfo(t);
-                if (casinf != null) 
-                    break;
-                Pullenti.Ner.Decree.DecreeReferent dr0 = t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
-                if (dr0 != null) 
-                {
-                    if (dr0.Kind == Pullenti.Ner.Decree.DecreeKind.Publisher) 
-                        continue;
-                }
-                else if (t.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
-                {
-                    Pullenti.Ner.Decree.DecreePartReferent dpr = t.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
-                    if (dpr != null) 
-                    {
-                        if (((dpr.Part == null && dpr.DocPart == null)) || dpr.Slots.Count != 2) 
-                            break;
-                        if ((t.Next is Pullenti.Ner.TextToken) && (t.Next as Pullenti.Ner.TextToken).IsPureVerb) 
-                            break;
-                        dr0 = dpr.Owner;
-                    }
-                }
-                if (dr0 != null) 
-                {
-                    if (doc.Typ == null || doc.Typ == dr0.Typ) 
-                    {
-                        Pullenti.Ner.Token tt1 = (t as Pullenti.Ner.ReferentToken).BeginToken;
-                        List<Pullenti.Ner.Decree.Internal.DecreeToken> li = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachList(tt1, null, 10, false);
-                        if (li != null && li.Count > 0 && li[li.Count - 1].IsNewlineAfter) 
-                        {
-                            foreach (Pullenti.Ner.Decree.Internal.DecreeToken dd in li) 
-                            {
-                                _addTitleAttr(doc, title, dd);
-                            }
-                            Pullenti.Ner.Token ttt = li[li.Count - 1].EndToken;
-                            if (ttt.EndChar < t.EndChar) 
-                            {
-                                nT0 = ttt.Next;
-                                name = FragToken.GetRestoredName(ttt.Next, (t as Pullenti.Ner.ReferentToken).EndToken, false);
-                            }
-                            t1 = t;
-                            if (name != null && t1.IsNewlineAfter) 
-                            {
-                                t = t.Next;
-                                break;
-                            }
-                            if (doc.Typ == "КОДЕКС") 
-                            {
-                                Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t.Next, null, false, false);
-                                if (pt != null) 
-                                {
-                                    if (((pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part && pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) || pt.Values.Count != 1) 
-                                        pt = null;
-                                }
-                                if (pt != null && pt.Values.Count > 0) 
-                                {
-                                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
-                                    title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
-                                    t = pt.EndToken;
-                                    continue;
-                                }
-                            }
-                            if (doc.Name != null) 
-                            {
-                                t = t.Next;
-                                break;
-                            }
-                        }
-                    }
-                    else if (dr0.Typ == "КОДЕКС") 
-                    {
-                        Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t.Next, null, false, false);
-                        string nam = dr0.Name;
-                        if (pt != null) 
-                        {
-                            if (((pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part && pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) || pt.Values.Count != 1) 
-                                pt = null;
-                        }
-                        if (pt != null && pt.Values.Count > 0) 
-                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
-                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, nam, false, 0);
-                        doc.Typ = dr0.Typ;
-                        object geo = dr0.GetSlotValue(Pullenti.Ner.Decree.DecreeReferent.ATTR_GEO);
-                        if (geo != null) 
-                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, geo, false, 0);
-                        t1 = t;
-                        title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = nam });
-                        if (pt != null && pt.Values.Count > 0) 
-                        {
-                            title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
-                            t1 = pt.EndToken;
-                        }
-                        t = t1;
-                        continue;
-                    }
-                    t1 = t;
-                    ignoreEmptyLines = true;
-                    canBeOrgs = false;
-                    continue;
-                }
-                if (_isStartOfBody(t, false)) 
-                    break;
-                if (t.IsValue("ПРОЕКТ", null) && t.IsNewlineAfter) 
-                    continue;
-                if (doc.Typ == null) 
-                {
-                    Pullenti.Ner.Token ttt1 = Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t, false);
-                    if (ttt1 != null && ttt1.IsNewlineAfter) 
-                    {
-                        string typ = Pullenti.Ner.Core.MiscHelper.GetTextValue(t, ttt1, Pullenti.Ner.Core.GetTextAttr.KeepQuotes);
-                        if (doc.Typ == null) 
-                            doc.Typ = typ;
-                        title.Children.Add(new FragToken(t, ttt1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Typ, Value = typ });
-                        dt0 = new Pullenti.Ner.Decree.Internal.DecreeToken(t, ttt1) { Typ = Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ, Value = typ };
-                        canBeOrgs = false;
-                        t1 = (t = ttt1);
-                        if ((t.Next != null && t.Next.IsNewlineAfter && typ == "УСТАВ") && (((t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent) || (t.Next.GetReferent() is Pullenti.Ner.Org.OrganizationReferent)))) 
-                        {
-                            t1 = (t = ttt1.Next);
-                            string nam = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(t as Pullenti.Ner.MetaToken, Pullenti.Ner.Core.GetTextAttr.RestoreRegister);
-                            doc.AddSlot(Pullenti.Ner.Decree.DecreeReferent.ATTR_NAME, "Устав " + nam, false, 0);
-                            title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = nam });
-                        }
-                        continue;
-                    }
-                    if (t.IsNewlineBefore && ttt1 != null && Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, null, false) == null) 
-                    {
-                        startOfName = true;
-                        break;
-                    }
-                }
-                FragToken appr = _createApproved(t);
-                if (appr != null) 
-                {
-                    t = (t1 = appr.EndToken);
-                    title.Children.Add(appr);
-                    if (appr.BeginChar < title.BeginChar) 
-                        title.BeginToken = appr.BeginToken;
-                    continue;
-                }
-                FragToken edss = _createEditions(t);
-                if (edss != null) 
-                    break;
-                FragToken misc = _createMisc(t);
-                if (misc != null) 
-                {
-                    t = (t1 = misc.EndToken);
-                    title.Children.Add(misc);
-                    continue;
-                }
-                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, dt0, false);
-                if (dt != null) 
-                {
-                    if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner) 
-                    {
-                        if (dt.LengthChar < 4) 
-                            dt = null;
-                    }
-                }
-                if (dt == null && dt0 != null && ((dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner || dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org))) 
-                {
-                    if ((t is Pullenti.Ner.NumberToken) && t.IsNewlineAfter && t.IsNewlineBefore) 
-                        dt = new Pullenti.Ner.Decree.Internal.DecreeToken(t, t) { Typ = Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number, Value = (t as Pullenti.Ner.NumberToken).Value.ToString() };
-                }
-                if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Unknown) 
-                    dt = null;
-                if ((dt == null && (t is Pullenti.Ner.NumberToken) && t.IsNewlineBefore) && t.IsNewlineAfter) 
-                {
-                    if (dt0 != null && dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org && ((t as Pullenti.Ner.NumberToken).Typ == Pullenti.Ner.NumberSpellingType.Digit)) 
-                        dt = new Pullenti.Ner.Decree.Internal.DecreeToken(t, t) { Typ = Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number, Value = (t as Pullenti.Ner.NumberToken).Value.ToString() };
-                }
-                if ((dt != null && dt0 != null && dt0.EndToken.Next != dt.BeginToken) && ((dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org))) 
-                {
-                    if (!t.IsNewlineBefore && !t.Previous.IsTableControlChar) 
-                        dt = null;
-                    else 
-                        for (Pullenti.Ner.Token ttt = dt.EndToken.Next; ttt != null; ttt = ttt.Next) 
-                        {
-                            if (ttt.IsNewlineBefore || ttt.IsTableControlChar) 
-                                break;
-                            else if ((ttt is Pullenti.Ner.TextToken) && (ttt as Pullenti.Ner.TextToken).IsPureVerb) 
-                            {
-                                dt = null;
-                                break;
-                            }
-                        }
-                }
-                if (dt != null && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date && dt0 != null) 
-                {
-                    if (dt.IsNewlineBefore || dt.IsNewlineAfter) 
-                    {
-                    }
-                    else if (dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number || dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                    {
-                    }
-                    else if (dt0.EndToken.Next == dt.BeginToken) 
-                    {
-                    }
-                    else 
-                        dt = null;
-                }
-                if (dt == null) 
-                {
-                    if (t.GetReferent() is Pullenti.Ner.Date.DateReferent) 
-                        continue;
-                    if (t.IsValue("ДАТА", null)) 
-                    {
-                        bool ok = false;
-                        for (Pullenti.Ner.Token tt = t.Next; tt != null; tt = tt.Next) 
-                        {
-                            if ((tt.IsValue("ПОДПИСАНИЕ", "ПІДПИСАННЯ") || tt.IsValue("ВВЕДЕНИЕ", "ВВЕДЕННЯ") || tt.IsValue("ПРИНЯТИЕ", "ПРИЙНЯТТЯ")) || tt.IsValue("ДЕЙСТВИЕ", "ДІЮ") || tt.Morph.Class.IsPreposition) 
-                                continue;
-                            if ((tt is Pullenti.Ner.TextToken) && !tt.Chars.IsLetter) 
-                                continue;
-                            Pullenti.Ner.Date.DateReferent da = tt.GetReferent() as Pullenti.Ner.Date.DateReferent;
-                            if (da != null) 
-                            {
-                                FragToken frdt = new FragToken(t, tt) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Date };
-                                title.Children.Add(frdt);
-                                t = tt;
-                                ok = true;
-                                if (doc.Date == null) 
-                                    doc.AddDate(da);
-                            }
-                            break;
-                        }
-                        if (ok) 
-                            continue;
-                    }
-                    Pullenti.Ner.Referent r = t.GetReferent();
-                    if ((r == null && t.LengthChar == 1 && !t.Chars.IsLetter) && (t.Next is Pullenti.Ner.ReferentToken) && !t.IsNewlineAfter) 
-                    {
-                        t = t.Next;
-                        r = t.GetReferent();
-                    }
-                    if (((r is Pullenti.Ner.Address.AddressReferent) || (r is Pullenti.Ner.Uri.UriReferent) || (r is Pullenti.Ner.Phone.PhoneReferent)) || (r is Pullenti.Ner.Person.PersonIdentityReferent) || (r is Pullenti.Ner.Bank.BankDataReferent)) 
-                    {
-                        FragToken cnt = new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Contact };
-                        cnt.Referents = new List<Pullenti.Ner.Referent>();
-                        cnt.Referents.Add(r);
-                        title.Children.Add(cnt);
-                        for (; t != null; t = t.Next) 
-                        {
-                            if (t.Next != null && t.Next.IsCharOf(",;.")) 
-                                t = t.Next;
-                            if (t.Next == null) 
-                                break;
-                            r = t.Next.GetReferent();
-                            if (((r is Pullenti.Ner.Address.AddressReferent) || (r is Pullenti.Ner.Uri.UriReferent) || (r is Pullenti.Ner.Phone.PhoneReferent)) || (r is Pullenti.Ner.Person.PersonIdentityReferent) || (r is Pullenti.Ner.Bank.BankDataReferent)) 
-                            {
-                                cnt.Referents.Add(r);
-                                cnt.EndToken = t.Next;
-                            }
-                            else if (t.IsNewlineAfter) 
-                                break;
-                        }
-                        continue;
-                    }
-                    Pullenti.Ner.Decree.Internal.PartToken pt = (t.IsNewlineBefore ? Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t, null, false, false) : null);
-                    if ((pt != null && ((pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part || pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) && pt.Values.Count == 1) && pt.IsNewlineAfter) 
-                    {
-                        bool ok = false;
-                        if (dt0 != null && dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                            ok = true;
-                        else 
-                        {
-                            Pullenti.Ner.Decree.Internal.DecreeToken ddd = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(pt.EndToken.Next, null, false);
-                            if (ddd != null && ddd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                                ok = true;
-                            else if (_createApproved(pt.EndToken.Next) != null) 
-                                ok = true;
-                        }
-                        if (ok) 
-                        {
-                            title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
-                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
-                            t = pt.EndToken;
-                            continue;
-                        }
-                    }
-                    if (appr0 != null) 
-                        break;
-                    if (canBeOrgs) 
-                    {
-                        if (t.GetReferent() is Pullenti.Ner.Person.PersonReferent) 
-                        {
-                        }
-                        else 
-                        {
-                            FragToken org = _createOwner(t);
-                            if (org != null) 
-                            {
-                                unknownOrgs.Add(org);
-                                t1 = (t = org.EndToken);
-                                continue;
-                            }
-                        }
-                    }
-                    InstrToken stok = InstrToken.Parse(t, 0, null);
-                    if (stok != null && ((stok.NoWords || (stok.LengthChar < 5)))) 
-                    {
-                        if (t0 == t) 
-                            t0 = stok.EndToken.Next;
-                        t = stok.EndToken;
-                        continue;
-                    }
-                    if ((t.IsNewlineBefore && doc.Typ != null && (t is Pullenti.Ner.TextToken)) && Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null) != null) 
-                        break;
-                    if (t.IsNewlineBefore && t.IsValue("К", "ДО")) 
-                        break;
-                    if (((!ignoreEmptyLines && stok != null && stok.Typ == ILTypes.Undefined) && !stok.HasVerb && ((dt0 == null || dt0.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number))) && (emptyLines < 3)) 
-                    {
-                        if (stok.IsNewlineAfter) 
-                            emptyLines++;
-                        else if (dt0 != null) 
-                            break;
-                        t = (endEmptyLines = stok.EndToken);
-                        continue;
-                    }
-                    break;
-                }
-                if ((!ignoreEmptyLines && dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr && endEmptyLines != null) && dt0 == null) 
-                {
-                    if (dt.IsNewlineAfter) 
-                        emptyLines++;
-                    t = (endEmptyLines = dt.EndToken);
-                    continue;
-                }
-                if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner) 
-                {
-                    if (isContract) 
-                        break;
-                    for (Pullenti.Ner.Token ttt = dt.EndToken.Next; ttt != null; ttt = ttt.Next) 
-                    {
-                        if (ttt.WhitespacesBeforeCount > 15) 
-                            break;
-                        if (ttt.GetMorphClassInDictionary().Equals(Pullenti.Morph.MorphClass.Verb)) 
-                        {
-                            dt = null;
-                            break;
-                        }
-                        Pullenti.Ner.Decree.Internal.DecreeToken dt1 = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(ttt, dt0, false);
-                        if (dt1 != null) 
-                        {
-                            if ((dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Name) || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt1.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org) 
-                                break;
-                            dt.EndToken = dt1.EndToken;
-                        }
-                        else if (!ttt.Chars.Equals(dt.BeginToken.Chars) && ttt.IsNewlineBefore) 
-                            break;
-                        else 
-                            dt.EndToken = ttt;
-                    }
-                    if (dt == null) 
-                        break;
-                }
-                if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                {
-                    Pullenti.Ner.Decree.DecreeKind typ = Pullenti.Ner.Decree.Internal.DecreeToken.GetKind(dt.Value, null);
-                    if (typ == Pullenti.Ner.Decree.DecreeKind.Publisher) 
-                    {
-                        for (; t != null; t = t.Next) 
-                        {
-                            if (t.IsNewlineAfter) 
-                                break;
-                        }
-                        if (t == null) 
-                            break;
-                        continue;
-                    }
-                    if (typ == Pullenti.Ner.Decree.DecreeKind.Contract || dt.Value == "ДОВЕРЕННОСТЬ" || dt.Value == "ДОВІРЕНІСТЬ") 
-                        isContract = true;
-                    else if (dt.Value == "ПРОТОКОЛ" && !dt.IsNewlineAfter) 
-                    {
-                        Pullenti.Ner.Core.NounPhraseToken npt1 = Pullenti.Ner.Core.NounPhraseHelper.TryParse(dt.EndToken.Next, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                        if (npt1 != null) 
-                        {
-                            for (t = dt.EndToken.Next; t != null; t = t.Next) 
-                            {
-                                dt.EndToken = t;
-                                if (t.IsNewlineAfter) 
-                                    break;
-                            }
-                        }
-                    }
-                    canBeOrgs = false;
-                }
-                dt0 = dt;
-                if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number && unknownOrgs.Count > 0) 
-                {
-                    foreach (FragToken org in unknownOrgs) 
-                    {
-                        title.Children.Add(org);
-                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, org.Value, false, 0);
-                    }
-                    unknownOrgs.Clear();
-                }
-                if (!_addTitleAttr(doc, title, dt)) 
-                    break;
-                else 
-                    attrs++;
-                t1 = (t = dt.EndToken);
-            }
-            title.SortChildren();
-            if (t == null || (((doc.Typ == null && doc.RegNumber == null && appr0 == null) && !startOfName))) 
-            {
-                if (t == t0) 
-                {
-                    Pullenti.Ner.Decree.Internal.DecreeToken nam = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(t0, null, true, false, false);
-                    if (nam != null) 
-                    {
-                        name = FragToken.GetRestoredName(t0, nam.EndToken, false);
-                        if (!string.IsNullOrEmpty(name)) 
-                        {
-                            t1 = nam.EndToken;
-                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, name.Trim(), true, 0);
-                            title.Children.Add(new FragToken(t0, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = name.Trim() });
-                            for (; t1.Next != null; t1 = t1.Next) 
-                            {
-                                if (t1.IsTableControlChar && !t1.IsChar((char)0x1F)) 
-                                {
-                                }
-                                else 
-                                    break;
-                            }
-                            title.EndToken = t1;
-                            for (t = t1.Next; t != null; t = t.Next) 
-                            {
-                                if (_isStartOfBody(t, false)) 
-                                    break;
-                                if (t.IsTableControlChar) 
-                                    continue;
-                                FragToken appr1 = _createApproved(t);
-                                if (appr1 != null) 
-                                {
-                                    title.Children.Add(appr1);
-                                    t = (title.EndToken = appr1.EndToken);
-                                    continue;
-                                }
-                                FragToken eds = _createEditions(t);
-                                if (eds != null) 
-                                {
-                                    title.Children.Add(eds);
-                                    t = (title.EndToken = eds.EndToken);
-                                    break;
-                                }
-                                appr1 = _createMisc(t);
-                                if (appr1 != null) 
-                                {
-                                    title.Children.Add(appr1);
-                                    t = (title.EndToken = appr1.EndToken);
-                                    continue;
-                                }
-                                Pullenti.Ner.Decree.Internal.DecreeToken dt00 = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, null, false);
-                                if (dt00 != null) 
-                                {
-                                    if (dt00.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt00.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr) 
-                                    {
-                                        _addTitleAttr(doc, title, dt00);
-                                        t = (title.EndToken = dt00.EndToken);
-                                        continue;
-                                    }
-                                }
-                                break;
-                            }
-                            return title;
-                        }
-                    }
-                }
-                if (t != null && t.IsValue("О", null)) 
-                {
-                    Pullenti.Ner.Decree.Internal.DecreeToken nam = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(t, null, true, false, false);
-                    if (nam != null) 
-                    {
-                        name = FragToken.GetRestoredName(t, nam.EndToken, false);
-                        if (!string.IsNullOrEmpty(name)) 
-                        {
-                            t1 = nam.EndToken;
-                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, name.Trim(), true, 0);
-                            title.Children.Add(new FragToken(t, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = name.Trim() });
-                        }
-                    }
-                }
-                if (attrs > 0) 
-                {
-                    title.EndToken = t1;
-                    return title;
-                }
-                return null;
-            }
-            for (int j = 0; j < unknownOrgs.Count; j++) 
-            {
-                title.Children.Insert(j, unknownOrgs[j]);
-                doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, unknownOrgs[j].Value, false, 0);
-            }
-            if (endEmptyLines != null && doc.FindSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, null, true) == null) 
-            {
-                string val = Pullenti.Ner.Core.MiscHelper.GetTextValue(t0, endEmptyLines, Pullenti.Ner.Core.GetTextAttr.No);
-                doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, val, false, 0);
-                title.Children.Insert(0, new FragToken(t0, endEmptyLines) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Organization, Value = val });
-            }
-            bool isCase = false;
-            foreach (FragToken ch in title.Children) 
-            {
-                if (ch.Value == null && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Approved && ch.Kind != Pullenti.Ner.Instrument.InstrumentKind.Editions) 
-                    ch.Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(ch.BeginToken, ch.EndToken, Pullenti.Ner.Core.GetTextAttr.No);
-                if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.CaseNumber) 
-                    isCase = true;
-            }
-            if ((((name != null || t.IsNewlineBefore || ((t.Previous != null && t.Previous.IsTableControlChar))) || ((!t.IsNewlineBefore && title.Children.Count > 0 && title.Children[title.Children.Count - 1].Kind == Pullenti.Ner.Instrument.InstrumentKind.Typ)))) && !isCase) 
-            {
-                Pullenti.Ner.Token tt0 = t;
-                InstrToken1 firstLine = null;
-                bool poDelu = false;
-                if (t.IsValue("ПО", null) && t.Next != null && t.Next.IsValue("ДЕЛО", "СПРАВА")) 
-                    poDelu = true;
-                for (; t != null; t = t.Next) 
-                {
-                    if (_isStartOfBody(t, false)) 
-                        break;
-                    if ((name != null && t == tt0 && t.IsNewlineBefore) && t.WhitespacesBeforeCount > 15) 
-                        break;
-                    if (t.IsTableControlChar) 
-                        break;
-                    if (t.IsNewlineBefore) 
-                    {
-                        Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t, null, false, false);
-                        if (pt != null && pt.Typ != Pullenti.Ner.Decree.Internal.PartToken.ItemType.Prefix) 
-                            break;
-                        InstrToken1 ltt = InstrToken1.Parse(t, false, null, 0, null, false, 0, true, false);
-                        if (ltt == null) 
-                            break;
-                        if (t != tt0 && t.WhitespacesBeforeCount > 15) 
-                        {
-                            if (t.NewlinesBeforeCount > 2) 
-                                break;
-                            if (t.NewlinesBeforeCount > 1 && !t.Chars.IsAllUpper) 
-                                break;
-                            if (t.IsValue("О", "ПРО") || t.IsValue("ОБ", null)) 
-                            {
-                            }
-                            else if (ltt.AllUpper && !ltt.HasChanges) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        if (ltt.Numbers.Count > 0) 
-                            break;
-                        FragToken appr = _createApproved(t);
-                        if (appr != null) 
-                        {
-                            if (t.Previous != null && t.Previous.IsChar(',')) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        if (_createEditions(t) != null || _createCaseInfo(t) != null) 
-                            break;
-                        if (t.GetReferent() is Pullenti.Ner.Geo.GeoReferent) 
-                        {
-                            if (t.IsNewlineAfter) 
-                                break;
-                            if (t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Date.DateReferent)) 
-                                break;
-                        }
-                        if (t.GetReferent() is Pullenti.Ner.Date.DateReferent) 
-                        {
-                            if (t.IsNewlineAfter) 
-                                break;
-                            if (t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
-                                break;
-                        }
-                        if (t.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
-                            break;
-                        if (t.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
-                        {
-                            Pullenti.Ner.Decree.DecreeReferent dr = t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
-                            if (dr.Kind == Pullenti.Ner.Decree.DecreeKind.Publisher) 
-                                break;
-                        }
-                        if (t.IsChar('(')) 
-                        {
-                            if (_createEditions(t) != null) 
-                                break;
-                            Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(t, Pullenti.Ner.Core.BracketParseAttr.No, 100);
-                            if (br != null && !br.IsNewlineAfter) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        if (ltt.HasVerb && !ltt.AllUpper) 
-                        {
-                            if (t.IsValue("О", "ПРО") && tt0 == t) 
-                            {
-                            }
-                            else if (!poDelu) 
-                                break;
-                        }
-                        if (ltt.Typ == InstrToken1.Types.Directive) 
-                            break;
-                        string str = ltt.ToString();
-                        if (t.Previous != null && t.Previous.IsValue("ИЗМЕНЕНИЕ", null)) 
-                        {
-                        }
-                        else if (str.Contains("В СОСТАВЕ") || str.Contains("В СКЛАДІ") || str.Contains("У СКЛАДІ")) 
-                        {
-                            if (!ltt.AllUpper) 
-                                break;
-                        }
-                        if (t.IsValue("В", null) && t.Next != null && t.Next.IsValue("ЦЕЛЬ", "МЕТА")) 
-                            break;
-                        if (firstLine == null) 
-                            firstLine = ltt;
-                        else if (firstLine.AllUpper && !ltt.AllUpper && !Pullenti.Ner.Core.BracketHelper.CanBeStartOfSequence(t, false, false)) 
-                            break;
-                        t1 = (t = ltt.EndToken);
-                        if (t1.IsTableControlChar) 
-                        {
-                            t1 = (t = t1.Previous);
-                            break;
-                        }
-                    }
-                    else 
-                        t1 = t;
-                }
-                Pullenti.Ner.Token tt1 = Pullenti.Ner.Decree.Internal.DecreeToken._tryAttachStdChangeName(tt0);
-                if (tt1 != null) 
-                {
-                    if (t1 == null || (t1.EndChar < tt1.EndChar)) 
-                        t1 = tt1;
-                }
-                string val = (t1 != null && t1 != tt0 ? FragToken.GetRestoredName(tt0, t1, false) : null);
-                if (!string.IsNullOrEmpty(val) && char.IsLetter(val[0]) && char.IsLower(val[0])) 
-                    val = char.ToUpper(val[0]) + val.Substring(1);
-                if (name == null && title.Children.Count > 0 && title.Children[title.Children.Count - 1].Kind == Pullenti.Ner.Instrument.InstrumentKind.Typ) 
-                {
-                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt0, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                    if (npt != null) 
-                    {
-                        if (npt.Morph.Case.IsGenitive) 
-                        {
-                            name = title.Children[title.Children.Count - 1].Value as string;
-                            if (Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(title.Children[title.Children.Count - 1].BeginToken, null, false) == null) 
-                            {
-                                tt0 = title.Children[title.Children.Count - 1].BeginToken;
-                                title.Children.RemoveAt(title.Children.Count - 1);
-                            }
-                        }
-                    }
-                }
-                if (val == null) 
-                    val = name;
-                else if (name != null) 
-                    val = string.Format("{0} {1}", name, val);
-                if (val != null && tt0.BeginChar <= t1.BeginChar) 
-                {
-                    if (nT0 != null) 
-                        tt0 = nT0;
-                    val = val.Trim();
-                    if (val.StartsWith("[") && val.EndsWith("]")) 
-                        val = val.Substring(1, val.Length - 2).Trim();
-                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, val.Trim(), true, 0);
-                    title.Children.Add(new FragToken(tt0, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = val.Trim() });
-                    if (val.Contains("КОДЕКС")) 
-                    {
-                        Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(tt0, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                        if (npt != null && npt.Noun.IsValue("КОДЕКС", null)) 
-                            doc.Typ = "КОДЕКС";
-                    }
-                }
-            }
-            if (t1 == null) 
-                return null;
-            title.EndToken = t1;
-            for (t1 = t1.Next; t1 != null; t1 = t1.Next) 
-            {
-                if (t1.IsNewlineBefore && (t1.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) && t1.IsNewlineAfter) 
-                {
-                    Pullenti.Ner.Decree.DecreeReferent dr = t1.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
-                    title.Children.Add(new FragToken(t1, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Ignored });
-                    continue;
-                }
-                if (t1.IsNewlineBefore && t1.IsValue("ЧАСТЬ", "ЧАСТИНА")) 
-                {
-                    Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t1, null, false, false);
-                    if (pt != null && pt.IsNewlineAfter) 
-                    {
-                        Pullenti.Ner.Decree.Internal.PartToken pt2 = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(pt.EndToken.Next, null, false, false);
-                        if (pt2 != null && (((pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Section || pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.SubSection || pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Chapter) || pt2.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Clause))) 
-                        {
-                        }
-                        else 
-                        {
-                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
-                            title.Children.Add(new FragToken(t1, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
-                            t1 = (title.EndToken = pt.EndToken);
-                            continue;
-                        }
-                    }
-                }
-                if (t1.IsNewlineBefore) 
-                {
-                    InstrToken1 iii = InstrToken1.Parse(t1, true, null, 0, null, false, 0, false, false);
-                    if (iii != null && iii.Typ == InstrToken1.Types.Comment) 
-                    {
-                        title.Children.Add(new FragToken(t1, iii.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Comment });
-                        t1 = iii.EndToken;
-                        continue;
-                    }
-                }
-                FragToken appr1 = _createApproved(t1);
-                if (appr1 != null) 
-                {
-                    t1 = appr1.EndToken;
-                    title.Children.Add(appr1);
-                    title.EndToken = appr1.EndToken;
-                    continue;
-                }
-                FragToken cinf = _createCaseInfo(t1);
-                if (cinf != null) 
-                {
-                    t1 = cinf.EndToken;
-                    title.Children.Add(cinf);
-                    title.EndToken = cinf.EndToken;
-                    continue;
-                }
-                FragToken eds = _createEditions(t1);
-                if (eds != null) 
-                {
-                    title.Children.Add(eds);
-                    title.EndToken = (t1 = eds.EndToken);
-                    continue;
-                }
-                appr1 = _createMisc(t1);
-                if (appr1 != null) 
-                {
-                    t1 = appr1.EndToken;
-                    title.Children.Add(appr1);
-                    title.EndToken = appr1.EndToken;
-                    continue;
-                }
-                if ((t1.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) && (t1.GetReferent() as Pullenti.Ner.Decree.DecreeReferent).Kind == Pullenti.Ner.Decree.DecreeKind.Publisher && t1.IsNewlineAfter) 
-                {
-                    FragToken pub = new FragToken(t1, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved };
-                    pub.Referents = new List<Pullenti.Ner.Referent>();
-                    pub.Referents.Add(t1.GetReferent());
-                    title.Children.Add(pub);
-                    title.EndToken = t1;
-                    continue;
-                }
-                Pullenti.Ner.Token tt = t1;
-                if (tt.Next != null && tt.IsChar(',')) 
-                    tt = tt.Next;
-                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt, null, false);
-                if (dt != null && ((dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr || ((dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number && ((dt.IsDelo || Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tt) != null))))))) 
-                {
-                    if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date) 
-                    {
-                        if (doc.Date != null) 
-                            break;
-                        if (!dt.IsNewlineAfter && !Pullenti.Ner.Core.MiscHelper.CanBeStartOfSentence(dt.EndToken.Next)) 
-                        {
-                            Pullenti.Ner.Token ttt = dt.EndToken.Next;
-                            if (ttt != null && (((ttt.GetReferent() is Pullenti.Ner.Geo.GeoReferent) || ttt.IsComma))) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                    }
-                    if (!dt.IsNewlineAfter) 
-                    {
-                        InstrToken1 lll = InstrToken1.Parse(tt, true, null, 0, null, false, 0, false, false);
-                        if (lll != null && lll.HasVerb) 
-                            break;
-                    }
-                    _addTitleAttr(doc, title, dt);
-                    t1 = (title.EndToken = dt.EndToken);
-                    continue;
-                }
-                if (tt.IsCharOf("([") && tt.IsNewlineBefore) 
-                {
-                    Pullenti.Ner.Core.BracketSequenceToken br = Pullenti.Ner.Core.BracketHelper.TryParse(tt, Pullenti.Ner.Core.BracketParseAttr.CanBeManyLines | Pullenti.Ner.Core.BracketParseAttr.CanContainsVerbs, 100);
-                    if (br != null) 
-                    {
-                        t1 = (title.EndToken = br.EndToken);
-                        title.Children.Add(new FragToken(br.BeginToken, br.EndToken) { Kind = (tt.IsChar('[') ? Pullenti.Ner.Instrument.InstrumentKind.Name : Pullenti.Ner.Instrument.InstrumentKind.Comment) });
-                        continue;
-                    }
-                }
-                if (tt.IsTableControlChar) 
-                {
-                    title.EndToken = tt;
-                    continue;
-                }
-                break;
-            }
-            t1 = title.EndToken.Next;
-            if (t1 != null && t1.IsNewlineBefore && doc.Typ == "КОДЕКС") 
-            {
-                Pullenti.Ner.Decree.Internal.PartToken pt = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t1, null, false, false);
-                if (pt != null && ((pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Part || pt.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.DocPart)) && pt.Values.Count > 0) 
-                {
-                    int cou = 0;
-                    for (t = pt.EndToken; t != null; t = t.Next) 
-                    {
-                        if (t.IsNewlineBefore) 
-                        {
-                            if ((++cou) > 4) 
-                                break;
-                            FragToken eds = _createEditions(t);
-                            if (eds != null) 
-                            {
-                                title.Children.Add(eds);
-                                title.EndToken = (t1 = eds.EndToken);
-                                title.Children.Add(new FragToken(pt.BeginToken, pt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocPart, Value = pt.Values[0].Value });
-                                if (doc.Name != null && doc.Name.Contains("КОДЕКС")) 
-                                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_PART, pt.Values[0].Value, false, 0);
-                                break;
-                            }
-                        }
-                    }
-                }
-                else if (t1.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
-                {
-                    Pullenti.Ner.Decree.DecreePartReferent dr0 = t1.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
-                    if (dr0.Part != null || dr0.DocPart != null) 
-                    {
-                        int cou = 0;
-                        for (t = t1.Next; t != null; t = t.Next) 
-                        {
-                            if (t.IsNewlineBefore) 
-                            {
-                                if ((++cou) > 4) 
-                                    break;
-                                FragToken eds = _createEditions(t);
-                                if (eds != null) 
-                                {
-                                    title.Children.Add(eds);
-                                    title.EndToken = (t1 = eds.EndToken);
-                                    break;
-                                }
+                                if (!topDoc.Referents.Contains(r)) 
+                                    topDoc.Referents.Add(r);
                             }
                         }
                     }
                 }
             }
-            return title;
-        }
-        static FragToken CreateAppendixTitle(Pullenti.Ner.Token t0, FragToken app, Pullenti.Ner.Instrument.InstrumentReferent doc, bool isApp, bool start)
-        {
-            if (t0 == null) 
-                return null;
-            if (t0 != t0.Kit.FirstToken) 
-            {
-                if (t0.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) 
-                {
-                    if ((t0.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent).Appendix != null) 
-                        t0 = t0.Kit.DebedToken(t0);
-                }
-            }
-            Pullenti.Ner.Token t = t0;
-            Pullenti.Ner.Token t1 = null;
-            Pullenti.Ner.Referent rr = t.GetReferent();
-            if (rr != null) 
-            {
-                if (rr.TypeName == "PERSON") 
-                    return null;
-            }
-            FragToken title = new FragToken(t0, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Head };
-            bool hasAppKeyword = false;
-            FragToken appr0 = _createApproved(t0);
-            if (appr0 != null) 
-            {
-                title.EndToken = appr0.EndToken;
-                title.Children.Add(appr0);
-                t = appr0.EndToken.Next;
-            }
-            for (; t != null; t = t.Next) 
-            {
-                Pullenti.Ner.Token tt = Pullenti.Ner.Core.MiscHelper.CheckImage(t);
-                if (tt != null) 
-                {
-                    t = tt;
-                    continue;
-                }
-                InstrToken1 fr = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
-                if (fr == null) 
-                    break;
-                if (fr.Typ == InstrToken1.Types.Comment) 
-                {
-                    title.EndToken = (t = fr.EndToken);
-                    title.Children.Add(new FragToken(fr.BeginToken, fr.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Comment });
-                    continue;
-                }
-                if (fr.Typ != InstrToken1.Types.Appendix && fr.Typ != InstrToken1.Types.Approved) 
-                {
-                    if (fr.HasManySpecChars) 
-                    {
-                        t = fr.EndToken;
-                        continue;
-                    }
-                    if (t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) 
-                    {
-                        t = fr.EndToken;
-                        continue;
-                    }
-                    if ((t.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent) && (t.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent).Appendix != null) 
-                    {
-                        t = t.Kit.DebedToken(t);
-                        fr = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
-                        if (fr.Typ != InstrToken1.Types.Appendix) 
-                            break;
-                    }
-                    else 
-                        break;
-                }
-                if (fr.Typ == InstrToken1.Types.Appendix) 
-                {
-                    hasAppKeyword = true;
-                    app.Kind = Pullenti.Ner.Instrument.InstrumentKind.Appendix;
-                }
-                Pullenti.Ner.Token t2 = t;
-                if (t.IsValue("ОСОБЫЙ", "ОСОБЛИВИЙ") && t.Next != null) 
-                    t2 = t.Next;
-                if (t is Pullenti.Ner.TextToken) 
-                    title.Children.Add(new FragToken(t, t2) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, DefVal2 = true });
-                title.EndToken = (t = fr.EndToken);
-                if (fr.Typ == InstrToken1.Types.Appendix && fr.NumBeginToken == null) 
-                {
-                    InstrToken1 fr1 = InstrToken1.Parse(t.Next, true, null, 0, null, false, 0, false, false);
-                    if (fr1 != null && fr1.Typ == InstrToken1.Types.Approved) 
-                    {
-                        t = fr1.BeginToken;
-                        title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Keyword, Value = t.GetSourceText().ToUpper() });
-                        title.EndToken = (t = fr1.EndToken);
-                        fr = fr1;
-                    }
-                }
-                appr0 = _createApproved(t);
-                if (appr0 != null) 
-                {
-                    t = (title.EndToken = appr0.EndToken);
-                    title.Children.Add(appr0);
-                    continue;
-                }
-                if (fr.NumBeginToken != null && fr.NumEndToken != null) 
-                {
-                    FragToken num = new FragToken(fr.NumBeginToken, fr.NumEndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Number, Value = Pullenti.Ner.Core.MiscHelper.GetTextValue(fr.NumBeginToken, fr.NumEndToken, Pullenti.Ner.Core.GetTextAttr.KeepRegister) };
-                    title.Children.Add(num);
-                    if (fr.Numbers.Count > 0) 
-                        app.Number = Pullenti.Ner.Decree.Internal.PartToken.GetNumber(fr.Numbers[0]);
-                    if (fr.Numbers.Count > 1) 
-                    {
-                        app.SubNumber = Pullenti.Ner.Decree.Internal.PartToken.GetNumber(fr.Numbers[1]);
-                        if (fr.Numbers.Count > 2) 
-                            app.SubNumber2 = Pullenti.Ner.Decree.Internal.PartToken.GetNumber(fr.Numbers[2]);
-                    }
-                    if (isApp) 
-                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, num.Value ?? "1", false, 0);
-                }
-                else if (t.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
-                {
-                    if ((t.GetReferent() as Pullenti.Ner.Decree.DecreeReferent).Kind == Pullenti.Ner.Decree.DecreeKind.Publisher) 
-                    {
-                        FragToken ff = new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved };
-                        ff.Referents = new List<Pullenti.Ner.Referent>();
-                        ff.Referents.Add(t.GetReferent());
-                        title.Children.Add(ff);
-                    }
-                    else if (fr.Typ == InstrToken1.Types.Approved && title.Children.Count > 0 && title.Children[title.Children.Count - 1].Kind == Pullenti.Ner.Instrument.InstrumentKind.Keyword) 
-                    {
-                        FragToken kw = title.Children[title.Children.Count - 1];
-                        FragToken appr = new FragToken(kw.BeginToken, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved };
-                        title.Children.RemoveAt(title.Children.Count - 1);
-                        appr.Children.Add(kw);
-                        appr.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
-                        title.Children.Add(appr);
-                    }
-                    else 
-                        title.Children.Add(new FragToken(t, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
-                }
-                else if (fr.Typ == InstrToken1.Types.Approved && fr.LengthChar > 15 && fr.BeginToken != fr.EndToken) 
-                    title.Children.Add(new FragToken(fr.BeginToken.Next, t) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
-                else 
-                {
-                    List<Pullenti.Ner.Decree.Internal.DecreeToken> dts = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachList(t.Next, null, 10, false);
-                    if (dts != null && dts.Count > 0 && dts[0].Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                    {
-                        FragToken dref = new FragToken(dts[0].BeginToken, dts[0].EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference };
-                        for (int i = 1; i < dts.Count; i++) 
-                        {
-                            if (dts[i].Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                                break;
-                            else if (dts[i].Typ != Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Unknown) 
-                                dref.EndToken = dts[i].EndToken;
-                        }
-                        title.Children.Add(dref);
-                        title.EndToken = (t = dref.EndToken);
-                    }
-                }
-                if (fr.Typ == InstrToken1.Types.Appendix) 
-                {
-                    t = t.Next;
-                    if (t != null) 
-                    {
-                        Pullenti.Ner.Decree.DecreePartReferent dpr = t.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
-                        if (dpr != null && dpr.Appendix != null) 
-                        {
-                            t = t.Kit.DebedToken(t);
-                            t = t.Previous;
-                            continue;
-                        }
-                        if (t.IsValue("ПРИЛОЖЕНИЕ", "ДОДАТОК")) 
-                        {
-                            t = t.Previous;
-                            continue;
-                        }
-                    }
-                    break;
-                }
-            }
-            if (t == null) 
-                return null;
-            bool hasForNpa = false;
-            if (t.IsValue("К", "ДО")) 
-            {
-                hasForNpa = true;
-                Pullenti.Ner.Decree.DecreeReferent toDecr = null;
-                List<InstrToken> toks = new List<InstrToken>();
-                for (Pullenti.Ner.Token tt = t.Next; tt != null; tt = tt.Next) 
-                {
-                    if (tt != t.Next && tt.IsTableControlChar) 
-                        break;
-                    if (tt.IsNewlineBefore) 
-                    {
-                        if (tt.NewlinesBeforeCount > 1) 
-                            break;
-                        InstrToken1 it1 = InstrToken1.Parse(tt, false, null, 0, null, false, 0, false, false);
-                        if (it1 != null && it1.Numbers.Count > 0) 
-                            break;
-                        if (tt.Chars.IsAllLower) 
-                        {
-                        }
-                        else if (tt.LengthChar > 2) 
-                            break;
-                    }
-                    if (tt.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
-                        toDecr = tt.GetReferent() as Pullenti.Ner.Decree.DecreeReferent;
-                    InstrToken tok = InstrToken.Parse(tt, 0, null);
-                    if (tok == null) 
-                        break;
-                    toks.Add(tok);
-                    if (toks.Count > 20) 
-                        break;
-                    if (tt == t.Next && tok.Typ == ILTypes.Undefined) 
-                    {
-                        Pullenti.Ner.Token ttt = Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(tt, false);
-                        if (ttt != null) 
-                        {
-                            tok.EndToken = ttt;
-                            tok.Typ = ILTypes.Typ;
-                        }
-                    }
-                    tt = tok.EndToken;
-                    Pullenti.Ner.Decree.Internal.DecreeToken dtt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt.Next, null, false);
-                    if (dtt != null && dtt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date) 
-                        tt = (tok.EndToken = dtt.EndToken);
-                    if (tok.Typ == ILTypes.Typ && !tt.IsNewlineAfter) 
-                    {
-                        Pullenti.Ner.Decree.Internal.DecreeToken nn = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(tt.Next, null, false, true, false);
-                        if (nn != null) 
-                        {
-                            tt = (tok.EndToken = nn.EndToken);
-                            break;
-                        }
-                    }
-                }
-                int maxInd = -1;
-                for (int ii = 0; ii < toks.Count; ii++) 
-                {
-                    InstrToken tok = toks[ii];
-                    if (tok.Typ == ILTypes.Typ && ((tok.Value == doc.Typ || ii == 0)) && !tok.BeginToken.Previous.IsValue("К", null)) 
-                        maxInd = ii;
-                    else if (tok.Typ == ILTypes.RegNumber && (((tok.Value == doc.RegNumber || tok.Value == "?" || tok.IsNewlineBefore) || tok.IsNewlineAfter || tok.HasTableChars))) 
-                        maxInd = ii;
-                    else if (tok.Typ == ILTypes.Date && doc.Date != null) 
-                    {
-                        if ((tok.Ref is Pullenti.Ner.Date.DateReferent) && (tok.Ref as Pullenti.Ner.Date.DateReferent).Dt == doc.Date) 
-                            maxInd = ii;
-                        else if (tok.Ref is Pullenti.Ner.ReferentToken) 
-                        {
-                            Pullenti.Ner.Date.DateReferent dre = (tok.Ref as Pullenti.Ner.ReferentToken).Referent as Pullenti.Ner.Date.DateReferent;
-                            if (dre != null && dre.Dt != null && doc.Date != null) 
-                            {
-                                if (dre.Dt.Value == doc.Date.Value) 
-                                    maxInd = ii;
-                            }
-                        }
-                    }
-                    else if (tok.Typ == ILTypes.Date && tok.BeginToken.Previous != null && tok.BeginToken.Previous.IsValue("ОТ", null)) 
-                        maxInd = ii;
-                    else if (tok.Typ == ILTypes.Undefined && (tok.BeginToken.GetReferent() is Pullenti.Ner.Decree.DecreeReferent)) 
-                    {
-                        maxInd = ii;
-                        break;
-                    }
-                    else if (ii == 0 && tok.Typ == ILTypes.Undefined && (tok.BeginToken.GetReferent() is Pullenti.Ner.Decree.DecreePartReferent)) 
-                    {
-                        Pullenti.Ner.Decree.DecreePartReferent part = tok.BeginToken.GetReferent() as Pullenti.Ner.Decree.DecreePartReferent;
-                        if (part.Appendix != null) 
-                        {
-                            maxInd = ii;
-                            break;
-                        }
-                    }
-                    else if (tok.Typ == ILTypes.Organization && ii == 1) 
-                        maxInd = ii;
-                    else if (tok.Typ == ILTypes.Undefined) 
-                    {
-                        if (tok.BeginToken.IsValue("ОТ", null)) 
-                            maxInd = ii;
-                        else if (Pullenti.Ner.Core.MiscHelper.CheckNumberPrefix(tok.BeginToken) != null) 
-                            maxInd = ii;
-                    }
-                    else if (tok.Typ == ILTypes.Geo || tok.Typ == ILTypes.Organization) 
-                        maxInd = ii;
-                }
-                if (toks.Count > 0 && Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(toks[toks.Count - 1].EndToken.Next, false) != null) 
-                    maxInd = toks.Count - 1;
-                else if (toks.Count > 0 && (maxInd < 0) && toks[0].BeginToken.Previous.IsValue("К", null)) 
-                    maxInd = toks.Count - 1;
-                Pullenti.Ner.Token te = null;
-                if (maxInd >= 0) 
-                {
-                    te = toks[maxInd].EndToken;
-                    if (!te.IsNewlineAfter) 
-                    {
-                        Pullenti.Ner.Decree.Internal.DecreeToken nn = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttachName(te.Next, null, false, true, false);
-                        if (nn != null) 
-                            te = nn.EndToken;
-                    }
-                }
-                else if (t.Next != null && (t.Next.GetReferent() is Pullenti.Ner.Decree.DecreeReferent)) 
-                    te = t.Next;
-                if (te != null) 
-                {
-                    FragToken dr = new FragToken(t, te) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference };
-                    if (toDecr != null) 
-                    {
-                        dr.Referents = new List<Pullenti.Ner.Referent>();
-                        dr.Referents.Add(toDecr);
-                    }
-                    title.Children.Add(dr);
-                    title.EndToken = te;
-                    if ((((t = te.Next))) == null) 
-                        return title;
-                }
-            }
-            if (title.Children.Count == 0) 
-            {
-                if (t != null && t.IsValue("АКТ", null)) 
-                {
-                }
-                else 
-                    return null;
-            }
-            for (int kk = 0; kk < 10; kk++) 
-            {
-                FragToken ta = _createApproved(t);
-                if (ta != null) 
-                {
-                    title.Children.Add(ta);
-                    title.EndToken = (t = ta.EndToken);
-                    t = t.Next;
-                    if (t == null) 
-                        return title;
-                    continue;
-                }
-                FragToken ee = _createEditions(t);
-                if (ee != null) 
-                {
-                    title.Children.Add(ee);
-                    title.EndToken = ee.EndToken;
-                    t = ee.EndToken.Next;
-                    if (t == null) 
-                        return title;
-                    continue;
-                }
-                ta = _createMisc(t);
-                if (ta != null) 
-                {
-                    title.Children.Add(ta);
-                    title.EndToken = (t = ta.EndToken);
-                    t = t.Next;
-                    if (t == null) 
-                        return title;
-                    continue;
-                }
-                if (t.IsValue("РИСУНОК", null)) 
-                {
-                    InstrToken1 fr = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
-                    if (fr == null) 
-                        break;
-                    if (fr.LengthChar < 20) 
-                    {
-                        title.EndToken = (t = fr.EndToken);
-                        t = t.Next;
-                        continue;
-                    }
-                }
-                break;
-            }
-            Pullenti.Ner.Token tt0 = t;
-            if ((start && hasForNpa && hasAppKeyword) && tt0.IsNewlineBefore) 
-            {
-                Pullenti.Ner.Decree.Internal.DecreeToken dty = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt0, null, false);
-                if (dty != null && dty.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-                {
-                    FragToken sub = FragToken.CreateDocument(tt0, 0, Pullenti.Ner.Instrument.InstrumentKind.Undefined);
-                    if (sub != null && sub.Children.Count > 1 && sub.m_Doc.FindSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, null, true) == null) 
-                    {
-                        if (sub.Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Head && sub.Children[0].Children.Count > 1 && sub.Children[0].Children[0].Kind == Pullenti.Ner.Instrument.InstrumentKind.Typ) 
-                        {
-                            title.Tag = sub;
-                            return title;
-                        }
-                    }
-                }
-            }
-            Pullenti.Ner.Token nT0 = null;
-            for (; t != null; t = t.Next) 
-            {
-                if (t.IsTableControlChar) 
-                {
-                    if (t == tt0) 
-                    {
-                        if (t.IsChar((char)0x1E)) 
-                        {
-                            List<Pullenti.Ner.Core.TableRowToken> rows = Pullenti.Ner.Core.TableHelper.TryParseRows(t, 0, true, false);
-                            if (rows != null && rows.Count > 2) 
-                                break;
-                            break;
-                        }
-                        tt0 = t.Next;
-                        continue;
-                    }
-                    break;
-                }
-                if (t.IsNewlineBefore || t.Previous.IsTableControlChar) 
-                {
-                    if (_isStartOfBody(t, t == tt0)) 
-                        break;
-                    if (_createApproved(t) != null) 
-                        break;
-                    if (_createEditions(t) != null) 
-                        break;
-                    if (t != tt0 && t.WhitespacesBeforeCount > 15) 
-                    {
-                        if (Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t.Previous, false) == null) 
-                        {
-                            if (!t.Previous.IsValue("ОБРАЗЕЦ", "ЗРАЗОК")) 
-                                break;
-                        }
-                        if (t.WhitespacesBeforeCount > 25) 
-                            break;
-                    }
-                    if (t.GetReferent() is Pullenti.Ner.Instrument.InstrumentParticipantReferent) 
-                        break;
-                    if (t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) 
-                    {
-                        if (t.WhitespacesBeforeCount > 15) 
-                            break;
-                    }
-                    Pullenti.Ner.Decree.Internal.DecreeToken dd = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t, null, false);
-                    if (dd != null && ((dd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr)) && dd.IsNewlineAfter) 
-                    {
-                        Pullenti.Ner.Core.NounPhraseToken npt0 = null;
-                        if (dd.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr && (t is Pullenti.Ner.ReferentToken)) 
-                            npt0 = Pullenti.Ner.Core.NounPhraseHelper.TryParse((t as Pullenti.Ner.ReferentToken).BeginToken, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                        if (npt0 != null && !npt0.Morph.Case.IsUndefined && !npt0.Morph.Case.IsNominative) 
-                        {
-                        }
-                        else 
-                        {
-                            _addTitleAttr(null, title, dd);
-                            t = (title.EndToken = dd.EndToken);
-                            continue;
-                        }
-                    }
-                    InstrToken1 ltt = InstrToken1.Parse(t, true, null, 0, null, false, 0, true, false);
-                    if (ltt == null) 
-                        break;
-                    if (ltt.Numbers.Count > 0) 
-                    {
-                        if (!ltt.IsNumDoubt) 
-                            break;
-                        if (ltt.AllUpper) 
-                        {
-                        }
-                        else if (Pullenti.Ner.Core.NumberHelper.TryParseNumberWithPostfix(t) != null) 
-                        {
-                        }
-                        else 
-                            break;
-                    }
-                    if (ltt.Typ == InstrToken1.Types.Approved) 
-                    {
-                        title.Children.Add(new FragToken(ltt.BeginToken, ltt.BeginToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Approved });
-                        if (ltt.BeginToken != ltt.EndToken) 
-                            title.Children.Add(new FragToken(ltt.BeginToken.Next, ltt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.DocReference });
-                        t = ltt.EndToken;
-                        if (ltt.BeginToken == tt0) 
-                        {
-                            tt0 = t.Next;
-                            continue;
-                        }
-                        break;
-                    }
-                    if (ltt.HasVerb && !ltt.AllUpper) 
-                    {
-                        if (t.Chars.IsLetter && t.Chars.IsAllLower) 
-                        {
-                        }
-                        else if (t.GetReferent() is Pullenti.Ner.Decree.DecreeChangeReferent) 
-                        {
-                            Pullenti.Ner.Decree.DecreeChangeReferent dch = t.GetReferent() as Pullenti.Ner.Decree.DecreeChangeReferent;
-                            if (dch.Kind == Pullenti.Ner.Decree.DecreeChangeKind.Container && t.IsValue("ИЗМЕНЕНИЕ", null)) 
-                            {
-                            }
-                            else 
-                                break;
-                        }
-                        else if (Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t, false) != null) 
-                        {
-                        }
-                        else if ((t == tt0 && ltt.EndToken.Next != null && ltt.EndToken.Next.IsChar((char)0x1E)) && !ltt.EndToken.IsChar(':')) 
-                        {
-                        }
-                        else 
-                            break;
-                    }
-                    if (ltt.Typ == InstrToken1.Types.Directive) 
-                        break;
-                    if (t.Chars.IsLetter && t != tt0) 
-                    {
-                        if (!t.Chars.IsAllLower && !t.Chars.IsAllUpper) 
-                        {
-                            if (!(t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) && !(t.GetReferent() is Pullenti.Ner.Geo.GeoReferent)) 
-                            {
-                                if (Pullenti.Ner.Decree.Internal.DecreeToken.IsKeyword(t.Previous, false) == null) 
-                                {
-                                    Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-                                    if (npt != null && npt.Morph.Case.IsGenitive) 
-                                    {
-                                    }
-                                    else 
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                    bool hasWords = false;
-                    for (Pullenti.Ner.Token ttt = ltt.BeginToken; ttt != null; ttt = ttt.Next) 
-                    {
-                        if (ttt.BeginChar > ltt.EndChar) 
-                            break;
-                        if (ttt.Chars.IsCyrillicLetter) 
-                        {
-                            hasWords = true;
-                            break;
-                        }
-                        Pullenti.Ner.Referent r = ttt.GetReferent();
-                        if ((r is Pullenti.Ner.Org.OrganizationReferent) || (r is Pullenti.Ner.Geo.GeoReferent) || (r is Pullenti.Ner.Decree.DecreeChangeReferent)) 
-                        {
-                            hasWords = true;
-                            break;
-                        }
-                    }
-                    if (!hasWords) 
-                        break;
-                    FragToken eds = _createEditions(t);
-                    if (eds != null) 
-                    {
-                        if (t != tt0) 
-                            break;
-                        title.Children.Add(eds);
-                        t1 = (t = (title.EndToken = eds.EndToken));
-                        tt0 = t.Next;
-                        continue;
-                    }
-                    t1 = (t = ltt.EndToken);
-                }
-                else 
-                    t1 = t;
-            }
-            string val = (t1 != null && tt0 != null ? FragToken.GetRestoredName(tt0, t1, false) : null);
-            if (val != null) 
-            {
-                if (nT0 != null) 
-                    tt0 = nT0;
-                title.Children.Add(new FragToken(tt0, t1) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = val.Trim() });
-                title.EndToken = t1;
-                title.Name = val;
-            }
-            while (title.EndToken.Next != null) 
-            {
-                FragToken eds = _createEditions(title.EndToken.Next);
-                if (eds != null) 
-                {
-                    title.Children.Add(eds);
-                    title.EndToken = eds.EndToken;
-                    continue;
-                }
-                FragToken appr = _createApproved(title.EndToken.Next);
-                if (appr != null) 
-                {
-                    title.Children.Add(appr);
-                    title.EndToken = appr.EndToken;
-                    continue;
-                }
-                FragToken misc = _createMisc(title.EndToken.Next);
-                if (misc != null) 
-                {
-                    title.Children.Add(misc);
-                    title.EndToken = misc.EndToken;
-                    continue;
-                }
-                InstrToken1 ltt = InstrToken1.Parse(title.EndToken.Next, true, null, 0, null, false, 0, false, false);
-                if (ltt == null) 
-                    break;
-                if (ltt.IsPureHiphenLine) 
-                {
-                    t = (title.EndToken = ltt.EndToken);
-                    continue;
-                }
-                if (ltt.Typ == InstrToken1.Types.Footnote) 
-                {
-                    FragToken fnn = new FragToken(ltt.BeginToken, ltt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Footnote };
-                    NumberingHelper.CreateNumber(fnn, ltt);
-                    title.Children.Add(fnn);
-                    t = (title.EndToken = ltt.EndToken);
-                    continue;
-                }
-                break;
-            }
-            if (isApp) 
-            {
-                if (doc.FindSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, null, true) == null) 
-                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_APPENDIX, "", false, 0);
-                foreach (FragToken ch in title.Children) 
-                {
-                    if (ch.Kind == Pullenti.Ner.Instrument.InstrumentKind.DocReference) 
-                    {
-                        for (Pullenti.Ner.Token tt = ch.BeginToken; tt != null && tt.EndChar <= ch.EndChar; tt = tt.Next) 
-                        {
-                            if (tt.GetReferent() is Pullenti.Ner.Decree.DecreeReferent) 
-                            {
-                                foreach (Pullenti.Ner.Slot s in tt.GetReferent().Slots) 
-                                {
-                                    if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_TYPE) 
-                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_TYPE, s.Value, false, 0);
-                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_NUMBER) 
-                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_REGNUMBER, s.Value, false, 0);
-                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_DATE) 
-                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_DATE, s.Value, false, 0);
-                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_SOURCE) 
-                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, s.Value, false, 0);
-                                    else if (s.TypeName == Pullenti.Ner.Decree.DecreeReferent.ATTR_GEO) 
-                                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, s.Value, false, 0);
-                                }
-                                break;
-                            }
-                            Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(tt, null, false);
-                            if (dt != null) 
-                            {
-                                if (_addTitleAttr(doc, null, dt)) 
-                                    tt = dt.EndToken;
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            if (title.Children.Count == 0 && title.EndToken == title.BeginToken) 
-                return null;
-            for (t1 = title.EndToken.Next; t1 != null; t1 = t1.Next) 
-            {
-                Pullenti.Ner.Decree.Internal.DecreeToken dt = Pullenti.Ner.Decree.Internal.DecreeToken.TryAttach(t1, null, false);
-                if (dt != null) 
-                {
-                    if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr) 
-                    {
-                        _addTitleAttr(null, title, dt);
-                        t1 = (title.EndToken = dt.EndToken);
-                        continue;
-                    }
-                }
-                break;
-            }
-            while (title.EndToken.Next != null) 
-            {
-                if (title.EndToken.Next.IsTableControlChar && ((!title.EndToken.Next.IsNewlineBefore || title.EndToken.Next.IsNewlineAfter || ((title.EndToken.Next.Next != null && title.EndToken.Next.Next.IsChar((char)0x1F)))))) 
-                    title.EndToken = title.EndToken.Next;
-                else 
-                    break;
-            }
-            return title;
-        }
-        static bool _isStartOfBody(Pullenti.Ner.Token t, bool isAppTitle = false)
-        {
-            if (t == null || !t.IsNewlineBefore) 
-                return false;
-            if (t.IsValue("ТАБЛИЦА", null) || t.IsValue("РИСУНОК", null)) 
-            {
-                Pullenti.Ner.Core.ComplexNumToken num = Pullenti.Ner.Core.ComplexNumToken.TryParse(t.Next, null, true, false);
-                if (num != null) 
-                    return true;
-            }
-            if (t.IsValue("ФОРМА", null)) 
-            {
-                Pullenti.Ner.Decree.Internal.PartToken pp = Pullenti.Ner.Decree.Internal.PartToken.TryAttach(t, null, false, false);
-                if (pp != null && pp.Values.Count > 0) 
-                    return true;
-            }
-            if (!isAppTitle) 
-            {
-                Pullenti.Ner.Core.Internal.BlockTitleToken bl = Pullenti.Ner.Core.Internal.BlockTitleToken.TryAttach(t, false, null);
-                if (bl != null) 
-                {
-                    if (bl.Typ != Pullenti.Ner.Core.Internal.BlkTyps.Undefined && bl.Typ != Pullenti.Ner.Core.Internal.BlkTyps.Literature) 
-                        return true;
-                }
-            }
-            Pullenti.Ner.Mail.Internal.MailLine li = Pullenti.Ner.Mail.Internal.MailLine.Parse(t, 0, 0);
-            if (li != null) 
-            {
-                if (li.Typ == Pullenti.Ner.Mail.Internal.MailLine.Types.Hello) 
-                    return true;
-            }
-            InstrToken1 it1 = InstrToken1.Parse(t, true, null, 0, null, false, 0, false, false);
-            if (it1 != null) 
-            {
-                if (it1.Typ == InstrToken1.Types.Index) 
-                    return true;
-            }
-            bool ok = false;
-            if (t.IsValue("ВВЕДЕНИЕ", "ВВЕДЕННЯ") || t.IsValue("АННОТАЦИЯ", "АНОТАЦІЯ") || t.IsValue("ПРЕДИСЛОВИЕ", "ПЕРЕДМОВА")) 
-                ok = true;
-            else if (t.IsValue("ОБЩИЙ", "ЗАГАЛЬНИЙ") && t.Next != null && t.Next.IsValue("ПОЛОЖЕНИЕ", "ПОЛОЖЕННЯ")) 
-            {
-                t = t.Next;
-                ok = true;
-            }
-            else if ((t.Next != null && t.Next.Chars.IsAllLower && t.Morph.Class.IsPreposition) && ((t.Next.IsValue("СВЯЗЬ", "ЗВЯЗОК") || t.Next.IsValue("ЦЕЛЬ", "МЕТА") || t.Next.IsValue("СООТВЕТСТВИЕ", "ВІДПОВІДНІСТЬ")))) 
-                return true;
-            if (ok) 
-            {
-                Pullenti.Ner.Token t1 = t.Next;
-                if (t1 != null && t1.IsChar(':')) 
-                    t1 = t1.Next;
-                if (t1 == null || t1.IsNewlineBefore) 
-                    return true;
-                return false;
-            }
-            InstrToken1 it = InstrToken1.Parse(t, false, null, 0, null, false, 0, false, false);
-            if (it != null) 
-            {
-                if (it.TypContainerRank > 0 || it.Typ == InstrToken1.Types.Directive) 
-                {
-                    if (t.IsValue("ЧАСТЬ", "ЧАСТИНА") && it.Numbers.Count == 1) 
-                    {
-                        if (_createApproved(it.EndToken.Next) != null) 
-                            return false;
-                    }
-                    return true;
-                }
-                if (it.Numbers.Count > 0) 
-                {
-                    if (it.Numbers.Count > 1 || it.NumSuffix != null) 
-                        return true;
-                }
-            }
-            if ((t.GetReferent() is Pullenti.Ner.Org.OrganizationReferent) && t.Next != null) 
-            {
-                if (t.Next.IsValue("СОСТАВ", "СКЛАД")) 
-                    return true;
-                if (t.Next.IsValue("В", "У") && t.Next.Next != null && t.Next.Next.IsValue("СОСТАВ", "СКЛАД")) 
-                    return true;
-            }
-            if (t.IsValue2("В", "ЦЕЛЯХ")) 
-                return true;
-            Pullenti.Ner.Core.NounPhraseToken npt = Pullenti.Ner.Core.NounPhraseHelper.TryParse(t, Pullenti.Ner.Core.NounPhraseParseAttr.No, 0, null);
-            if (npt != null && (npt.EndToken.Next is Pullenti.Ner.TextToken) && (npt.EndToken.Next as Pullenti.Ner.TextToken).IsPureVerb) 
-                return true;
-            return false;
-        }
-        static bool _addTitleAttr(Pullenti.Ner.Instrument.InstrumentReferent doc, FragToken title, Pullenti.Ner.Decree.Internal.DecreeToken dt)
-        {
-            if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Typ) 
-            {
-                if (doc != null) 
-                {
-                    if (doc.Typ != null && dt.Value != doc.Typ) 
-                    {
-                        if (doc.Typ != "ПРОЕКТ") 
-                            return false;
-                        if (dt.Value.Contains("ЗАКОН")) 
-                            doc.Typ = "ПРОЕКТ ЗАКОНА";
-                        else 
-                            return false;
-                    }
-                    else 
-                        doc.Typ = dt.Value;
-                    if (dt.FullValue != null && dt.FullValue != dt.Value && doc.Name == null) 
-                        doc.Name = dt.FullValue;
-                }
-                if (title != null) 
-                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Typ, Value = dt.FullValue ?? dt.Value });
-            }
-            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Number) 
-            {
-                if (dt.IsDelo) 
-                {
-                    if (doc != null) 
-                    {
-                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_CASENUMBER, dt.Value, false, 0);
-                        if (doc.RegNumber == dt.Value) 
-                            doc.RegNumber = null;
-                    }
-                    if (title != null) 
-                        title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.CaseNumber, Value = dt.Value });
-                }
-                else 
-                {
-                    if (dt.Value != "?" && doc != null) 
-                    {
-                        if (doc.GetStringValue(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_CASENUMBER) == dt.Value) 
-                        {
-                        }
-                        else 
-                            doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NUMBER, dt.Value, false, 0);
-                    }
-                    if (title != null) 
-                        title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Number, Value = dt.Value });
-                    if (doc != null && doc.Typ == null && dt.Value != null) 
-                    {
-                        if (Pullenti.Morph.LanguageHelper.EndsWith(dt.Value, "ФКЗ")) 
-                            doc.Typ = "ФЕДЕРАЛЬНЫЙ КОНСТИТУЦИОННЫЙ ЗАКОН";
-                        else if (Pullenti.Morph.LanguageHelper.EndsWith(dt.Value, "ФЗ")) 
-                            doc.Typ = "ФЕДЕРАЛЬНЫЙ ЗАКОН";
-                    }
-                }
-            }
-            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Name) 
-            {
-                if (doc != null) 
-                    doc.AddSlot(Pullenti.Ner.Instrument.InstrumentBlockReferent.ATTR_NAME, dt.Value, false, 0);
-                if (title != null) 
-                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Name, Value = dt.Value });
-            }
-            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Date) 
-            {
-                if (doc == null || doc.AddDate(dt)) 
-                {
-                    if (title != null) 
-                        title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Date, Value = dt });
-                }
-            }
-            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Terr) 
-            {
-                if (title != null) 
-                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = Pullenti.Ner.Instrument.InstrumentKind.Place, Value = dt });
-                if (doc != null && dt.Ref != null) 
-                {
-                    string geo = doc.GetStringValue(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO);
-                    if (geo == "Россия") 
-                    {
-                        doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, null, true, 0);
-                        geo = null;
-                    }
-                    if (geo == null) 
-                    {
-                        Pullenti.Ner.Slot ss = doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_GEO, dt.Ref.Referent.ToString(), false, 0);
-                        ss.AddAnnotation(dt);
-                    }
-                }
-            }
-            else if (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Owner || dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org) 
-            {
-                if (title != null) 
-                    title.Children.Add(new FragToken(dt.BeginToken, dt.EndToken) { Kind = (dt.Typ == Pullenti.Ner.Decree.Internal.DecreeToken.ItemType.Org ? Pullenti.Ner.Instrument.InstrumentKind.Organization : Pullenti.Ner.Instrument.InstrumentKind.Initiator), Value = dt });
-                if (doc != null) 
-                {
-                    if (dt.Ref != null) 
-                    {
-                        Pullenti.Ner.Slot ss = doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, dt.Ref.Referent, false, 0);
-                        ss.Tag = dt.GetSourceText();
-                        ss.AddAnnotation(dt);
-                        if (dt.Ref.Referent is Pullenti.Ner.Person.PersonPropertyReferent) 
-                            doc.AddExtReferent(dt.Ref);
-                    }
-                    else 
-                    {
-                        Pullenti.Ner.Slot ss = doc.AddSlot(Pullenti.Ner.Instrument.InstrumentReferent.ATTR_SOURCE, Pullenti.Ner.Core.MiscHelper.ConvertFirstCharUpperAndOtherLower(dt.Value), false, 0);
-                        ss.Tag = dt.GetSourceText();
-                        ss.AddAnnotation(dt);
-                    }
-                }
-            }
-            else 
-                return false;
-            return true;
         }
         static FragToken CreateTZTitle(Pullenti.Ner.Token t0, Pullenti.Ner.Instrument.InstrumentReferent doc)
         {

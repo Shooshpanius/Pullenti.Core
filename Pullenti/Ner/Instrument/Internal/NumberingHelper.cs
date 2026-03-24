@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -582,13 +582,15 @@ namespace Pullenti.Ner.Instrument.Internal
             if ((res.Numbers.Count == 0 && res.Typ == InstrToken1.Types.Line && res.BeginToken.IsChar('<')) && res.BeginToken.Next != null) 
             {
                 Pullenti.Ner.Token tt = res.BeginToken.Next;
-                if ((tt is Pullenti.Ner.NumberToken) && tt.Next != null && tt.Next.IsChar('>')) 
+                if (tt is Pullenti.Ner.NumberToken) 
                 {
-                    res.Typ = InstrToken1.Types.Footnote;
-                    res.Numbers.Add((tt as Pullenti.Ner.NumberToken).Value);
-                    res.NumBeginToken = tt.Previous;
-                    res.NumEndToken = tt.Next;
-                    res.EndToken = tt.Next;
+                    _parseNumber(tt, res, prev);
+                    if (res.NumEndToken.Next != null && res.NumEndToken.Next.IsChar('>')) 
+                    {
+                        res.Typ = InstrToken1.Types.Footnote;
+                        res.NumBeginToken = res.BeginToken;
+                        res.EndToken = (res.NumEndToken = res.NumEndToken.Next);
+                    }
                 }
                 else if (tt.IsChar('*')) 
                 {
@@ -683,7 +685,7 @@ namespace Pullenti.Ner.Instrument.Internal
                     {
                         if (ttt.Next.Next.IsCharOf(")>")) 
                             ok2 = true;
-                        else if ((ttt.Next.Next.IsChar('.') && (ttt.Next.Next.Next is Pullenti.Ner.NumberToken) && ttt.Next.Next.Next.Next != null) && ttt.Next.Next.Next.Next.IsCharOf(")>")) 
+                        else if ((ttt.Next.Next.IsCharOf(".-") && (ttt.Next.Next.Next is Pullenti.Ner.NumberToken) && ttt.Next.Next.Next.Next != null) && ttt.Next.Next.Next.Next.IsCharOf(")>")) 
                             ok3 = true;
                     }
                     if (ok1 || ok2 || ok3) 

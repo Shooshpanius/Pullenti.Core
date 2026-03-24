@@ -1,5 +1,5 @@
 ﻿/*
- * SDK Pullenti Lingvo, version 4.31, august 2025. Copyright (c) 2013-2025, Pullenti. All rights reserved. 
+ * SDK Pullenti Lingvo, version 4.33, fabruary 2026. Copyright (c) 2013-2026, Pullenti. All rights reserved. 
  * Non-Commercial Freeware and Commercial Software.
  * This class is generated using the converter Unisharping (www.unisharping.ru) from Pullenti C# project. 
  * The latest version of the code is available on the site www.pullenti.ru
@@ -26,10 +26,6 @@ namespace Pullenti.Ner.Decree
         /// </summary>
         public const string OBJ_TYPENAME = "DECREEPART";
         /// <summary>
-        /// Имя атрибута - наименование
-        /// </summary>
-        public const string ATTR_NAME = "NAME";
-        /// <summary>
         /// Имя атрибута - владелец (DecreeReferent)
         /// </summary>
         public const string ATTR_OWNER = "OWNER";
@@ -42,25 +38,53 @@ namespace Pullenti.Ner.Decree
         /// </summary>
         public const string ATTR_DOCPART = "DOCPART";
         /// <summary>
-        /// Имя атрибута - приложение
+        /// Имя атрибута - приложение (номер)
         /// </summary>
         public const string ATTR_APPENDIX = "APPENDIX";
         /// <summary>
-        /// Имя атрибута - раздел
+        /// Имя атрибута - приложение (название)
+        /// </summary>
+        public const string ATTR_APPENDIXNAME = "APPENDIXNAME";
+        /// <summary>
+        /// Имя атрибута - приложение к приложению (номер)
+        /// </summary>
+        public const string ATTR_APPENDIX2 = "APPENDIX2";
+        /// <summary>
+        /// Имя атрибута - приложение к приложению (название)
+        /// </summary>
+        public const string ATTR_APPENDIX2NAME = "APPENDIX2NAME";
+        /// <summary>
+        /// Имя атрибута - раздел (номер)
         /// </summary>
         public const string ATTR_SECTION = "SECTION";
         /// <summary>
-        /// Имя атрибута - подраздел
+        /// Имя атрибута - раздел (название)
+        /// </summary>
+        public const string ATTR_SECTIONNAME = "SECTIONNAME";
+        /// <summary>
+        /// Имя атрибута - подраздел (номер)
         /// </summary>
         public const string ATTR_SUBSECTION = "SUBSECTION";
         /// <summary>
-        /// Имя атрибута - глава
+        /// Имя атрибута - подраздел (название)
+        /// </summary>
+        public const string ATTR_SUBSECTIONNAME = "SUBSECTIONNAME";
+        /// <summary>
+        /// Имя атрибута - глава (номер)
         /// </summary>
         public const string ATTR_CHAPTER = "CHAPTER";
         /// <summary>
-        /// Имя атрибута - статья
+        /// Имя атрибута - глава (название)
+        /// </summary>
+        public const string ATTR_CHAPTERNAME = "CHAPTERNAME";
+        /// <summary>
+        /// Имя атрибута - статья (номер)
         /// </summary>
         public const string ATTR_CLAUSE = "CLAUSE";
+        /// <summary>
+        /// Имя атрибута - статья (название)
+        /// </summary>
+        public const string ATTR_CLAUSENAME = "CLAUSENAME";
         /// <summary>
         /// Имя атрибута - параграф
         /// </summary>
@@ -110,6 +134,10 @@ namespace Pullenti.Ner.Decree
         /// </summary>
         public const string ATTR_FORM = "FORM";
         /// <summary>
+        /// Имя атрибута - наименование формы
+        /// </summary>
+        public const string ATTR_FORMNAME = "FORMNAME";
+        /// <summary>
         /// Имя атрибута - лист
         /// </summary>
         public const string ATTR_LIST = "LIST";
@@ -117,6 +145,10 @@ namespace Pullenti.Ner.Decree
         /// Имя атрибута - таблица
         /// </summary>
         public const string ATTR_TABLE = "TABLE";
+        /// <summary>
+        /// Имя атрибута - наименование таблицы
+        /// </summary>
+        public const string ATTR_TABLENAME = "TABLENAME";
         /// <summary>
         /// Тия атрибута - столбец таблицы
         /// </summary>
@@ -130,6 +162,10 @@ namespace Pullenti.Ner.Decree
         /// </summary>
         public const string ATTR_TABLEITEM = "TABLEITEM";
         /// <summary>
+        /// Тия атрибута - прографка таблицы
+        /// </summary>
+        public const string ATTR_TABLESUBITEM = "TABLESUBITEM";
+        /// <summary>
         /// Имя атрибута - предложение
         /// </summary>
         public const string ATTR_SENTENCE = "SENTENCE";
@@ -142,36 +178,66 @@ namespace Pullenti.Ner.Decree
         /// </summary>
         public const string ATTR_SUBPROGRAM = "SUBPROGRAM";
         /// <summary>
+        /// Имя атрибута - имя подпрограммы
+        /// </summary>
+        public const string ATTR_SUBPROGRAMNAME = "SUBPROGRAMNAME";
+        /// <summary>
         /// Имя атрибута - дополнительное соглашение
         /// </summary>
         public const string ATTR_ADDAGREE = "ADDAGREE";
         /// <summary>
+        /// Это что-то непонятное
+        /// </summary>
+        public const string ATTR_FREETEXT = "FREETEXT";
+        /// <summary>
         /// Имя атрибута - страница
         /// </summary>
         public const string ATTR_PAGE = "PAGE";
+        /// <summary>
+        /// Имя атрибута - дополнительное описание
+        /// </summary>
+        public const string ATTR_DESCRIPTION = "DESCRIPTION";
         public override string ToStringEx(bool shortVariant, Pullenti.Morph.MorphLang lang = null, int lev = 0)
         {
             StringBuilder res = new StringBuilder();
+            if (Freetext != null) 
+                res.Append(Freetext);
             if (NameAsItem != null) 
                 res.Append(" наименование");
             if (Formula != null) 
                 res.AppendFormat(" формула {0}", Formula);
-            if (TableItem != null) 
-                res.AppendFormat(" графа {0}", TableItem);
-            if (TableRow != null) 
-                res.AppendFormat(" строка {0}", TableRow);
-            if (TableColumn != null) 
-                res.AppendFormat(" столбец {0}", TableColumn);
-            if (Table != null) 
-                res.AppendFormat(" таблица {0}", Table);
-            if (Footnote != null) 
-                res.AppendFormat(" сноска {0}", Footnote);
-            if (Sentence != null) 
-                res.AppendFormat(" предложение {0}", Sentence);
             if (SubIndention != null) 
                 res.AppendFormat(" подабз.{0}", SubIndention);
             if (Indention != null) 
                 res.AppendFormat(" абз.{0}", Indention);
+            if (Footnote != null) 
+                res.AppendFormat(" сноска {0}", Footnote);
+            if (TableSubItem != null) 
+                res.AppendFormat(" прографка \"{0}\"", TableSubItem);
+            if (TableItem != null) 
+            {
+                if (TableItem.Length > 5) 
+                    res.AppendFormat(" графа \"{0}\"", TableItem);
+                else 
+                    res.AppendFormat(" графа {0}", TableItem);
+            }
+            if (TableRow != null) 
+            {
+                if (TableRow.Length > 5) 
+                    res.AppendFormat(" строка \"{0}\"", TableRow);
+                else 
+                    res.AppendFormat(" строка {0}", TableRow);
+            }
+            if (TableColumn != null) 
+                res.AppendFormat(" столбец {0}", TableColumn);
+            if (Table != null) 
+            {
+                res.AppendFormat(" таблица {0}", Table);
+                if (TableName != null) 
+                    res.AppendFormat(" \"{0}\"", TableName);
+            }
+            if (Sentence != null) 
+                res.AppendFormat(" предложение {0}", Sentence);
             if (Notice != null) 
                 res.AppendFormat(" прим.{0}", Notice);
             List<string> subs = this.GetStringValues(ATTR_SUBITEM);
@@ -191,30 +257,71 @@ namespace Pullenti.Ner.Decree
             if (List != null) 
                 res.AppendFormat(" лист {0}", List);
             if (Form != null) 
+            {
                 res.AppendFormat(" форма {0}", Form);
+                if (FormName != null) 
+                    res.AppendFormat(" \"{0}\"", FormName);
+            }
             if (Page != null) 
                 res.AppendFormat(" стр.{0}", Page);
             if (Clause != null) 
+            {
                 res.AppendFormat(" ст.{0}", Clause);
+                if (ClauseName != null) 
+                    res.AppendFormat(" \"{0}\"", ClauseName);
+            }
             if (SubParagraph != null) 
                 res.AppendFormat(" подпар.{0}", SubParagraph);
             if (Paragraph != null) 
                 res.AppendFormat(" пар.{0}", Paragraph);
             if (Chapter != null) 
+            {
                 res.AppendFormat(" гл.{0}", Chapter);
+                if (ChapterName != null) 
+                    res.AppendFormat(" \"{0}\"", ChapterName);
+            }
             if (SubSection != null) 
+            {
                 res.AppendFormat(" подразд.{0}", SubSection);
+                if (SubSectionName != null) 
+                    res.AppendFormat(" \"{0}\"", SubSectionName);
+            }
             if (Section != null) 
+            {
                 res.AppendFormat(" разд.{0}", Section);
+                if (SectionName != null) 
+                    res.AppendFormat(" \"{0}\"", SectionName);
+            }
             if (DocPart != null) 
                 res.AppendFormat(" док.часть {0}", DocPart);
             string app = Appendix;
-            if (app == "0") 
-                res.Append(" приложение");
-            else if (app != null) 
-                res.AppendFormat(" приложение {0}", app);
+            string app2 = Appendix2;
+            if (app2 == null) 
+            {
+                if (app == "0") 
+                    res.Append(" приложение");
+                else if (app != null) 
+                    res.AppendFormat(" приложение {0}", app);
+                if (app != null && AppendixName != null) 
+                    res.AppendFormat(" \"{0}\"", AppendixName);
+            }
+            else 
+            {
+                if (app2 == "0") 
+                    res.Append(" приложение к");
+                else if (app2 != null) 
+                    res.AppendFormat(" приложение {0} к", app2);
+                if (app == "0") 
+                    res.Append(" приложению");
+                else if (app != null) 
+                    res.AppendFormat(" приложению {0}", app);
+            }
             if (Subprogram != null) 
-                res.AppendFormat(" подпрограмма \"{0}\"", Name ?? "?");
+            {
+                res.AppendFormat(" подпрограмма {0}", Subprogram);
+                if (SubprogramName != null) 
+                    res.AppendFormat(" \"{0}\"", SubprogramName);
+            }
             if (Addagree != null) 
             {
                 if (Addagree == "0") 
@@ -226,7 +333,7 @@ namespace Pullenti.Ner.Decree
             {
                 if (!shortVariant && Subprogram == null) 
                 {
-                    string s = this._getShortName();
+                    string s = Description;
                     if (s != null) 
                         res.AppendFormat(" ({0})", s);
                 }
@@ -242,42 +349,22 @@ namespace Pullenti.Ner.Decree
             return res.ToString().Trim();
         }
         /// <summary>
-        /// Наименование (если несколько, то самое короткое)
+        /// Дополнительное описание (обычно после в круглых скобках)
         /// </summary>
-        public string Name
+        public string Description
         {
             get
             {
-                string nam = null;
-                foreach (Pullenti.Ner.Slot s in Slots) 
-                {
-                    if (s.TypeName == ATTR_NAME) 
-                    {
-                        string n = s.Value.ToString();
-                        if (nam == null || nam.Length > n.Length) 
-                            nam = n;
-                    }
-                }
-                return nam;
+                return this.GetStringValue(ATTR_DESCRIPTION);
             }
-        }
-        string _getShortName()
-        {
-            string nam = Name;
-            if (nam == null) 
-                return null;
-            if (nam.Length > 100) 
+            set
             {
-                int i = 100;
-                for (; i < nam.Length; i++) 
-                {
-                    if (!char.IsLetter(nam[i])) 
-                        break;
-                }
-                if (i < nam.Length) 
-                    nam = nam.Substring(0, i) + "...";
+                if (value != null) 
+                    value = value.Trim();
+                if (string.IsNullOrEmpty(value)) 
+                    value = null;
+                this.AddSlot(ATTR_DESCRIPTION, value, true, 0);
             }
-            return Pullenti.Ner.Core.MiscHelper.ConvertFirstCharUpperAndOtherLower(nam);
         }
         /// <summary>
         /// Локальный тип (при ссылке на текущий документ)
@@ -307,7 +394,7 @@ namespace Pullenti.Ner.Decree
             return s;
         }
         /// <summary>
-        /// Статья
+        /// Статья (номер)
         /// </summary>
         public string Clause
         {
@@ -318,6 +405,20 @@ namespace Pullenti.Ner.Decree
             set
             {
                 this.AddSlot(ATTR_CLAUSE, value, true, 0);
+            }
+        }
+        /// <summary>
+        /// Наименование статьи
+        /// </summary>
+        public string ClauseName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_CLAUSENAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_CLAUSENAME, value, true, 0);
             }
         }
         /// <summary>
@@ -363,6 +464,20 @@ namespace Pullenti.Ner.Decree
             }
         }
         /// <summary>
+        /// Наименование раздела
+        /// </summary>
+        public string SectionName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_SECTIONNAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_SECTIONNAME, value, true, 0);
+            }
+        }
+        /// <summary>
         /// Подраздел
         /// </summary>
         public string SubSection
@@ -374,6 +489,20 @@ namespace Pullenti.Ner.Decree
             set
             {
                 this.AddSlot(ATTR_SUBSECTION, value, true, 0);
+            }
+        }
+        /// <summary>
+        /// Наименование подраздела
+        /// </summary>
+        public string SubSectionName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_SUBSECTIONNAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_SUBSECTIONNAME, value, true, 0);
             }
         }
         /// <summary>
@@ -393,6 +522,50 @@ namespace Pullenti.Ner.Decree
             }
         }
         /// <summary>
+        /// Наименование приложения
+        /// </summary>
+        public string AppendixName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_APPENDIXNAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_APPENDIXNAME, value, true, 0);
+            }
+        }
+        /// <summary>
+        /// Приложение к приложению
+        /// </summary>
+        public string Appendix2
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_APPENDIX2);
+            }
+            set
+            {
+                if (value != null && value.Length == 0) 
+                    value = "0";
+                this.AddSlot(ATTR_APPENDIX2, value, true, 0);
+            }
+        }
+        /// <summary>
+        /// Наименование приложения к приложению
+        /// </summary>
+        public string Appendix2Name
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_APPENDIX2NAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_APPENDIX2NAME, value, true, 0);
+            }
+        }
+        /// <summary>
         /// Глава
         /// </summary>
         public string Chapter
@@ -404,6 +577,20 @@ namespace Pullenti.Ner.Decree
             set
             {
                 this.AddSlot(ATTR_CHAPTER, value, true, 0);
+            }
+        }
+        /// <summary>
+        /// Наименование главы
+        /// </summary>
+        public string ChapterName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_CHAPTERNAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_CHAPTERNAME, value, true, 0);
             }
         }
         /// <summary>
@@ -519,6 +706,20 @@ namespace Pullenti.Ner.Decree
             }
         }
         /// <summary>
+        /// Что-то непонятное
+        /// </summary>
+        public string Freetext
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_FREETEXT);
+            }
+            set
+            {
+                this.AddSlot(ATTR_FREETEXT, value, true, 0);
+            }
+        }
+        /// <summary>
         /// Примечание
         /// </summary>
         public string Notice
@@ -583,6 +784,20 @@ namespace Pullenti.Ner.Decree
             }
         }
         /// <summary>
+        /// Наименование формы
+        /// </summary>
+        public string FormName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_FORMNAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_FORMNAME, value, true, 0);
+            }
+        }
+        /// <summary>
         /// Лист
         /// </summary>
         public string List
@@ -612,6 +827,20 @@ namespace Pullenti.Ner.Decree
                 if (value != null && value.Length == 0) 
                     value = "0";
                 this.AddSlot(ATTR_TABLE, value, true, 0);
+            }
+        }
+        /// <summary>
+        /// Наименование таблицы
+        /// </summary>
+        public string TableName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_TABLENAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_TABLENAME, value, true, 0);
             }
         }
         /// <summary>
@@ -663,6 +892,22 @@ namespace Pullenti.Ner.Decree
             }
         }
         /// <summary>
+        /// Прографка таблицы
+        /// </summary>
+        public string TableSubItem
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_TABLESUBITEM);
+            }
+            set
+            {
+                if (value != null && value.Length == 0) 
+                    value = "0";
+                this.AddSlot(ATTR_TABLESUBITEM, value, true, 0);
+            }
+        }
+        /// <summary>
         /// Предложение
         /// </summary>
         public string Sentence
@@ -707,6 +952,20 @@ namespace Pullenti.Ner.Decree
             }
         }
         /// <summary>
+        /// Наименование подпрограммы
+        /// </summary>
+        public string SubprogramName
+        {
+            get
+            {
+                return this.GetStringValue(ATTR_SUBPROGRAMNAME);
+            }
+            set
+            {
+                this.AddSlot(ATTR_SUBPROGRAMNAME, value, true, 0);
+            }
+        }
+        /// <summary>
         /// Дополнительное соглашение
         /// </summary>
         public string Addagree
@@ -746,15 +1005,6 @@ namespace Pullenti.Ner.Decree
                 return Owner;
             }
         }
-        internal void AddName(string name)
-        {
-            if (name == null || name.Length == 0) 
-                return;
-            if (name[name.Length - 1] == '.') 
-                name = name.Substring(0, name.Length - 1);
-            name = name.Trim().ToUpper();
-            this.AddSlot(ATTR_NAME, name, false, 0);
-        }
         public override void MergeSlots(Pullenti.Ner.Referent obj, bool mergeStatistic = true)
         {
             base.MergeSlots(obj, mergeStatistic);
@@ -767,13 +1017,17 @@ namespace Pullenti.Ner.Decree
                 return 0;
             if (typ == ATTR_DOCPART) 
                 return 1;
-            if (typ == ATTR_APPENDIX) 
+            if (typ == ATTR_APPENDIX || typ == ATTR_APPENDIXNAME) 
                 return 1;
-            if (typ == ATTR_SECTION) 
+            if (typ == ATTR_APPENDIX2 || typ == ATTR_APPENDIX2NAME) 
                 return 2;
-            if (typ == ATTR_SUBSECTION) 
+            if (typ == ATTR_SUBPROGRAM || typ == ATTR_SUBPROGRAMNAME) 
+                return 2;
+            if (typ == ATTR_SECTION || typ == ATTR_SECTIONNAME) 
+                return 2;
+            if (typ == ATTR_SUBSECTION || typ == ATTR_SUBSECTIONNAME) 
                 return 3;
-            if (typ == ATTR_CHAPTER) 
+            if (typ == ATTR_CHAPTER || typ == ATTR_CHAPTERNAME) 
                 return 4;
             if (typ == ATTR_PARAGRAPH) 
                 return 5;
@@ -783,9 +1037,9 @@ namespace Pullenti.Ner.Decree
                 return 6;
             if (typ == ATTR_CLAUSE) 
                 return 7;
-            if (typ == ATTR_FORM) 
+            if (typ == ATTR_FORM || typ == ATTR_FORMNAME) 
                 return 8;
-            if (typ == ATTR_TABLE) 
+            if (typ == ATTR_TABLE || typ == ATTR_TABLENAME) 
                 return 8;
             if (typ == ATTR_LIST) 
                 return 9;
@@ -801,6 +1055,8 @@ namespace Pullenti.Ner.Decree
                 return 11;
             if (typ == ATTR_TABLEITEM) 
                 return 11;
+            if (typ == ATTR_TABLESUBITEM) 
+                return 12;
             if (typ == ATTR_SUBITEM) 
                 return 12;
             if (typ == ATTR_INDENTION) 
@@ -817,6 +1073,8 @@ namespace Pullenti.Ner.Decree
                 return 17;
             if (typ == ATTR_NAMEASITEM) 
                 return 18;
+            if (typ == ATTR_FREETEXT) 
+                return 19;
             return -1;
         }
         bool _hasLessLevelAttr(string typ)
@@ -832,11 +1090,46 @@ namespace Pullenti.Ner.Decree
             }
             return false;
         }
+        internal void AddName(Pullenti.Ner.Decree.Internal.PartToken p, Pullenti.Ner.MetaToken val = null)
+        {
+            if (p == null || ((p.Name == null && val == null))) 
+                return;
+            string typ = null;
+            string typ1 = null;
+            if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Appendix) 
+                typ = ATTR_APPENDIXNAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Appendix2) 
+                typ = ATTR_APPENDIX2NAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Section) 
+                typ = ATTR_SECTIONNAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.SubSection) 
+                typ = ATTR_SUBSECTIONNAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Subprogram) 
+                typ = ATTR_SUBPROGRAMNAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Chapter) 
+                typ = ATTR_CHAPTERNAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Clause) 
+                typ = ATTR_CLAUSENAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Form) 
+                typ = ATTR_FORMNAME;
+            else if (p.Typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Table) 
+                typ = ATTR_TABLENAME;
+            else 
+                return;
+            if (val == null) 
+                val = p.Name;
+            string nam = Pullenti.Ner.Core.MiscHelper.GetTextValueOfMetaToken(val, Pullenti.Ner.Core.GetTextAttr.FirstNounGroupToNominative);
+            Pullenti.Ner.Slot s = this.AddSlot(typ, nam, true, 0);
+            if (val != null) 
+                s.Tag = val.GetSourceText();
+            if (p.Values.Count == 0) 
+                this.AddSlot(typ.Substring(0, typ.Length - 4), "0", true, 0);
+        }
         internal void AddNamedLevelInfo(DecreePartReferent dp)
         {
             foreach (Pullenti.Ner.Slot s in dp.Slots) 
             {
-                if (this._getLevel(s.TypeName) > 7) 
+                if (this._getLevel(s.TypeName) > 7 || s.TypeName == ATTR_DOCPART) 
                 {
                 }
                 else 
@@ -861,13 +1154,29 @@ namespace Pullenti.Ner.Decree
             if (dp.Appendix != null && Appendix == null) 
             {
                 this._addSlot(dp, ATTR_APPENDIX);
-                string nam = dp.GetStringValue("APP_NAME");
-                if (nam == null && dp.Slots.Count == 3) 
-                    nam = dp.Name;
-                if (nam != null) 
-                    this.AddSlot("APP_NAME", nam, false, 0);
+                this._addSlot(dp, ATTR_APPENDIXNAME);
             }
             else if (Appendix != dp.Appendix) 
+                return;
+            else if (Appendix == "0" && AppendixName != dp.AppendixName) 
+                return;
+            if (dp.Appendix2 != null && Appendix2 == null) 
+            {
+                this._addSlot(dp, ATTR_APPENDIX2);
+                this._addSlot(dp, ATTR_APPENDIX2NAME);
+            }
+            else if (Appendix2 != dp.Appendix2) 
+                return;
+            else if (Appendix2 == "0" && Appendix2Name != dp.Appendix2Name) 
+                return;
+            if (dp.Subprogram != null && Subprogram == null) 
+            {
+                this._addSlot(dp, ATTR_SUBPROGRAM);
+                this._addSlot(dp, ATTR_SUBPROGRAMNAME);
+            }
+            else if (Subprogram != dp.Subprogram) 
+                return;
+            if (SubprogramName != dp.SubprogramName) 
                 return;
             if (dp.DocPart != null && DocPart == null) 
                 this._addSlot(dp, ATTR_DOCPART);
@@ -879,21 +1188,29 @@ namespace Pullenti.Ner.Decree
             if (dp.Section != null && Section == null && this._hasLessLevelAttr(ATTR_SECTION)) 
             {
                 this._addSlot(dp, ATTR_SECTION);
-                string nam = dp.GetStringValue("SECTION_NAME");
-                if (nam == null && dp.Slots.Count == 3) 
-                    nam = dp.Name;
-                if (nam != null) 
-                    this.AddSlot("SECTION_NAME", nam, false, 0);
+                this._addSlot(dp, ATTR_SECTIONNAME);
             }
             else if (Section != dp.Section) 
                 return;
+            else if (Section == "0" && SectionName != dp.SectionName) 
+                return;
             if (dp.SubSection != null && SubSection == null && this._hasLessLevelAttr(ATTR_SUBSECTION)) 
+            {
                 this._addSlot(dp, ATTR_SUBSECTION);
+                this._addSlot(dp, ATTR_SUBSECTIONNAME);
+            }
             else if (SubSection != dp.SubSection) 
                 return;
+            else if (SubSection == "0" && SubSectionName != dp.SubSectionName) 
+                return;
             if (dp.Chapter != null && Chapter == null && this._hasLessLevelAttr(ATTR_CHAPTER)) 
+            {
                 this._addSlot(dp, ATTR_CHAPTER);
+                this._addSlot(dp, ATTR_CHAPTERNAME);
+            }
             else if (dp.Chapter != Chapter) 
+                return;
+            else if (dp.Chapter == "0" && dp.ChapterName != ChapterName) 
                 return;
             if (dp.Paragraph != null && Paragraph == null && this._hasLessLevelAttr(ATTR_PARAGRAPH)) 
                 this._addSlot(dp, ATTR_PARAGRAPH);
@@ -912,26 +1229,40 @@ namespace Pullenti.Ner.Decree
             else if (dp.Part != Part) 
                 return;
             if (dp.Form != null && Form == null && this._hasLessLevelAttr(ATTR_FORM)) 
+            {
                 this._addSlot(dp, ATTR_FORM);
+                this._addSlot(dp, ATTR_FORMNAME);
+            }
             if (dp.Table != null && Table == null && this._hasLessLevelAttr(ATTR_TABLE)) 
+            {
                 this._addSlot(dp, ATTR_TABLE);
+                this._addSlot(dp, ATTR_TABLENAME);
+            }
             if (dp.List != null && List == null && this._hasLessLevelAttr(ATTR_LIST)) 
                 this._addSlot(dp, ATTR_LIST);
             if (dp.Item != null && Item == null && this._hasLessLevelAttr(ATTR_ITEM)) 
-            {
-                if (SubItem != null && SubItem.IndexOf('.') > 0 && SubItem.StartsWith(dp.Item + ".")) 
-                {
-                }
-                else 
-                    this._addSlot(dp, ATTR_ITEM);
-            }
+                this._addSlot(dp, ATTR_ITEM);
             else if (dp.Item != Item) 
-                return;
-            if (dp.TableRow != null && TableRow == null && this._hasLessLevelAttr(ATTR_TABLEROW)) 
+            {
+                if ((dp.TableItem != null && dp.Item == null && TableRow == null) && Item != null) 
+                {
+                    TableRow = Item;
+                    Item = null;
+                }
+                else if ((dp.Item != null && Item == null && TableRow == null) && ((dp.TableItem != null || TableItem != null))) 
+                    TableRow = dp.Item;
+                else 
+                    return;
+            }
+            if (dp.TableRow != null && TableRow == null && ((this._hasLessLevelAttr(ATTR_TABLEROW) || TableItem != null))) 
                 this._addSlot(dp, ATTR_TABLEROW);
             if (dp.SubItem != null && SubItem == null && this._hasLessLevelAttr(ATTR_SUBITEM)) 
                 this._addSlot(dp, ATTR_SUBITEM);
             else if (dp.SubItem != SubItem) 
+                return;
+            if (dp.Notice != null && Notice == null && this._hasLessLevelAttr(ATTR_NOTICE)) 
+                this._addSlot(dp, ATTR_NOTICE);
+            else if (dp.Notice != Notice) 
                 return;
             if (dp.Preamble != null && Preamble == null) 
                 this._addSlot(dp, ATTR_PREAMBLE);
@@ -939,8 +1270,10 @@ namespace Pullenti.Ner.Decree
                 this._addSlot(dp, ATTR_INDENTION);
             if (dp.TableColumn != null && TableColumn == null && this._hasLessLevelAttr(ATTR_TABLECOLUMN)) 
                 this._addSlot(dp, ATTR_TABLECOLUMN);
-            if (dp.TableItem != null && TableItem == null && this._hasLessLevelAttr(ATTR_TABLEITEM)) 
+            if (dp.TableItem != null && TableItem == null && ((this._hasLessLevelAttr(ATTR_TABLEITEM) || TableRow != null || Item != null))) 
                 this._addSlot(dp, ATTR_TABLEITEM);
+            if (dp.TableSubItem != null && TableSubItem == null && ((this._hasLessLevelAttr(ATTR_TABLESUBITEM) || TableRow != null || Item != null))) 
+                this._addSlot(dp, ATTR_TABLESUBITEM);
         }
         // Проверить, что все элементы находятся на более низком уровне, чем у аргумента
         internal bool IsAllItemsLessLevel(Pullenti.Ner.Referent upperParts, bool ignoreEquals)
@@ -993,11 +1326,16 @@ namespace Pullenti.Ner.Decree
             {
                 int l = this._getLevel(Slots[i].TypeName);
                 if (l >= l0) 
-                    Slots.RemoveAt(i);
-                else if (l0 == 1 && Slots[i].TypeName == "APP_NAME") 
-                    Slots.RemoveAt(i);
-                else if (l0 <= 2 && Slots[i].TypeName == "SECTION_NAME") 
-                    Slots.RemoveAt(i);
+                {
+                    if (((typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.TableItem || typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.TableSubItem)) && ((Slots[i].TypeName == "TABLEROW" || Slots[i].TypeName == "ITEM"))) 
+                    {
+                    }
+                    else if (((typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.TableRow || typ == Pullenti.Ner.Decree.Internal.PartToken.ItemType.Item)) && Slots[i].TypeName == "TABLEITEM") 
+                    {
+                    }
+                    else 
+                        Slots.RemoveAt(i);
+                }
             }
         }
         internal bool IsAllItemsOverThisLevel(Pullenti.Ner.Decree.Internal.PartToken.ItemType typ)
@@ -1073,6 +1411,8 @@ namespace Pullenti.Ner.Decree
                 else 
                     return false;
             }
+            else if (Clause == "0" && ClauseName != dr.ClauseName) 
+                return false;
             if (Part != dr.Part) 
             {
                 if (typ == Pullenti.Ner.Core.ReferentsEqualType.ForMerging && ((Part == null || dr.Part == null))) 
@@ -1107,6 +1447,8 @@ namespace Pullenti.Ner.Decree
                 else 
                     return false;
             }
+            if (Freetext != dr.Freetext) 
+                return false;
             if (SubItem != dr.SubItem) 
             {
                 if (typ == Pullenti.Ner.Core.ReferentsEqualType.ForMerging && ((SubItem == null || dr.SubItem == null))) 
@@ -1139,6 +1481,8 @@ namespace Pullenti.Ner.Decree
                 else 
                     return false;
             }
+            if (Form == "0" && FormName != dr.FormName) 
+                return false;
             if (List != dr.List) 
             {
                 if (typ == Pullenti.Ner.Core.ReferentsEqualType.ForMerging && ((List == null || dr.List == null))) 
@@ -1155,6 +1499,8 @@ namespace Pullenti.Ner.Decree
                 else 
                     return false;
             }
+            if (Table == "0" && TableName != dr.TableName) 
+                return false;
             if (TableColumn != dr.TableColumn) 
             {
                 if (typ == Pullenti.Ner.Core.ReferentsEqualType.ForMerging && ((TableColumn == null || dr.TableColumn == null))) 
@@ -1174,6 +1520,14 @@ namespace Pullenti.Ner.Decree
             if (TableItem != dr.TableItem) 
             {
                 if (typ == Pullenti.Ner.Core.ReferentsEqualType.ForMerging && ((TableItem == null || dr.TableItem == null))) 
+                {
+                }
+                else 
+                    return false;
+            }
+            if (TableSubItem != dr.TableSubItem) 
+            {
+                if (typ == Pullenti.Ner.Core.ReferentsEqualType.ForMerging && ((TableSubItem == null || dr.TableSubItem == null))) 
                 {
                 }
                 else 
@@ -1220,6 +1574,19 @@ namespace Pullenti.Ner.Decree
                 if (typ != Pullenti.Ner.Core.ReferentsEqualType.ForMerging) 
                     return false;
             }
+            if (AppendixName != dr.AppendixName && AppendixName != null && dr.AppendixName != null) 
+                return false;
+            if (Appendix2 != dr.Appendix2) 
+            {
+                if (Appendix2 != null && dr.Appendix2 != null) 
+                    return false;
+                if (Clause == null && Paragraph == null && Item == null) 
+                    return false;
+                if (typ != Pullenti.Ner.Core.ReferentsEqualType.ForMerging) 
+                    return false;
+            }
+            if (Appendix2Name != dr.Appendix2Name) 
+                return false;
             if (Chapter != dr.Chapter) 
             {
                 if (Chapter != null && dr.Chapter != null) 
@@ -1229,6 +1596,8 @@ namespace Pullenti.Ner.Decree
                 if (typ != Pullenti.Ner.Core.ReferentsEqualType.ForMerging) 
                     return false;
             }
+            if (Chapter == "0" && ChapterName != dr.ChapterName) 
+                return false;
             if (Section != dr.Section) 
             {
                 if (Section != null && dr.Section != null) 
@@ -1238,6 +1607,8 @@ namespace Pullenti.Ner.Decree
                 if (typ != Pullenti.Ner.Core.ReferentsEqualType.ForMerging) 
                     return false;
             }
+            if (Section == "0" && SectionName != dr.SectionName) 
+                return false;
             if (SubSection != dr.SubSection) 
             {
                 if (SubSection != null && dr.SubSection != null) 
@@ -1247,9 +1618,13 @@ namespace Pullenti.Ner.Decree
                 if (typ != Pullenti.Ner.Core.ReferentsEqualType.ForMerging) 
                     return false;
             }
+            if (SubSection == "0" && SubSectionName != dr.SubSectionName) 
+                return false;
             if (Subprogram != null || dr.Subprogram != null) 
             {
-                if (Name != dr.Name) 
+                if (Subprogram != dr.Subprogram) 
+                    return false;
+                if (SubprogramName != dr.SubprogramName) 
                     return false;
                 return true;
             }
@@ -1268,11 +1643,6 @@ namespace Pullenti.Ner.Decree
             }
             if (Page != dr.Page) 
                 return false;
-            if ((Name != null && dr.Name != null && (Slots.Count < 4)) && (dr.Slots.Count < 4)) 
-            {
-                if (Name != dr.Name) 
-                    return false;
-            }
             return true;
         }
         public static DecreePartReferent CreateRangeReferent(DecreePartReferent min, DecreePartReferent max)
