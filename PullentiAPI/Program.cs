@@ -50,6 +50,8 @@ builder.Services.AddScoped<IUserService, UserService>(); // Register your user s
 
 var app = builder.Build();
 
+Pullenti.Sdk.InitializeAll();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
