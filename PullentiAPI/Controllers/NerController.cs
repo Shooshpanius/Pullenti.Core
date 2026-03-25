@@ -26,10 +26,9 @@ namespace PullentiAPI.Controllers
         [HttpPost("getNer")]
         [Authorize(AuthenticationSchemes = "BasicAuthentication")]
 
-        public string getNerPOST([FromBody] RequestData requestData)
+        public async Task<string> getNerPOST([FromBody] RequestData requestData)
         {
-            Task<string> nerAsync = getNerAsync(requestData.text);
-            return nerAsync.Result;
+            return await getNerAsync(requestData.text);
         }
 
 
