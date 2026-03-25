@@ -240,9 +240,123 @@ echo -n "admin:secret123" | base64
 ```json
 [
   {
-    // Морфологические характеристики токена (структура определяется Pullenti.Core)
+    "BeginChar": 0,
+    "EndChar": 5,
+    "Term": "МОСКВА",
+    "Tag": null,
+    "WordForms": [
+      {
+        "NormalFull": null,
+        "NormalCase": "МОСКВА",
+        "Misc": { "Value": 0, "Id": 1, "Attrs": [], "Person": 0, "Tense": 0, "Aspect": 0, "Mood": 0, "Voice": 0, "Form": 0, "IsSynonymForm": false },
+        "UndefCoef": 0,
+        "Tag": null,
+        "IsInDictionary": true,
+        "Class": { "Value": 4352, "IsUndefined": false, "IsNoun": false, "IsAdjective": false, "IsVerb": false, "IsAdverb": false, "IsPronoun": false, "IsMisc": false, "IsPreposition": false, "IsConjunction": false, "IsProper": true, "IsProperSurname": false, "IsProperName": false, "IsProperSecname": false, "IsProperGeo": true, "IsPersonalPronoun": false },
+        "Gender": 2,
+        "Number": 1,
+        "Case": { "Value": 1, "IsUndefined": false, "Count": 1, "IsNominative": true, "IsGenitive": false, "IsDative": false, "IsAccusative": false, "IsInstrumental": false, "IsPrepositional": false, "IsVocative": false, "IsPartial": false, "IsCommon": false, "IsPossessive": false },
+        "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
+      }
+    ],
+    "CharInfo": { "Value": 84, "IsAllUpper": false, "IsAllLower": false, "IsCapitalUpper": true, "IsLastLower": false, "IsLetter": true, "IsLatinLetter": false, "IsCyrillicLetter": true },
+    "Length": 6,
+    "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
   },
-  ...
+  {
+    "BeginChar": 7,
+    "EndChar": 7,
+    "Term": "—",
+    "Tag": null,
+    "WordForms": [],
+    "CharInfo": { "Value": 0, "IsAllUpper": false, "IsAllLower": false, "IsCapitalUpper": false, "IsLastLower": false, "IsLetter": false, "IsLatinLetter": false, "IsCyrillicLetter": false },
+    "Length": 1,
+    "Language": { "Value": 0, "IsUndefined": true, "IsRu": false, "IsUa": false, "IsBy": false, "IsCyrillic": false, "IsEn": false, "IsIt": false, "IsKz": false }
+  },
+  {
+    "BeginChar": 9,
+    "EndChar": 15,
+    "Term": "СТОЛИЦА",
+    "Tag": null,
+    "WordForms": [
+      {
+        "NormalFull": "СТОЛИЦА",
+        "NormalCase": "СТОЛИЦА",
+        "Misc": { "Value": 0, "Id": 1, "Attrs": [], "Person": 0, "Tense": 0, "Aspect": 0, "Mood": 0, "Voice": 0, "Form": 0, "IsSynonymForm": false },
+        "UndefCoef": 0,
+        "Tag": null,
+        "IsInDictionary": true,
+        "Class": { "Value": 1, "IsUndefined": false, "IsNoun": true, "IsAdjective": false, "IsVerb": false, "IsAdverb": false, "IsPronoun": false, "IsMisc": false, "IsPreposition": false, "IsConjunction": false, "IsProper": false, "IsProperSurname": false, "IsProperName": false, "IsProperSecname": false, "IsProperGeo": false, "IsPersonalPronoun": false },
+        "Gender": 2,
+        "Number": 1,
+        "Case": { "Value": 1, "IsUndefined": false, "Count": 1, "IsNominative": true, "IsGenitive": false, "IsDative": false, "IsAccusative": false, "IsInstrumental": false, "IsPrepositional": false, "IsVocative": false, "IsPartial": false, "IsCommon": false, "IsPossessive": false },
+        "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
+      }
+    ],
+    "CharInfo": { "Value": 82, "IsAllUpper": false, "IsAllLower": true, "IsCapitalUpper": false, "IsLastLower": false, "IsLetter": true, "IsLatinLetter": false, "IsCyrillicLetter": true },
+    "Length": 7,
+    "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
+  },
+  {
+    "BeginChar": 17,
+    "EndChar": 22,
+    "Term": "РОССИИ",
+    "Tag": null,
+    "WordForms": [
+      {
+        "NormalFull": "РОССИЯ",
+        "NormalCase": "РОССИЯ",
+        "Misc": { "Value": 0, "Id": 1, "Attrs": [], "Person": 0, "Tense": 0, "Aspect": 0, "Mood": 0, "Voice": 0, "Form": 0, "IsSynonymForm": false },
+        "UndefCoef": 0,
+        "Tag": null,
+        "IsInDictionary": true,
+        "Class": { "Value": 1, "IsUndefined": false, "IsNoun": true, "IsAdjective": false, "IsVerb": false, "IsAdverb": false, "IsPronoun": false, "IsMisc": false, "IsPreposition": false, "IsConjunction": false, "IsProper": false, "IsProperSurname": false, "IsProperName": false, "IsProperSecname": false, "IsProperGeo": false, "IsPersonalPronoun": false },
+        "Gender": 2,
+        "Number": 1,
+        "Case": { "Value": 38, "IsUndefined": false, "Count": 3, "IsNominative": false, "IsGenitive": true, "IsDative": true, "IsAccusative": false, "IsInstrumental": false, "IsPrepositional": true, "IsVocative": false, "IsPartial": false, "IsCommon": false, "IsPossessive": false },
+        "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
+      },
+      {
+        "NormalFull": "РОССИЯ",
+        "NormalCase": "РОССИИ",
+        "Misc": { "Value": 0, "Id": 1, "Attrs": [], "Person": 0, "Tense": 0, "Aspect": 0, "Mood": 0, "Voice": 0, "Form": 0, "IsSynonymForm": false },
+        "UndefCoef": 0,
+        "Tag": null,
+        "IsInDictionary": true,
+        "Class": { "Value": 1, "IsUndefined": false, "IsNoun": true, "IsAdjective": false, "IsVerb": false, "IsAdverb": false, "IsPronoun": false, "IsMisc": false, "IsPreposition": false, "IsConjunction": false, "IsProper": false, "IsProperSurname": false, "IsProperName": false, "IsProperSecname": false, "IsProperGeo": false, "IsPersonalPronoun": false },
+        "Gender": 2,
+        "Number": 2,
+        "Case": { "Value": 9, "IsUndefined": false, "Count": 2, "IsNominative": true, "IsGenitive": false, "IsDative": false, "IsAccusative": true, "IsInstrumental": false, "IsPrepositional": false, "IsVocative": false, "IsPartial": false, "IsCommon": false, "IsPossessive": false },
+        "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
+      },
+      {
+        "NormalFull": null,
+        "NormalCase": "РОССИЯ",
+        "Misc": { "Value": 0, "Id": 1, "Attrs": [], "Person": 0, "Tense": 0, "Aspect": 0, "Mood": 0, "Voice": 0, "Form": 0, "IsSynonymForm": false },
+        "UndefCoef": 0,
+        "Tag": null,
+        "IsInDictionary": true,
+        "Class": { "Value": 4352, "IsUndefined": false, "IsNoun": false, "IsAdjective": false, "IsVerb": false, "IsAdverb": false, "IsPronoun": false, "IsMisc": false, "IsPreposition": false, "IsConjunction": false, "IsProper": true, "IsProperSurname": false, "IsProperName": false, "IsProperSecname": false, "IsProperGeo": true, "IsPersonalPronoun": false },
+        "Gender": 2,
+        "Number": 1,
+        "Case": { "Value": 38, "IsUndefined": false, "Count": 3, "IsNominative": false, "IsGenitive": true, "IsDative": true, "IsAccusative": false, "IsInstrumental": false, "IsPrepositional": true, "IsVocative": false, "IsPartial": false, "IsCommon": false, "IsPossessive": false },
+        "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
+      }
+    ],
+    "CharInfo": { "Value": 84, "IsAllUpper": false, "IsAllLower": false, "IsCapitalUpper": true, "IsLastLower": false, "IsLetter": true, "IsLatinLetter": false, "IsCyrillicLetter": true },
+    "Length": 6,
+    "Language": { "Value": 1, "IsUndefined": false, "IsRu": true, "IsUa": false, "IsBy": false, "IsCyrillic": true, "IsEn": false, "IsIt": false, "IsKz": false }
+  },
+  {
+    "BeginChar": 23,
+    "EndChar": 23,
+    "Term": ".",
+    "Tag": null,
+    "WordForms": [],
+    "CharInfo": { "Value": 0, "IsAllUpper": false, "IsAllLower": false, "IsCapitalUpper": false, "IsLastLower": false, "IsLetter": false, "IsLatinLetter": false, "IsCyrillicLetter": false },
+    "Length": 1,
+    "Language": { "Value": 0, "IsUndefined": true, "IsRu": false, "IsUa": false, "IsBy": false, "IsCyrillic": false, "IsEn": false, "IsIt": false, "IsKz": false }
+  }
 ]
 ```
 
