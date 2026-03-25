@@ -38,8 +38,6 @@ namespace PullentiAPI.Controllers
 
         private async Task<string> getNerAsync(string text)
         {
-            Pullenti.Sdk.InitializeAll();
-
             Processor processor = ProcessorService.CreateProcessor();
 
             List<MorphToken> nerResult = MorphologyService.Process(text);
